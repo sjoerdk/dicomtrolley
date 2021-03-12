@@ -6,9 +6,6 @@
 import pytest
 
 
-from dicomtrolley import dicomtrolley
-
-
 @pytest.fixture
 def response():
     """Sample pytest fixture.
@@ -26,5 +23,5 @@ def test_content(response):
 
 
 def test_shared_fixture(shared_fixture):
-    """This is loaded from tests/conftest.py"""
-    assert shared_fixture == 'A shared value'
+    """Loaded from tests/conftest.py"""
+    assert shared_fixture == "A shared value"
