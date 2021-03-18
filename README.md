@@ -9,4 +9,17 @@ Retrieve medical images using DICOM WADO and MINT.
 Requires python 3.7, 3.8 or 3.9
 Represents images as `pydicom` Datasets.
 
+![A trolley](docs/resources/trolley.png)
+
 ## Usage
+```
+from import dicomtrolley import Trolley
+
+trolley = Trolley(url='https://server/login',
+                  user='user',
+                  password='pass',
+                  realm='realm')
+
+trolley.download_study(study_uid='1234', path='/tmp/study1234')
+```
+

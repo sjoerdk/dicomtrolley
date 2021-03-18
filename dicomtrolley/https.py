@@ -3,25 +3,7 @@ import requests
 from dicomtrolley.exceptions import DICOMTrolleyException
 
 
-class VNALogin:
-    """A login procedure for a VNA"""
-
-    def get_session(self, *args, **kwargs):
-        """
-        Returns
-        -------
-        requests.Session
-            A logged in session on the VNA
-
-        Raises
-        ------
-        DICOMTrolleyException
-            If login fails for some reason
-        """
-        pass
-
-
-class VitreaConnectionLogin(VNALogin):
+class VitreaConnectionLogin:
     """Login for Vitrea Connection 8.2.0.1"""
 
     def __init__(self, url):
