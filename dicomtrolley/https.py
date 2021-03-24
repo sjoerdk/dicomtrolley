@@ -1,5 +1,7 @@
 """Models https layer interaction, login, session handling"""
+
 import requests
+
 from dicomtrolley.exceptions import DICOMTrolleyException
 
 

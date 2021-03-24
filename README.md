@@ -23,3 +23,9 @@ trolley = Trolley(url='https://server/login',
 trolley.download_study(study_uid='1234', path='/tmp/study1234')
 ```
 
+## Caveats
+Dicomtrolley has been developed for and tested on a Vitrea Connection 8.2.0.1 system. This claims to
+be consistent with WADO and MINT 1.2 interfaces, but does not implement all parts of these standards. 
+
+Certain query parameter values and restraints might be specific to Vitrea Connection 8.2.0.1. For example,
+the exact list of DICOM elements that can be returned from a query might be different for different servers.

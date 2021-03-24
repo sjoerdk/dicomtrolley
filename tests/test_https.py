@@ -1,7 +1,7 @@
 import pytest
+
 from dicomtrolley.exceptions import DICOMTrolleyException
 from dicomtrolley.https import VitreaConnectionLogin
-
 from tests.mockresponses import MockUrls
 
 
@@ -17,7 +17,7 @@ def test_login(a_login, login_works):
 
 
 def test_login_fails(a_login, login_denied):
-    """Just check that nothing crashes"""
+    """Check that correct exception is raised"""
     with pytest.raises(DICOMTrolleyException) as e:
         a_login.get_session(user="test", password="test", realm="test")
     assert "Unauthorized" in str(e)
