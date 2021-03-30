@@ -2,7 +2,6 @@ from datetime import date, datetime
 from xml.etree.ElementTree import Element
 
 import pytest
-import requests
 
 from dicomtrolley.mint import (
     Mint,
@@ -16,25 +15,19 @@ from tests.mockresponses import MockUrls
 
 
 @pytest.fixture
-def a_session(requests_mock):
-    """Calling requests_mock fixture here will mock all calls to requests"""
-    return requests.session()
-
-
-@pytest.fixture
 def a_mint(a_session):
     return Mint(session=a_session, url=MockUrls.MINT_URL)
 
 
 def test_search_study_level(a_mint, mock_mint_responses):
     """Default query level receives info in study only"""
-    response = a_mint.search(query=Query(patientName="B*"))
-    assert response[2].series == []
+    response = a_mint.find_studies(query=Query(patientName="B*"))
+    assert response[2].series == ()
 
 
 def test_search_series_level(a_mint, mock_mint_responses):
     """Series query level will populate studies with series"""
-    response = a_mint.search(
+    response = a_mint.find_studies(
         query=Query(patientName="B*", queryLevel=QueryLevels.SERIES)
     )
     assert len(response[1].series) == 2
@@ -42,7 +35,7 @@ def test_search_series_level(a_mint, mock_mint_responses):
 
 def test_search_instance_level(a_mint, mock_mint_responses):
     """Instance query level returns series per study and also instances per study"""
-    response = a_mint.search(
+    response = a_mint.find_studies(
         query=Query(patientName="B*", queryLevel=QueryLevels.INSTANCE)
     )
     assert len(response[0].series[1].instances) == 13
@@ -51,8 +44,12 @@ def test_search_instance_level(a_mint, mock_mint_responses):
 @pytest.mark.parametrize(
     "query_params",
     (
-        {"minStudyDate": datetime(year=2020, month=3, day=1)},  # forgot maxStudyDate
-        {"maxStudyDate": datetime(year=2020, month=3, day=1)},  # forgot minStudyDate
+        {
+            "minStudyDate": datetime(year=2020, month=3, day=1)
+        },  # forgot maxStudyDate
+        {
+            "maxStudyDate": datetime(year=2020, month=3, day=1)
+        },  # forgot minStudyDate
         {
             "minStudyDate": datetime(year=2020, month=3, day=1),
             "maxStudyDate": "not a date object",
@@ -104,7 +101,17 @@ def test_parse_attribs_empty_val():
     """Empty dicom tags can be returned without value. This should be OK"""
     series = Element(MintSeries.xml_element)
     series.append(
-        Element(MintAttribute.xml_element, attrib={"tag": "PatientID", "vr": "PN"})
+        Element(
+            MintAttribute.xml_element, attrib={"tag": "PatientID", "vr": "PN"}
+        )
     )
 
     assert parse_attribs(element=series).PatientID == ""
+
+
+def test_study_instance_iterator(
+    a_study_with_instances, a_study_without_instances
+):
+
+    assert len([x for x in a_study_with_instances.all_instances()]) == 14
+    assert len([x for x in a_study_without_instances.all_instances()]) == 0

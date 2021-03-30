@@ -7,7 +7,7 @@ manual. These list might be different for different servers and vendors
 """
 
 
-class InstanceLevelFields:
+class InstanceLevel:
     """attributes can be returned if queryLevel=INSTANCE"""
 
     fields = {

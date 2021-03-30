@@ -1,8 +1,12 @@
 [tool.poetry]
 name = "dicomtrolley"
-version = "0.1.1"
+version = "0.2.0"
 description = "Retrieve medical images via DICOM-QR and DICOMweb"
 authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
+
+[tool.black]
+line-length = 79
+target-version = ['py38']
 
 [tool.poetry.dependencies]
 python = "^3.7"

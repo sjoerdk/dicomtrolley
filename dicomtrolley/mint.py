@@ -3,7 +3,15 @@ See:
 https://code.google.com/archive/p/medical-imaging-network-transport/downloads
 """
 import datetime
-from typing import ClassVar, List, Optional, Set
+from itertools import chain
+from typing import (
+    Any,
+    ClassVar,
+    List,
+    Optional,
+    Set,
+    Tuple,
+)
 from xml.etree import ElementTree
 
 from pydantic.class_validators import validator
@@ -12,8 +20,9 @@ from pydantic.main import BaseModel
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
+from dicomtrolley.exceptions import DICOMTrolleyException
 from dicomtrolley.include_fields import (
-    InstanceLevelFields,
+    InstanceLevel,
     SeriesLevel,
     SeriesLevelPromotable,
     StudyLevel,
@@ -104,13 +113,17 @@ class Query(BaseModel):
         parameters = {x: y for x, y in self.dict().items() if y}
 
         if "minStudyDate" in parameters:
-            parameters["minStudyDate"] = self.date_to_iso(parameters["minStudyDate"])
-        if "maxStudyDate" in parameters:
-            parameters["maxStudyDate"] = self.date_to_iso(parameters["maxStudyDate"])
-        if "patientBirthDate" in parameters:
-            parameters["patientBirthDate"] = parameters["patientBirthDate"].strftime(
-                "%Y%m%d"
+            parameters["minStudyDate"] = self.date_to_iso(
+                parameters["minStudyDate"]
             )
+        if "maxStudyDate" in parameters:
+            parameters["maxStudyDate"] = self.date_to_iso(
+                parameters["maxStudyDate"]
+            )
+        if "patientBirthDate" in parameters:
+            parameters["patientBirthDate"] = parameters[
+                "patientBirthDate"
+            ].strftime("%Y%m%d")
 
         return parameters
 
@@ -134,30 +147,12 @@ class Query(BaseModel):
             date in iso format requested by MINT server
         """
         return (
-            date.replace(microsecond=0).isoformat().replace("-", "").replace(":", "")
+            date.replace(microsecond=0)
+            .isoformat()
+            .replace("-", "")
+            .replace(":", "")
             + "Z"
         )
-
-
-class DateRange(QueryParameter):
-    """Search for studies that were created within a given date range and time frame.
-
-    Both the minStudyDateTime and maxStudyDateTime must be provided.
-
-    The value must be in the ISO8601 "basic date time" format of yyyymmddThhmmssZ.
-    This format allows for setting the time zone offset from UTC, where 'Z' means zero
-    offset.
-
-    For example
-    minStudyDateTime=20141231T210349Z
-    &maxStudyDateTime=20141201T230349Z
-    To change the time zone offset, append the datetime string with a time zone offset
-    value of +hhm m or -hhmm. For example: +0700, -0130 , and so on. Note that the
-    offset is not equivalent to time zone, and can change throughout the year based
-    on time zone rules.
-    """
-
-    key: ClassVar[str] = "MinStudyDate"
 
 
 class StudyInstanceUID(QueryParameter):
@@ -215,36 +210,54 @@ class MintObject:
     def __repr__(self):
         return self.uid
 
+    def all_instances(self):
+        pass
+
 
 @dataclass(repr=False)
 class MintInstance(MintObject):
     xml_element: ClassVar = "{http://medical.nema.org/mint}instance"
+    parent: Any
 
     @classmethod
-    def init_from_element(cls, element):
+    def init_from_element(cls, element, parent):
         data = parse_attribs(element)
 
-        return cls(data=data, uid=data.SOPInstanceUID)
+        return cls(data=data, uid=data.SOPInstanceUID, parent=parent)
+
+    def all_instances(self):
+        """Conforms to similar methods in Series and Study"""
+
+        return [self]
 
 
 @dataclass(repr=False)
 class MintSeries(MintObject):
     xml_element: ClassVar = "{http://medical.nema.org/mint}series"
-
-    instances: List[MintInstance]
+    instances: Tuple[MintInstance, ...]
+    parent: Any
 
     @classmethod
-    def init_from_element(cls, element):
+    def init_from_element(cls, element, parent):
         data = parse_attribs(element)
 
-        return cls(
+        series = cls(
             data=data,
             uid=data.SeriesInstanceUID,
-            instances=[
-                MintInstance.init_from_element(x)
-                for x in element.findall(MintInstance.xml_element)
-            ],
+            parent=parent,
+            instances=tuple(),
         )
+        series.instances = tuple(
+            MintInstance.init_from_element(x, parent=series)
+            for x in element.findall(MintInstance.xml_element)
+        )
+
+        return series
+
+    def all_instances(self):
+        """Return each instance contained in this series"""
+
+        return self.instances
 
 
 @dataclass(repr=False)
@@ -253,22 +266,43 @@ class MintStudy(MintObject):
 
     mint_uuid: str  # non-DICOM MINT-only id for this series
     last_modified: str
-    series: List[MintSeries]
+    series: Tuple[MintSeries, ...]
 
     @classmethod
     def init_from_element(cls, element):
         data = parse_attribs(element)
 
-        return cls(
+        study = cls(
             data=data,
             uid=data.StudyInstanceUID,
             mint_uuid=element.attrib["studyUUID"],
             last_modified=element.attrib["lastModified"],
-            series=[
-                MintSeries.init_from_element(x)
-                for x in element.findall(MintSeries.xml_element)
-            ],
+            series=tuple(),
         )
+        study.series = tuple(
+            MintSeries.init_from_element(x, parent=study)
+            for x in element.findall(MintSeries.xml_element)
+        )
+
+        return study
+
+    def dump_content(self) -> str:
+        """Dump entire contents of this study and containing series, instances
+
+        For quick inspection in scripts
+        """
+
+        output = [str(self.data)]
+        for series in self.series:
+            output.append(str(series.data))
+            for instance in series.instances:
+                output.append(str(instance.data))
+        return "\n".join(output)
+
+    def all_instances(self) -> List[MintInstance]:
+        """Return each instance contained in this study"""
+
+        return list(chain(*(x.instances for x in self.series)))
 
 
 class MintAttribute(MintObject):
@@ -293,8 +327,8 @@ class Mint:
         self.session = session
         self.url = url
 
-    def search(self, query: Query) -> List[MintStudy]:
-        """Send query and parse the results
+    def find_studies(self, query: Query) -> List[MintStudy]:
+        """Get all studies matching query
 
         Parameters
         ----------
@@ -304,13 +338,37 @@ class Mint:
         Returns
         -------
         List[MintStudy]
-            Parsed from the XML returned by the server.
+            All studies matching query. Might be empty.
             If Query.QueryLevel is SERIES or INSTANCE, MintStudy objects might
             contain MintSeries and MintInstance instances.
         """
         search_url = self.url + "/studies"
         response = self.session.get(search_url, params=query.as_parameters())
         return parse_mint_studies_response(response.text)
+
+    def find_study(self, query: Query) -> MintStudy:
+        """Like find_studies, but guarantees exactly one result. Exception if not.
+
+        This method is meant for searches that contain unique identifiers like
+        StudyInstanceUID, AccessionNumber, SeriesInstanceUID.
+
+        Notes
+        -----
+        If you want to get multiple studies at once, use find_studies(). This is
+        more efficient as it requires only a single call to the server
+
+        Raises
+        ------
+        DICOMTrolleyException
+            If no results or more than one result is returned by query
+        """
+        results = self.find_studies(query)
+        if len(results) == 0 or len(results) > 1:
+            raise DICOMTrolleyException(
+                f"Expected exactly one study for query '{query}', but"
+                f" found {len(results)}"
+            )
+        return results[0]
 
 
 def parse_mint_studies_response(xml_raw) -> List[MintStudy]:
@@ -333,7 +391,7 @@ def parse_attribs(element):
 def get_valid_fields(query_level) -> Set[str]:
     """All fields that can be returned at the given level"""
     if query_level == QueryLevels.INSTANCE:
-        return InstanceLevelFields.fields
+        return InstanceLevel.fields
     elif query_level == QueryLevels.SERIES:
         return SeriesLevel.fields | SeriesLevelPromotable.fields
     elif query_level == QueryLevels.STUDY:

@@ -2,8 +2,11 @@
 
 Based on live responses from a server running Vitrea Connection 8.2.0.1
 """
+import urllib
 from dataclasses import dataclass, field
 from typing import Any, Dict
+
+from tests.factories import create_dicom_bytestream, quick_dataset
 
 
 @dataclass
@@ -14,18 +17,17 @@ class MockResponse:
     status_code: int = 200
     method: str = "GET"
     text: str = ""
+    content: bytes = field(default_factory=bytes)
     json: Dict[str, Any] = field(default_factory=dict)
     reason: str = ""
 
     def as_dict(self):
-        """Non-empty and non-None items as dictionary"""
+        """Non-empty and non-None items as dictionary
+
+        For facilitating use as keyword arguments. Like
+        some_method(**MockResponse().as_dict)
+        """
         return {x: y for x, y in self.__dict__.items() if y}
-
-
-def set_mock_response(requests_mock, response):
-    """Register the given MockResponse with requests_mock"""
-    requests_mock.register_uri(**response.as_dict())
-    return response
 
 
 class MockUrls:
@@ -33,6 +35,31 @@ class MockUrls:
 
     LOGIN = "https://testserver/login"
     MINT_URL = "https://testserver/mint"
+    WADO_URL = "https://testserver/wado"
+
+
+class MockWadoParameters:
+    """Calling mock wado with this will trigger mock response"""
+
+    study_instance_uid = "111"
+    series_instance_uid = "222"
+    sop_instance_iud = "333"
+
+    @classmethod
+    def as_dict(cls):
+        return {
+            "studyUID": cls.study_instance_uid,
+            "seriesUID": cls.series_instance_uid,
+            "objectUID": cls.sop_instance_iud,
+        }
+
+    @classmethod
+    def as_wado_query_string(cls):
+        params = cls.as_dict()
+        params.update(
+            {"requestType": "WADO", "contentType": "application/dicom"}
+        )
+        return "?" + urllib.parse.urlencode(params)
 
 
 LOGIN_SUCCESS = MockResponse(
@@ -155,4 +182,12 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     'tag="00100010" vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
     'vr="UI" val="1.2.840.114350.2.357.2.798268.2.125886546.1" /></study><'
     "/studySearchResults>",
+)
+
+
+WADO_RESPONSE_DICOM = MockResponse(
+    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    content=create_dicom_bytestream(
+        quick_dataset(PatientName="Jane", StudyDescription="Test")
+    ),
 )
