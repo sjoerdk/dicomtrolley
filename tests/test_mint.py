@@ -1,21 +1,16 @@
 from datetime import date, datetime
+from unittest.mock import Mock
 from xml.etree.ElementTree import Element
 
 import pytest
 
+from dicomtrolley.exceptions import DICOMTrolleyException
 from dicomtrolley.mint import (
-    Mint,
     MintAttribute,
     MintSeries,
     parse_attribs,
 )
 from dicomtrolley.query import Query, QueryLevels
-from tests.mockresponses import MockUrls
-
-
-@pytest.fixture
-def a_mint(a_session):
-    return Mint(session=a_session, url=MockUrls.MINT_URL)
 
 
 def test_search_study_level(a_mint, mock_mint_responses):
@@ -38,6 +33,13 @@ def test_search_instance_level(a_mint, mock_mint_responses):
         query=Query(patientName="B*", queryLevel=QueryLevels.INSTANCE)
     )
     assert len(response[0].series[1].instances) == 13
+
+
+def test_find_study_exception(a_mint, some_studies):
+    """Using a find_study query that returns multiple studies is not allowed"""
+    a_mint.find_studies = Mock(return_value=some_studies)
+    with pytest.raises(DICOMTrolleyException):
+        a_mint.find_study(Query())
 
 
 @pytest.mark.parametrize(
@@ -114,3 +116,9 @@ def test_study_instance_iterator(
 
     assert len([x for x in a_study_with_instances.all_instances()]) == 14
     assert len([x for x in a_study_without_instances.all_instances()]) == 0
+
+
+def test_study_dump(a_study_with_instances):
+    dump = a_study_with_instances.dump_content()
+    assert "BEELDENZORG" in dump
+    assert "85551.608" in dump

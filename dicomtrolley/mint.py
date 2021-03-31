@@ -30,7 +30,7 @@ class MintObject(BaseModel):
         return self.uid
 
     def all_instances(self):
-        pass
+        raise NotImplementedError()
 
 
 class MintInstance(MintObject):

@@ -1,17 +1,10 @@
 import pytest
 
-from dicomtrolley.wado import Wado
 from tests.conftest import set_mock_response
 from tests.mockresponses import (
-    MockUrls,
     MockWadoParameters,
     WADO_RESPONSE_DICOM,
 )
-
-
-@pytest.fixture
-def a_wado(a_session):
-    return Wado(session=a_session, url=MockUrls.WADO_URL)
 
 
 @pytest.fixture

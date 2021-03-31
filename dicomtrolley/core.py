@@ -58,10 +58,10 @@ class Trolley:
             )
         )
         storage = DICOMStorageDir(output_dir)
-        for dataset in self.get_all_datasets(mint_objects=[study]):
+        for dataset in self.fetch_all_datasets(mint_objects=[study]):
             storage.save(dataset)
 
-    def get_all_datasets(self, mint_objects: List[MintObject]):
+    def fetch_all_datasets(self, mint_objects: List[MintObject]):
         """Get full DICOM dataset for each instance in study. Calls mint and wado
 
         Parameters
@@ -115,6 +115,7 @@ class DICOMStorageDir:
 
     def save(self, dataset):
         """Write dataset. Creates sub-folders if needed"""
+
         slice_path = Path(self.path) / self.generate_path(dataset)
         slice_path.parent.mkdir(parents=True, exist_ok=True)
         dataset.save_as(slice_path)

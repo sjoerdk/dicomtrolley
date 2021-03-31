@@ -1,13 +1,15 @@
 import pytest
 import requests
 
-from dicomtrolley.mint import MintStudy, parse_mint_studies_response
+from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
+from dicomtrolley.wado import Wado
 from tests.mockresponses import (
     LOGIN_DENIED,
     LOGIN_SUCCESS,
     MINT_SEARCH_INSTANCE_LEVEL,
     MINT_SEARCH_SERIES_LEVEL,
     MINT_SEARCH_STUDY_LEVEL,
+    MockUrls,
 )
 
 
@@ -41,6 +43,16 @@ def mock_mint_responses(requests_mock):
 
 
 @pytest.fixture
+def a_mint(a_session):
+    return Mint(session=a_session, url=MockUrls.MINT_URL)
+
+
+@pytest.fixture
+def a_wado(a_session):
+    return Wado(session=a_session, url=MockUrls.WADO_URL)
+
+
+@pytest.fixture
 def a_study_with_instances() -> MintStudy:
     """An example MintStudy object"""
     studies = parse_mint_studies_response(MINT_SEARCH_INSTANCE_LEVEL.text)
@@ -52,6 +64,11 @@ def a_study_without_instances() -> MintStudy:
     """An example MintStudy object"""
     studies = parse_mint_studies_response(MINT_SEARCH_STUDY_LEVEL.text)
     return studies[0]
+
+
+@pytest.fixture
+def some_studies(a_study_with_instances, a_study_without_instances):
+    return [a_study_with_instances, a_study_with_instances]
 
 
 def set_mock_response(requests_mock, response):

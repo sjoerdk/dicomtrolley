@@ -43,7 +43,11 @@ class VitreaConnectionLogin:
         session = requests.Session()
         response = session.post(
             self.url,
-            headers={"X-Userid": user, "X-Password": password, "X-Realm": realm},
+            headers={
+                "X-Userid": user,
+                "X-Password": password,
+                "X-Realm": realm,
+            },
         )
         if response.status_code == 401:
             raise DICOMTrolleyException(

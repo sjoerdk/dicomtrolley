@@ -22,6 +22,8 @@ def quick_dataset(*_, **kwargs) -> Dataset:
 
     """
     dataset = Dataset()
+    dataset.is_little_endian = True  # required common meta header choice
+    dataset.is_implicit_VR = False  # required common meta header choice
     for tag_name, value in kwargs.items():
         Tag(tag_name)  # assert valid dicom keyword. pydicom will not do this.
         dataset.__setattr__(tag_name, value)
