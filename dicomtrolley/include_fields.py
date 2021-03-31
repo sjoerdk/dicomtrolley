@@ -3,7 +3,7 @@
 Notes
 -----
 Valid fields per level have all been taken from the Vitrea Connection 8.2.0.1
-manual. These list might be different for different servers and vendors
+manual. These list might be different for different software.
 """
 
 

@@ -10,9 +10,8 @@ from dicomtrolley.mint import (
     Mint,
     MintInstance,
     MintObject,
-    Query,
-    QueryLevels,
 )
+from dicomtrolley.query import Query, QueryLevels
 from dicomtrolley.wado import Wado
 
 

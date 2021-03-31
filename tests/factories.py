@@ -9,7 +9,7 @@ def quick_dataset(*_, **kwargs) -> Dataset:
 
     Examples
     --------
-    >>> ds = quick_dataset(PatientName='Jane', StudyDescription='Test')
+    >>> ds = quick_dataset(PatientName='Jane',StudyDescription='Test')
     >>> ds.PatientName
     'Jane'
     >>> ds.StudyDescription

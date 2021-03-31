@@ -7,10 +7,9 @@ from dicomtrolley.mint import (
     Mint,
     MintAttribute,
     MintSeries,
-    Query,
-    QueryLevels,
     parse_attribs,
 )
+from dicomtrolley.query import Query, QueryLevels
 from tests.mockresponses import MockUrls
 
 
