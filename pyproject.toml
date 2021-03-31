@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dicomtrolley"
-version = "0.2.0"
+version = "v0.2.0"
 description = "Retrieve medical images via DICOM-QR and DICOMweb"
 authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
 
