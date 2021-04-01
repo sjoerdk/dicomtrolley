@@ -3,6 +3,8 @@ name = "dicomtrolley"
 version = "v0.2.0"
 description = "Retrieve medical images via DICOM-QR and DICOMweb"
 authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
+readme = "README.md"
+repository = "https://github.com/sjoerdk/dicomtrolley"
 
 [tool.black]
 line-length = 79
