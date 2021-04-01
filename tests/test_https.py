@@ -25,9 +25,8 @@ def test_login_fails(a_login, login_denied):
 
 def test_get_session_no_env(a_login, login_works):
     """No env has been set. Login should fail"""
-    with pytest.raises(DICOMTrolleyException) as e:
+    with pytest.raises(DICOMTrolleyException):
         log_in_to(MockUrls.LOGIN)
-    assert "'PASSWORD' not found" in str(e)
 
 
 def test_get_session_works(a_login, login_works, monkeypatch):
