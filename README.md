@@ -40,7 +40,7 @@ studies = trolley.find_studies(
     Query(modalitiesInStudy='CT*',
           patientSex="F",
           minStudyDate=datetime(year=2015, month=3, day=1),
-          maxStudyDate=datetime(year=2020, month=3, day=1),                                                                         
+          maxStudyDate=datetime(year=2020, month=3, day=1),
           includeFields=['PatientBirthDate',
                          'SOPClassesInStudy']))
 ```
