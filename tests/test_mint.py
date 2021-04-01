@@ -11,6 +11,8 @@ from dicomtrolley.mint import (
     parse_attribs,
 )
 from dicomtrolley.query import Query, QueryLevels
+from tests.conftest import set_mock_response
+from tests.mockresponses import MINT_SEARCH_STUDY_LEVEL_ERROR_500
 
 
 def test_search_study_level(a_mint, mock_mint_responses):
@@ -33,6 +35,16 @@ def test_search_instance_level(a_mint, mock_mint_responses):
         query=Query(patientName="B*", queryLevel=QueryLevels.INSTANCE)
     )
     assert len(response[0].series[1].instances) == 13
+
+
+def test_search_error_500(a_mint, requests_mock):
+    """Internal errors in the mint server might be communicated by plain html
+    instead mint format. This should be handled
+    """
+    set_mock_response(requests_mock, MINT_SEARCH_STUDY_LEVEL_ERROR_500)
+    with pytest.raises(DICOMTrolleyException) as e:
+        a_mint.find_studies(query=Query(patientName="B*"))
+    assert "Could not parse" in str(e)
 
 
 def test_find_study_exception(a_mint, some_studies):
@@ -58,8 +70,8 @@ def test_find_study_exception(a_mint, some_studies):
         {"includeFields": "not a list"},
         {"includeFields": ["unknown_field"]},
         {
-            "includeFields": ["PatientID"],
-            "queryLevel": QueryLevels.INSTANCE,
+            "includeFields": ["BitsAllocated"],
+            "queryLevel": QueryLevels.STUDY,
         },  # invalid include for this level
     ),
 )
@@ -93,8 +105,8 @@ def test_query_dates():
         maxStudyDate=datetime(year=2020, month=3, day=1),
         patientBirthDate=date(year=1983, month=8, day=11),
     )
-    assert query.as_parameters()["minStudyDate"] == "20190102T000000Z"
-    assert query.as_parameters()["maxStudyDate"] == "20200301T000000Z"
+    assert query.as_parameters()["minStudyDate"] == "20190102"
+    assert query.as_parameters()["maxStudyDate"] == "20200301"
     assert query.as_parameters()["patientBirthDate"] == "19830811"
 
 

@@ -9,6 +9,7 @@ from typing import (
     Tuple,
 )
 from xml.etree import ElementTree
+from xml.etree.ElementTree import ParseError
 
 from pydantic.main import BaseModel
 from pydicom.dataelem import DataElement
@@ -26,8 +27,9 @@ class MintObject(BaseModel):
     data: Dataset  # all DICOM elements returned with query
     uid: str  # StudyInstanceUID. Also in data, provided for convenience
 
-    def __repr__(self):
-        return self.uid
+    def __str__(self):
+
+        return type(self).__name__ + " " + self.uid
 
     def all_instances(self):
         raise NotImplementedError()
@@ -188,8 +190,22 @@ class Mint:
 
 
 def parse_mint_studies_response(xml_raw) -> List[MintStudy]:
-    """Parse the xml response to a MINT find DICOM studies call"""
-    studies = ElementTree.fromstring(xml_raw).findall(MintStudy.xml_element)
+    """Parse the xml response to a MINT find DICOM studies call
+
+    Raises
+    ------
+    DICOMTrolleyException
+        If parsing fails
+    """
+    try:
+        studies = ElementTree.fromstring(xml_raw).findall(
+            MintStudy.xml_element
+        )
+    except ParseError:
+        raise DICOMTrolleyException(
+            f"Could not parse server response as MINT "
+            f"studies. Response was: {xml_raw}"
+        )
     return [MintStudy.init_from_element(x) for x in studies]
 
 

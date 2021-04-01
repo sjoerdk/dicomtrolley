@@ -1,4 +1,5 @@
 """Models https layer interaction, login, session handling"""
+from os import environ
 
 import requests
 
@@ -55,3 +56,29 @@ class VitreaConnectionLogin:
             )
 
         return session
+
+
+def log_in_to(login_url):
+    """Log in to url using environment variables USER, PASSWORD and REALM
+
+    Returns
+    -------
+    Session
+        An authenticated requests Session object
+
+    Raises
+    ------
+    DICOMTrolleyException
+        If login fails
+
+    """
+    try:
+        return VitreaConnectionLogin(login_url).get_session(
+            user=environ["USER"],
+            password=environ["PASSWORD"],
+            realm=environ["REALM"],
+        )
+    except KeyError as e:
+        raise DICOMTrolleyException(
+            f"Environment variable {e} not found. Please set this"
+        )

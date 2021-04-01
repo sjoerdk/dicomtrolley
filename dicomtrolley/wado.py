@@ -2,8 +2,11 @@
 
 https://www.dicomstandard.org/dicomweb/retrieve-wado-rs-and-wado-uri/
 """
+from pydicom.errors import InvalidDicomError
 from pydicom.filebase import DicomBytesIO
 from pydicom.filereader import dcmread
+
+from dicomtrolley.exceptions import DICOMTrolleyException
 
 
 class Wado:
@@ -31,6 +34,12 @@ class Wado:
         -------
         Dataset
             A pydicom dataset
+
+        Raises
+        ------
+        DICOMTrolleyException
+            If getting does not work for some reason
+
         """
 
         response = self.session.get(
@@ -44,4 +53,7 @@ class Wado:
             },
         )
         raw = DicomBytesIO(response.content)
-        return dcmread(raw)
+        try:
+            return dcmread(raw)
+        except InvalidDicomError as e:
+            raise DICOMTrolleyException(f"Error retrieving instance: {e}")

@@ -1,6 +1,6 @@
 """Models queries to a MINT server"""
 import datetime
-from typing import ClassVar, List, Optional, Set
+from typing import List, Optional, Set
 
 from pydantic.class_validators import validator
 from pydantic.main import BaseModel
@@ -19,12 +19,6 @@ class QueryLevels:
     INSTANCE = "INSTANCE"
 
     ALL = {STUDY, SERIES, INSTANCE}
-
-
-class QueryParameter(BaseModel):
-    """Something you can search on in the MINT find DICOM studies function"""
-
-    pass
 
 
 class Query(BaseModel):
@@ -97,97 +91,41 @@ class Query(BaseModel):
         parameters = {x: y for x, y in self.dict().items() if y}
 
         if "minStudyDate" in parameters:
-            parameters["minStudyDate"] = self.date_to_iso(
-                parameters["minStudyDate"]
+            parameters["minStudyDate"] = parameters["minStudyDate"].strftime(
+                "%Y%m%d"
             )
+
         if "maxStudyDate" in parameters:
-            parameters["maxStudyDate"] = self.date_to_iso(
-                parameters["maxStudyDate"]
+            parameters["maxStudyDate"] = parameters["maxStudyDate"].strftime(
+                "%Y%m%d"
             )
+
         if "patientBirthDate" in parameters:
             parameters["patientBirthDate"] = parameters[
                 "patientBirthDate"
             ].strftime("%Y%m%d")
 
+        if "includeFields" in parameters:
+            parameters["includeFields"] = ",".join(parameters["includeFields"])
+
         return parameters
-
-    @staticmethod
-    def date_to_iso(date):
-        """MINT expects min- and maxStudyDate to be ISO8601 "basic date time" format
-        yyyymmddThhmmssZ
-        This format allows for setting the time zone offset from UTC, where 'Z'
-        means zero
-        Example:
-        minStudyDateTime=20141231T210349Z
-        &maxStudyDateTime=20141201T230349Z
-        To change the time zone offset, append the datetime string with a time zone
-        offset value of +hhm m or -hhmm. For example: +0700, -0130 , and so on. Note
-        that the offset is not equivalent to time zone, and can change throughout the
-        year based on time zone rules.
-
-        Returns
-        -------
-        str:
-            date in iso format requested by MINT server
-        """
-        return (
-            date.replace(microsecond=0)
-            .isoformat()
-            .replace("-", "")
-            .replace(":", "")
-            + "Z"
-        )
-
-
-class StudyInstanceUID(QueryParameter):
-    StudyInstanceUID: str
-
-
-class AccessionNumber(QueryParameter):
-    AccessionNumber: str
-
-
-class PatientName(QueryParameter):
-    """Matches against a format of "lastName^firstName". For example,
-    "Armstrong^Lil".
-
-    Wildcard support: Use one or more wildcard characters (*) to complete the string.
-    For example: "A*^L*", "Armstrong*", "arm*", "A*^*l".
-    """
-
-    key: ClassVar[str] = "PatientName"
-
-
-class PatientID(QueryParameter):
-    key: ClassVar[str] = "PatientID"
-
-
-class ModalitiesInStudy(QueryParameter):
-    key: ClassVar[str] = "ModalitiesInStudy"
-
-
-class InstitutionName(QueryParameter):
-    key: ClassVar[str] = "InstitutionName"
-
-
-class PatientSex(QueryParameter):
-    key: ClassVar[str] = "PatientSex"
-
-
-class StudyDescription(QueryParameter):
-    key: ClassVar[str] = "StudyDescription"
-
-
-class InstitutionalDepartmentName(QueryParameter):
-    key: ClassVar[str] = "InstitutionalDepartmentName"
 
 
 def get_valid_fields(query_level) -> Set[str]:
-    """All fields that can be returned at the given level"""
+    """All fields that can be returned at the given query level"""
     if query_level == QueryLevels.INSTANCE:
-        return InstanceLevel.fields
+        return (
+            StudyLevel.fields
+            | SeriesLevel.fields
+            | SeriesLevelPromotable.fields
+            | InstanceLevel.fields
+        )
     elif query_level == QueryLevels.SERIES:
-        return SeriesLevel.fields | SeriesLevelPromotable.fields
+        return (
+            StudyLevel.fields
+            | SeriesLevel.fields
+            | SeriesLevelPromotable.fields
+        )
     elif query_level == QueryLevels.STUDY:
         return StudyLevel.fields
     else:

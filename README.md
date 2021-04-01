@@ -12,15 +12,70 @@ Represents images as `pydicom` Datasets.
 ![A trolley](docs/resources/trolley.png)
 
 ## Usage
+
+### Basic example
+```python
+session = log_in_to(https://server/login)  # set up   
+trolley = Trolley(mint=Mint(session, https://server/mint),
+                  wado=Wado(session, https://server/wado]))
+                  
+studies = trolley.find_studies(
+    Query(patientName='B*')  # find some studies
+
+trolley.download_study(      # download a study by uid
+    study_instance_uid=studies[0].uid,
+    output_dir='/tmp/trolley')
 ```
-from import dicomtrolley import Trolley
 
-trolley = Trolley(url='https://server/login',
-                  user='user',
-                  password='pass',
-                  realm='realm')
+### Finding studies
 
-trolley.download_study(study_uid='1234', path='/tmp/study1234')
+```python
+studies = trolley.find_studies(       # simple find
+    Query(patientName='B*')
+```
+
+Query parameters can be found in [mint.query.Query](dicomtrolley/query.py). Valid include fields (which information gets sent back) can be found in [include_fields.py](dicomtrolley/include_fields.py): 
+```python
+studies = trolley.find_studies(
+    Query(modalitiesInStudy='CT*',
+          patientSex="F",
+          minStudyDate=datetime(year=2015, month=3, day=1),
+          maxStudyDate=datetime(year=2020, month=3, day=1),                                                                         
+          includeFields=['PatientBirthDate',
+                         'SOPClassesInStudy']))
+```
+
+### Finding series and instance details
+To include series and instance level information as well, use the `queryLevel` parameter 
+```python
+studies = trolley.find_studies(      # find studies series and instances
+    Query(studyInstanceID='B*', 
+          queryLevel=QueryLevels.INSTANCE)
+ 
+a_series = studies.series[0]         # studies now contain series    
+an_instance = a_series.instances[0]  # and series contain instances
+```
+
+### Downloading data
+```python
+trolley.download_study(              # simple download by uid
+    study_instance_uid='123',  
+    output_dir='/tmp/trolley')
+```
+More control over download   
+```python
+studies = trolley.find_studies(      # find study including instances
+    Query(PatientID='1234',
+          queryLevel=QueryLevels.INSTANCE)
+
+instances = trolley.extract_instances(  
+    studies.series[0])               # download only the first series 
+
+for instance in instances:
+    ds = trolley.get_dataset(instance)
+    ds.save_as(
+        f'/tmp/{ds.PatientID}')      # this is a pydicom dataset
+
 ```
 
 ## Caveats

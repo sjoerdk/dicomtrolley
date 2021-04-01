@@ -4,12 +4,13 @@
 
 from itertools import chain
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
 from dicomtrolley.mint import (
     Mint,
     MintInstance,
     MintObject,
+    MintStudy,
 )
 from dicomtrolley.query import Query, QueryLevels
 from dicomtrolley.wado import Wado
@@ -28,7 +29,7 @@ class Trolley:
         self.wado = wado
         self.mint = mint
 
-    def find_studies(self, query):
+    def find_studies(self, query) -> List[MintStudy]:
         """Find studies but do not download yet
 
         Parameters
@@ -79,10 +80,12 @@ class Trolley:
             yield self.get_dataset(instance)
 
     @staticmethod
-    def extract_instances(mint_objects: List[MintObject]):
+    def extract_instances(mint_objects: Sequence[MintObject]):
         """Get all individual instances from input.
 
-        mint_objects: List[MintObject]
+        Parameters
+        ----------
+        mint_objects: Sequence[MintObject]
             Any combination of MintStudy, MintSeries and MintInstance instances
 
         A pre-processing step for getting datasets
@@ -99,7 +102,7 @@ class Trolley:
 
         return self.wado.get_dataset(
             study_instance_uid=instance.parent.parent.uid,
-            series_instance_uid=instance.uid,
+            series_instance_uid=instance.parent.uid,
             sop_instance_iud=instance.uid,
         )
 

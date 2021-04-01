@@ -1,7 +1,7 @@
 import pytest
 
 from dicomtrolley.exceptions import DICOMTrolleyException
-from dicomtrolley.https import VitreaConnectionLogin
+from dicomtrolley.https import VitreaConnectionLogin, log_in_to
 from tests.mockresponses import MockUrls
 
 
@@ -21,3 +21,20 @@ def test_login_fails(a_login, login_denied):
     with pytest.raises(DICOMTrolleyException) as e:
         a_login.get_session(user="test", password="test", realm="test")
     assert "Unauthorized" in str(e)
+
+
+def test_get_session_no_env(a_login, login_works):
+    """No env has been set. Login should fail"""
+    with pytest.raises(DICOMTrolleyException) as e:
+        log_in_to(MockUrls.LOGIN)
+    assert "'PASSWORD' not found" in str(e)
+
+
+def test_get_session_works(a_login, login_works, monkeypatch):
+    """No env has been set. Login should fail"""
+    monkeypatch.setenv("USER", "test_user")
+    monkeypatch.setenv("PASSWORD", "test_password")
+    monkeypatch.setenv("REALM", "test_realm")
+
+    session = log_in_to(MockUrls.LOGIN)
+    assert session

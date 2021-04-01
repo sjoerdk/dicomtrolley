@@ -191,3 +191,26 @@ WADO_RESPONSE_DICOM = MockResponse(
         quick_dataset(PatientName="Jane", StudyDescription="Test")
     ),
 )
+
+WADO_RESPONSE_INVALID_DICOM = MockResponse(
+    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    content=bytes(1234),
+)
+
+
+MINT_SEARCH_STUDY_LEVEL_ERROR_500 = MockResponse(
+    url=MockUrls.MINT_URL + "/studies?patientName=B*&queryLevel=STUDY",
+    status_code=500,
+    text="""<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<title>Error 500 Request failed.</title>
+</head>
+<body><h2>HTTP ERROR 500</h2>
+<p>Problem accessing /rest/api/vault/mint/studies. Reason:
+<pre>    Request failed.</pre></p><hr><a href="http://eclipse.org/jetty">Powered
+ by Jetty:// 9.4.12.v20180830</a><hr/>
+
+</body>
+</html>""",
+)
