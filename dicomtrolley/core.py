@@ -1,7 +1,5 @@
 """Combines WADO and MINT to make make getting DICOM studies easy"""
 
-# Create session
-
 from itertools import chain
 from pathlib import Path
 from typing import List, Sequence

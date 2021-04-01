@@ -1,10 +1,17 @@
 # History
 
+## 0.3.0 (2021-04-01)
+
+* Added examples
+* Improved readme
+* Fixed bugs (date format for queries and wado download function) 
+
+
 ## 0.2.0 (2021-03-31)
 
-* Adds MINT 
-* Adds WADO 
-* Adds main trolley functions
+* Added MINT 
+* Added WADO 
+* Added main trolley functions
 
 ## 0.1.0 (2021-03-12)
 
