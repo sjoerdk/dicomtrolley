@@ -12,7 +12,7 @@ from dicomtrolley.mint import (
 )
 from dicomtrolley.query import Query, QueryLevels
 from tests.conftest import set_mock_response
-from tests.mockresponses import MINT_SEARCH_STUDY_LEVEL_ERROR_500
+from tests.mock_responses import MINT_SEARCH_STUDY_LEVEL_ERROR_500
 
 
 def test_search_study_level(a_mint, mock_mint_responses):

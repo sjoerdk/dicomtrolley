@@ -2,7 +2,7 @@ import pytest
 
 from dicomtrolley.exceptions import DICOMTrolleyException
 from dicomtrolley.https import VitreaConnectionLogin, log_in_to
-from tests.mockresponses import MockUrls
+from tests.mock_responses import MockUrls
 
 
 @pytest.fixture

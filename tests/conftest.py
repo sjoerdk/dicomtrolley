@@ -3,7 +3,7 @@ import requests
 
 from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
 from dicomtrolley.wado import Wado
-from tests.mockresponses import (
+from tests.mock_responses import (
     LOGIN_DENIED,
     LOGIN_SUCCESS,
     MINT_SEARCH_INSTANCE_LEVEL,

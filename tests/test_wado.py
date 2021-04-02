@@ -2,7 +2,7 @@ import pytest
 
 from dicomtrolley.exceptions import DICOMTrolleyException
 from tests.conftest import set_mock_response
-from tests.mockresponses import (
+from tests.mock_responses import (
     MockWadoParameters,
     WADO_RESPONSE_DICOM,
     WADO_RESPONSE_INVALID_DICOM,
