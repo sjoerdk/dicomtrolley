@@ -6,6 +6,7 @@ import urllib
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
+from dicomtrolley.wado import InstanceReference
 from tests.factories import create_dicom_bytestream, quick_dataset
 
 
@@ -60,6 +61,14 @@ class MockWadoParameters:
             {"requestType": "WADO", "contentType": "application/dicom"}
         )
         return "?" + urllib.parse.urlencode(params)
+
+    @classmethod
+    def as_instance_reference(cls):
+        return InstanceReference(
+            study_instance_uid=cls.study_instance_uid,
+            series_instance_uid=cls.series_instance_uid,
+            sop_instance_iud=cls.sop_instance_iud,
+        )
 
 
 LOGIN_SUCCESS = MockResponse(
@@ -184,7 +193,7 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     "/studySearchResults>",
 )
 
-
+# a Response that contains a valid DICOM bytes
 WADO_RESPONSE_DICOM = MockResponse(
     url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
     content=create_dicom_bytestream(
@@ -195,6 +204,12 @@ WADO_RESPONSE_DICOM = MockResponse(
 WADO_RESPONSE_INVALID_DICOM = MockResponse(
     url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
     content=bytes(1234),
+)
+
+WADO_RESPONSE_INVALID_NON_DICOM = MockResponse(
+    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    status_code=502,
+    text="Error, server really does not know anymore",
 )
 
 

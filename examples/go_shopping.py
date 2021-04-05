@@ -32,19 +32,16 @@ studies = trolley.find_studies(
 
 print(f"Found {len(studies)} studies. Taking one with least instances")
 studies.sort(key=lambda x: x.data.NumberOfStudyRelatedInstances)
-study = studies[0]
+study = studies[1]
 
 print(f"Getting slice info for {study}")
 details = trolley.find_studies(
     Query(studyInstanceUID=study.uid, queryLevel=QueryLevels.INSTANCE)
 )
-instances = trolley.extract_instances(details)
-print(f"Got {len(instances)} instances for {study}")
 
 storage = DICOMStorageDir("/tmp/trolley")
 print(f"Saving datasets to {storage}")
-for instance in instances:
-    print(f"downloading {instance}")
-    storage.save(trolley.get_dataset(instance))
-
+for ds in trolley.fetch_all_datasets_async(details, max_workers=8):
+    print(f"downloaded {ds.SOPInstanceUID}")
+    storage.save(ds)
 print("Done")

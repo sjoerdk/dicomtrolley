@@ -1,5 +1,11 @@
 # History
 
+## v0.4.0 (2021-04-05)
+
+* Added multi-threaded wado downloads 
+* Slight changes to dicomtrolley methods
+
+
 ## v0.3.0 (2021-04-01)
 
 * Added examples

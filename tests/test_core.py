@@ -41,6 +41,7 @@ def test_storage_dir_write(tmpdir):
     assert not expected_path.exists()
     DICOMStorageDir(str(tmpdir)).save(quick_dataset())
     assert expected_path.exists()
+    assert "tmp" in str(DICOMStorageDir("/tmp"))
 
 
 def test_trolley_find(a_trolley, some_studies):
@@ -76,4 +77,23 @@ def test_trolley_get_dataset(a_trolley, some_studies, tmpdir):
 
     datasets = list(a_trolley.fetch_all_datasets(some_studies))
     assert len(datasets) == 28
+    assert datasets[0].SOPInstanceUID == "bimini"
+
+
+def test_trolley_get_dataset_async(a_trolley, some_studies):
+    a_trolley.wado.datasets_async = Mock(
+        return_value=iter(
+            [
+                quick_dataset(
+                    StudyInstanceUID="foo",
+                    SeriesInstanceUID="baz",
+                    SOPInstanceUID="bimini",
+                )
+            ]
+            * 3
+        )
+    )
+
+    datasets = list(a_trolley.fetch_all_datasets_async(some_studies))
+    assert len(datasets) == 3
     assert datasets[0].SOPInstanceUID == "bimini"
