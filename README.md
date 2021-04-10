@@ -5,9 +5,9 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dicomtrolley)](https://pypi.org/project/dicomtrolley/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Retrieve medical images using DICOM WADO and MINT.
+Retrieve medical images via WADO, MINT and DICOM-QR.
 Requires python 3.7, 3.8 or 3.9
-Represents images as `pydicom` Datasets.
+Represents images as `pydicom.Dataset` instances.
 
 ![A trolley](docs/resources/trolley.png)
 
