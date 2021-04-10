@@ -50,18 +50,20 @@ def test_trolley_find(a_trolley, some_studies):
 
 
 def test_trolley_download_study(a_trolley, some_studies, tmpdir):
-    a_trolley.searcher.find_studies = Mock(return_value=some_studies[:1])
-    a_trolley.wado.get_dataset = Mock(
-        return_value=quick_dataset(
-            StudyInstanceUID="foo",
-            SeriesInstanceUID="baz",
-            SOPInstanceUID="bimini",
+    a_trolley.fetch_all_datasets = Mock(
+        return_value=iter(
+            [
+                quick_dataset(
+                    StudyInstanceUID="foo",
+                    SeriesInstanceUID="baz",
+                    SOPInstanceUID="bimini",
+                )
+            ]
         )
     )
-
     expected_path = Path(str(tmpdir)) / "foo/baz/bimini"
     assert not expected_path.exists()
-    a_trolley.download_study(study_instance_uid="1", output_dir=tmpdir)
+    a_trolley.download(some_studies, output_dir=tmpdir)
     assert expected_path.exists()
 
 
