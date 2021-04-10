@@ -1,99 +1,19 @@
-from pathlib import Path
-from unittest.mock import Mock
+from pydicom.dataset import Dataset
 
-import pytest
-
-from dicomtrolley.core import DICOMStorageDir, Trolley
-from dicomtrolley.query import Query
-from tests.factories import quick_dataset
+from dicomtrolley.core import Instance, Series, Study
 
 
-@pytest.fixture
-def a_trolley(a_mint, a_wado) -> Trolley:
-    """Trolley instance that will not hit any server"""
-    return Trolley(mint=a_mint, wado=a_wado)
+def test_objects():
+    study = Study(uid="1", data=Dataset(), series=[])
+    series = Series(uid="2", data=Dataset(), parent=study, instances=[])
+    instance1 = Instance(uid="3", data=Dataset(), parent=series)
+    instance2 = Instance(uid="4", data=Dataset(), parent=series)
 
+    study.series = [series]
+    series.instances = [instance1, instance2]
 
-@pytest.mark.parametrize(
-    "dataset, expected_path",
-    [
-        (
-            quick_dataset(
-                StudyInstanceUID="A", SeriesInstanceUID="B", SOPInstanceUID="C"
-            ),
-            "/tmp/A/B/C",
-        ),
-        (
-            quick_dataset(StudyInstanceUID="A", SeriesInstanceUID="B"),
-            "/tmp/A/B/unknown",
-        ),
-        (quick_dataset(), "/tmp/unknown/unknown/unknown"),
-    ],
-)
-def test_storage_dir_generate_path(dataset, expected_path):
-    storage = DICOMStorageDir("/tmp")
-    assert storage.generate_path(dataset) == Path("/tmp") / expected_path
+    assert len(study.all_instances()) == 2
+    assert len(series.all_instances()) == 2
+    assert len(instance1.all_instances()) == 1
 
-
-def test_storage_dir_write(tmpdir):
-    """Make sure writing to disk works. Seems slight overkill. But coverage."""
-    expected_path = Path(str(tmpdir)) / "unknown/unknown/unknown"
-    assert not expected_path.exists()
-    DICOMStorageDir(str(tmpdir)).save(quick_dataset())
-    assert expected_path.exists()
-    assert "tmp" in str(DICOMStorageDir("/tmp"))
-
-
-def test_trolley_find(a_trolley, some_studies):
-    a_trolley.mint.find_studies = Mock(return_value=some_studies)
-    assert a_trolley.find_studies(query=Query()) == some_studies
-
-
-def test_trolley_download_study(a_trolley, some_studies, tmpdir):
-    a_trolley.mint.find_studies = Mock(return_value=some_studies[:1])
-    a_trolley.wado.get_dataset = Mock(
-        return_value=quick_dataset(
-            StudyInstanceUID="foo",
-            SeriesInstanceUID="baz",
-            SOPInstanceUID="bimini",
-        )
-    )
-
-    expected_path = Path(str(tmpdir)) / "foo/baz/bimini"
-    assert not expected_path.exists()
-    a_trolley.download_study(study_instance_uid="1", output_dir=tmpdir)
-    assert expected_path.exists()
-
-
-def test_trolley_get_dataset(a_trolley, some_studies, tmpdir):
-    a_trolley.mint.find_studies = Mock(return_value=some_studies)
-    a_trolley.wado.get_dataset = Mock(
-        return_value=quick_dataset(
-            StudyInstanceUID="foo",
-            SeriesInstanceUID="baz",
-            SOPInstanceUID="bimini",
-        )
-    )
-
-    datasets = list(a_trolley.fetch_all_datasets(some_studies))
-    assert len(datasets) == 28
-    assert datasets[0].SOPInstanceUID == "bimini"
-
-
-def test_trolley_get_dataset_async(a_trolley, some_studies):
-    a_trolley.wado.datasets_async = Mock(
-        return_value=iter(
-            [
-                quick_dataset(
-                    StudyInstanceUID="foo",
-                    SeriesInstanceUID="baz",
-                    SOPInstanceUID="bimini",
-                )
-            ]
-            * 3
-        )
-    )
-
-    datasets = list(a_trolley.fetch_all_datasets_async(some_studies))
-    assert len(datasets) == 3
-    assert datasets[0].SOPInstanceUID == "bimini"
+    assert str(study) == "Study 1"

@@ -2,9 +2,10 @@
 
 Based on live responses from a server running Vitrea Connection 8.2.0.1
 """
+import re
 import urllib
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any, Dict, Pattern, Union
 
 from dicomtrolley.wado import InstanceReference
 from tests.factories import create_dicom_bytestream, quick_dataset
@@ -14,19 +15,20 @@ from tests.factories import create_dicom_bytestream, quick_dataset
 class MockResponse:
     """A fake server response that can be fed to response-mock easily"""
 
-    url: str
+    url: Union[str, Pattern[str]]
     status_code: int = 200
     method: str = "GET"
     text: str = ""
     content: bytes = field(default_factory=bytes)
     json: Dict[str, Any] = field(default_factory=dict)
     reason: str = ""
+    exc = None
 
     def as_dict(self):
         """Non-empty and non-None items as dictionary
 
-        For facilitating use as keyword arguments. Like
-        some_method(**MockResponse().as_dict)
+        Facilitates use as keyword arguments. Like
+        some_method(**MockResponse().as_dict())
         """
         return {x: y for x, y in self.__dict__.items() if y}
 
@@ -83,6 +85,24 @@ LOGIN_DENIED = MockResponse(
     status_code=401,
     reason="Unauthorized",
     method="POST",
+)
+
+LOGIN_IMPAX_INITIAL = MockResponse(
+    url=MockUrls.LOGIN, text="whatever", status_code=200, method="GET"
+)
+
+LOGIN_SUCCESS_IMPAX = MockResponse(
+    url=re.compile(r".*j_security_check\?j_username=.*&j_password=.*"),
+    text="<html> Access to the requested resource has been denied </html>",
+    status_code=403,  # I have no idea why this is. But it is.
+    method="GET",
+)
+
+LOGIN_DENIED_IMPAX = MockResponse(
+    url=re.compile(r".*j_security_check\?j_username=.*&j_password=.*"),
+    text="<html> lots of content and then: Login Failed! etc. </html>",
+    status_code=200,
+    method="GET",
 )
 
 MINT_SEARCH_STUDY_LEVEL = MockResponse(

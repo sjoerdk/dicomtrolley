@@ -14,69 +14,93 @@ Represents images as `pydicom` Datasets.
 ## Usage
 
 ### Basic example
-```python
-session = log_in_to(https://server/login)  # set up   
-trolley = Trolley(mint=Mint(session, https://server/mint),
-                  wado=Wado(session, https://server/wado]))
-                  
-studies = trolley.find_studies(
-    Query(patientName='B*')  # find some studies
 
-trolley.download_study(      # download a study by uid
-    study_instance_uid=studies[0].uid,
-    output_dir='/tmp/trolley')
+```python
+# Create a logged-in http session
+session = VitreaConnection(
+    "https://server/login").log_in(user,password,realm)
+                           
+# Use this session to create a trolley using MINT and WADO
+trolley = Trolley(searcher=Mint(session, "https://server/mint"),
+                  wado=Wado(session, "https://server/wado"]))
+
+# find some studies (using MINT)
+studies = trolley.find_studies(MintQuery(patientName='B*'))  
+
+# download the fist one (using WADO)
+trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
 
 ### Finding studies
 
 ```python
-studies = trolley.find_studies(       # simple find
-    Query(patientName='B*')
+studies = trolley.find_studies(MintQuery(patientName='B*'))
 ```
 
-Query parameters can be found in [mint.query.Query](dicomtrolley/query.py). Valid include fields (which information gets sent back) can be found in [include_fields.py](dicomtrolley/include_fields.py): 
+Query parameters can be found in [dicomtrolley.query.Query](dicomtrolley/query.py). Valid include fields (which information gets sent back) can be found in [include_fields.py](dicomtrolley/fields.py):
+
 ```python
-studies = trolley.find_studies(
-    Query(modalitiesInStudy='CT*',
-          patientSex="F",
-          minStudyDate=datetime(year=2015, month=3, day=1),
-          maxStudyDate=datetime(year=2020, month=3, day=1),
-          includeFields=['PatientBirthDate',
-                         'SOPClassesInStudy']))
+studies = trolley.find_studies_mint(
+    MintQuery(modalitiesInStudy='CT*', 
+              patientSex="F", 
+              minStudyDate=datetime(year=2015, month=3, day=1),
+              maxStudyDate=datetime(year=2020, month=3, day=1),
+              includeFields=['PatientBirthDate', 'SOPClassesInStudy']))
 ```
 
 ### Finding series and instance details
-To include series and instance level information as well, use the `queryLevel` parameter 
+To include series and instance level information as well, use the `queryLevel` parameter
+
 ```python
-studies = trolley.find_studies(      # find studies series and instances
-    Query(studyInstanceID='B*', 
-          queryLevel=QueryLevels.INSTANCE)
- 
-a_series = studies.series[0]         # studies now contain series    
+studies = trolley.find_studies(  # find studies series and instances
+    MintQuery(studyInstanceID='B*', 
+              queryLevel=QueryLevels.INSTANCE)
+
+a_series = studies.series[0]  # studies now contain series    
 an_instance = a_series.instances[0]  # and series contain instances
 ```
 
 ### Downloading data
+Any study, series or instance can be downloaded
 ```python
-trolley.download_study(              # simple download by uid
-    study_instance_uid='123',  
-    output_dir='/tmp/trolley')
+studies = trolley.find_studies(MintQuery(patientName='B*',
+                                         queryLevel=QueryLevels.INSTANCE))
+
+path = '/tmp/trolley'
+trolley.download(studies, path)                             # all studies
+trolley.download(studies[0]), path                          # a single study
+trolley.download(studies[0].series[0], path)                # a single series
+trolley.download(studies[0].series[0].instances[:3], path)  # first 3 instances
 ```
-More control over download   
+More control over download: obtain `pydicom.Dataset` instances directly 
+
 ```python
-studies = trolley.find_studies(      # find study including instances
-    Query(PatientID='1234',
+studies = trolley.find_studies(              # find study including instances
+    Query(PatientID='1234', 
           queryLevel=QueryLevels.INSTANCE)
 
-instances = trolley.extract_instances(  
-    studies.series[0])               # download only the first series 
-
-for instance in instances:
-    ds = trolley.get_dataset(instance)
-    ds.save_as(
-        f'/tmp/{ds.PatientID}')      # this is a pydicom dataset
-
+for ds in trolley.get_dataset(studies):      # obtain Dataset for each instance
+    ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
 ```
+### DICOM-QR
+`Trolley` can use DICOM-QR instead of MINT as a search method
+```python
+dicom_qr = DICOMQR(host,port,aet,aec)
+trolley = Trolley(searcher=dicom_qr, wado=wado)
+
+# Finding is similar to MINT, but a DICOMQuery is used instead
+trolley.find_studies(  
+    query=DICOMQuery(PatientName="BAL*",   
+                     minStudyDate=datetime(year=2015, month=3, day=1),
+                     maxStudyDate=datetime(year=2015, month=4, day=1),
+                     includeFields=["PatientBirthDate", "SOPClassesInStudy"],
+                     QueryRetrieveLevel=QueryRetrieveLevels.STUDY)) 
+```
+## Examples
+* [search for studies in MINT](examples/search_for_studies_mint.py) 
+* [search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)
+* [Find and download studies](examples/go_shopping.py)
+
 
 ## Caveats
 Dicomtrolley has been developed for and tested on a Vitrea Connection 8.2.0.1 system. This claims to

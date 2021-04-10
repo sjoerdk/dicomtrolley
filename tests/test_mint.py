@@ -7,24 +7,25 @@ import pytest
 from dicomtrolley.exceptions import DICOMTrolleyException
 from dicomtrolley.mint import (
     MintAttribute,
+    MintQuery,
     MintSeries,
+    QueryLevels,
     parse_attribs,
 )
-from dicomtrolley.query import Query, QueryLevels
 from tests.conftest import set_mock_response
 from tests.mock_responses import MINT_SEARCH_STUDY_LEVEL_ERROR_500
 
 
 def test_search_study_level(a_mint, mock_mint_responses):
     """Default query level receives info in study only"""
-    response = a_mint.find_studies(query=Query(patientName="B*"))
-    assert response[2].series == ()
+    response = a_mint.find_studies(query=MintQuery(patientName="B*"))
+    assert response[2].series == []
 
 
 def test_search_series_level(a_mint, mock_mint_responses):
     """Series query level will populate studies with series"""
     response = a_mint.find_studies(
-        query=Query(patientName="B*", queryLevel=QueryLevels.SERIES)
+        query=MintQuery(patientName="B*", queryLevel=QueryLevels.SERIES)
     )
     assert len(response[1].series) == 2
 
@@ -32,7 +33,7 @@ def test_search_series_level(a_mint, mock_mint_responses):
 def test_search_instance_level(a_mint, mock_mint_responses):
     """Instance query level returns series per study and also instances per study"""
     response = a_mint.find_studies(
-        query=Query(patientName="B*", queryLevel=QueryLevels.INSTANCE)
+        query=MintQuery(patientName="B*", queryLevel=QueryLevels.INSTANCE)
     )
     assert len(response[0].series[1].instances) == 13
 
@@ -43,7 +44,7 @@ def test_search_error_500(a_mint, requests_mock):
     """
     set_mock_response(requests_mock, MINT_SEARCH_STUDY_LEVEL_ERROR_500)
     with pytest.raises(DICOMTrolleyException) as e:
-        a_mint.find_studies(query=Query(patientName="B*"))
+        a_mint.find_studies(query=MintQuery(patientName="B*"))
     assert "Could not parse" in str(e)
 
 
@@ -51,7 +52,7 @@ def test_find_study_exception(a_mint, some_studies):
     """Using a find_study query that returns multiple studies is not allowed"""
     a_mint.find_studies = Mock(return_value=some_studies)
     with pytest.raises(DICOMTrolleyException):
-        a_mint.find_study(Query())
+        a_mint.find_study(MintQuery())
 
 
 @pytest.mark.parametrize(
@@ -78,7 +79,7 @@ def test_find_study_exception(a_mint, some_studies):
 def test_query_validation_error(query_params):
     """These queries should fail validation"""
     with pytest.raises(ValueError):
-        Query(**query_params)
+        MintQuery(**query_params)
 
 
 @pytest.mark.parametrize(
@@ -95,12 +96,12 @@ def test_query_validation_error(query_params):
 )
 def test_query_should_pass(query_params):
     """These queries should pass validation"""
-    Query(**query_params)
+    MintQuery(**query_params)
 
 
 def test_query_dates():
     """Date parameters should be passed in proper format"""
-    query = Query(
+    query = MintQuery(
         minStudyDate=datetime(year=2019, month=1, day=2),
         maxStudyDate=datetime(year=2020, month=3, day=1),
         patientBirthDate=date(year=1983, month=8, day=11),

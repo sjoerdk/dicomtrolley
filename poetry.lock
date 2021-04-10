@@ -176,6 +176,17 @@ python-versions = ">=3.6.1"
 version = "2.1.2"
 
 [[package]]
+category = "main"
+description = "A Python implementation of the DICOM networking protocol"
+name = "pynetdicom"
+optional = false
+python-versions = "*"
+version = "1.5.6"
+
+[package.dependencies]
+pydicom = ">=1.4.2"
+
+[[package]]
 category = "dev"
 description = "Python parsing module"
 name = "pyparsing"
@@ -391,7 +402,7 @@ docs = ["sphinx", "jaraco.packaging (>=8.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "pytest-enabler", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "8280b303b45fefe56c653d1171d899cb541d6e1cfb6cc2c42028407c8f84ab6e"
+content-hash = "d4eca37dc3ab4fcf321072a72c361c258b2f3bff081902eef9a96c02977e1128"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -532,6 +543,10 @@ pydantic = [
 pydicom = [
     {file = "pydicom-2.1.2-py3-none-any.whl", hash = "sha256:d97f53a7b269dbd7414d18342f1b70f80d7d35dc4e479316bab146daac0e0c15"},
     {file = "pydicom-2.1.2.tar.gz", hash = "sha256:65f36820c5fec24b4e7ca45b7dae93e054ed269d55f92681863d39d30459e2fd"},
+]
+pynetdicom = [
+    {file = "pynetdicom-1.5.6-py2.py3-none-any.whl", hash = "sha256:da5b96692aacbe684317b2a25bf2d1852bc2b211af98c656147636f0eff69142"},
+    {file = "pynetdicom-1.5.6.tar.gz", hash = "sha256:267639719f2147a94c1cfd403a221b98b401c82ef06edbd1c2ec7239460e6e08"},
 ]
 pyparsing = [
     {file = "pyparsing-2.4.7-py2.py3-none-any.whl", hash = "sha256:ef9d7589ef3c200abe66653d3f1ab1033c3c419ae9b9bdb1240a85b024efc88b"},
