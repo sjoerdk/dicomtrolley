@@ -1,9 +1,14 @@
 # History
 
+## v0.5.1 (2021-04-10)
+
+* Adds DICOM-QR search
+* Changes to Trolley method signatures
+
 ## v0.4.0 (2021-04-05)
 
-* Added multi-threaded wado downloads 
-* Slight changes to dicomtrolley methods
+* Added multi-threaded WADO downloads 
+* Changes to Trolley method signatures
 
 
 ## v0.3.0 (2021-04-01)
