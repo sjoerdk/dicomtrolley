@@ -37,7 +37,7 @@ trolley.download(studies[0], output_dir='/tmp/trolley')
 studies = trolley.find_studies(MintQuery(patientName='B*'))
 ```
 
-Query parameters can be found in [dicomtrolley.query.Query](dicomtrolley/query.py). Valid include fields (which information gets sent back) can be found in [include_fields.py](dicomtrolley/fields.py):
+Query parameters can be found in [mint.Query](dicomtrolley/mint.py#L122). Valid include fields (which information gets sent back) can be found in [fields.py](dicomtrolley/fields.py):
 
 ```python
 studies = trolley.find_studies_mint(
@@ -83,7 +83,7 @@ for ds in trolley.get_dataset(studies):      # obtain Dataset for each instance
     ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
 ```
 ### DICOM-QR
-`Trolley` can use DICOM-QR instead of MINT as a search method
+`Trolley` can use DICOM-QR instead of MINT as a search method. See [dicom_qr.DICOMQuery](dicomtrolley/dicom_qr.py#L30) for query details.
 ```python
 dicom_qr = DICOMQR(host,port,aet,aec)
 trolley = Trolley(searcher=dicom_qr, wado=wado)
