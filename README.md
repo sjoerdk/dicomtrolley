@@ -13,6 +13,11 @@ Retrieve medical images via WADO, MINT and DICOM-QR
 
 ![A trolley](docs/resources/trolley.png)
 
+## Installation
+```
+pip install dicomtrolley
+``` 
+
 ## Usage
 
 ### Basic example
