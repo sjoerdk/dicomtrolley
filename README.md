@@ -101,6 +101,9 @@ trolley.find_studies(
 * [search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)
 * [Find and download studies](examples/go_shopping.py)
 
+## Alternatives
+* [dicomweb-client](https://github.com/MGHComputationalPathology/dicomweb-client) - Active library supporting QIDO-RS, WADO-RS and STOW-RS. 
+* [pynetdicom](https://github.com/pydicom/pynetdicom) - dicomtrolley's DICOM-QR support is based on pynetdicom. Pynetdicom supports a broad range of DICOM networking interactions and can be used as a stand alone application.
 
 ## Caveats
 Dicomtrolley has been developed for and tested on a Vitrea Connection 8.2.0.1 system. This claims to
