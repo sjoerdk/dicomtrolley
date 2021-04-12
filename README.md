@@ -5,9 +5,11 @@
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dicomtrolley)](https://pypi.org/project/dicomtrolley/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Retrieve medical images via WADO, MINT and DICOM-QR.
-Requires python 3.7, 3.8 or 3.9
-Represents images as `pydicom.Dataset` instances.
+Retrieve medical images via WADO, MINT and DICOM-QR
+
+* Requires python 3.7, 3.8 or 3.9
+* Uses `pydicom` and `pynetdicom`. Images and query restults are `pydicom.Dataset` instances
+* multi-threaded downloading using `requests-futures`
 
 ![A trolley](docs/resources/trolley.png)
 
@@ -82,6 +84,16 @@ studies = trolley.find_studies(              # find study including instances
 for ds in trolley.get_dataset(studies):      # obtain Dataset for each instance
     ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
 ```
+
+Multi-threaded downloading
+
+```python
+trolley.download(studies, path, 
+                 use_async=True,  # enable multi-threaded downloading 
+                 max_workers=4)   # optionally set number of concurrent workers
+                                  # defaults to None which lets python decide
+```
+
 ### DICOM-QR
 `Trolley` can use DICOM-QR instead of MINT as a search method. See [dicom_qr.DICOMQuery](dicomtrolley/dicom_qr.py#L30) for query details.
 ```python
