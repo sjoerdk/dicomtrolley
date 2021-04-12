@@ -94,6 +94,19 @@ trolley.download(studies, path,
                                   # defaults to None which lets python decide
 ```
 
+Using WADO only, without search
+```python
+from dicomtrolley.wado import InstanceReference
+
+instance = InstanceReference(
+    series_instance_uid='1.2.1',
+    study_instance_uid='1.2.2',
+    sop_instance_iud='1.2.3')
+
+for ds in wado.datasets([instance]):
+    ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
+```
+
 ### DICOM-QR
 `Trolley` can use DICOM-QR instead of MINT as a search method. See [dicom_qr.DICOMQuery](dicomtrolley/dicom_qr.py#L30) for query details.
 ```python
@@ -109,9 +122,10 @@ trolley.find_studies(
                      QueryRetrieveLevel=QueryRetrieveLevels.STUDY)) 
 ```
 ## Examples
-* [search for studies in MINT](examples/search_for_studies_mint.py) 
-* [search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)
+* [Search for studies in MINT](examples/search_for_studies_mint.py) 
+* [Search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)
 * [Find and download studies](examples/go_shopping.py)
+* [Using WADO only](examples/use_wado_only.py)
 
 ## Alternatives
 * [dicomweb-client](https://github.com/MGHComputationalPathology/dicomweb-client) - Active library supporting QIDO-RS, WADO-RS and STOW-RS. 
