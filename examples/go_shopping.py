@@ -47,5 +47,5 @@ studies_full = trolley.find_studies(
 
 
 print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
-trolley.download(studies_full, environ["DOWNLOAD_PATH"])
+trolley.download(studies_full, environ["DOWNLOAD_PATH"], use_async=False)
 print("Done")
