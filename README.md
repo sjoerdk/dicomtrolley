@@ -9,7 +9,7 @@ Retrieve medical images via WADO, MINT and DICOM-QR
 
 * Requires python 3.7, 3.8 or 3.9
 * Uses `pydicom` and `pynetdicom`. Images and query restults are `pydicom.Dataset` instances
-* multi-threaded downloading using `requests-futures`
+* Multi-threaded downloading using `requests-futures`
 
 ![A trolley](docs/resources/trolley.png)
 
