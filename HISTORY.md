@@ -1,5 +1,10 @@
 # History
 
+## v0.5.2 (2021-04-12)
+
+* Adds WADO-only examples 
+* Improves readme
+
 ## v0.5.1 (2021-04-10)
 
 * Adds DICOM-QR search
