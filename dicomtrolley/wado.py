@@ -17,7 +17,7 @@ from requests_futures.sessions import FuturesSession
 from dicomtrolley.exceptions import DICOMTrolleyException
 
 
-@dataclass()
+@dataclass
 class InstanceReference:
     """All information needed to download a single slice (SOPInstance) in WADO"""
 
