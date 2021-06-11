@@ -47,7 +47,9 @@ class DICOMQuery(BaseModel):
     PatientName: str = ""
 
     # meta parameters: how to return results
-    QueryRetrieveLevel: str = QueryRetrieveLevels.STUDY  # depth to return results at
+    QueryRetrieveLevel: str = (
+        QueryRetrieveLevels.STUDY
+    )  # depth to return results at
 
     # NON DICOM parameters (are transformed into DICOM parameters
     minStudyDate: Optional[datetime]

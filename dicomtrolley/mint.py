@@ -66,7 +66,10 @@ class MintSeries(Series, MintObject):
         data = parse_attribs(element)
 
         series = cls(
-            data=data, uid=data.SeriesInstanceUID, parent=parent, instances=[],
+            data=data,
+            uid=data.SeriesInstanceUID,
+            parent=parent,
+            instances=[],
         )
         for x in element.findall(MintInstance.xml_element):
             series.instances.append(
