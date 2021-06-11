@@ -37,7 +37,7 @@ studies = trolley.find_studies(
 )
 
 print(f"Found {len(studies)} studies. Taking one with least instances")
-studies.sort(key=lambda x: x.data.NumberOfStudyRelatedInstances)
+studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
 study = studies[1]
 
 print(f"Getting slice info for {study}")
