@@ -81,8 +81,7 @@ class Trolley:
         Iterator[Dataset]
             The downloaded dataset and the context that was used to download it
         """
-        for ds in self.wado.datasets(self.extract_instances(objects)):
-            yield ds
+        yield from self.wado.datasets(self.extract_instances(objects))
 
     @staticmethod
     def extract_instances(
@@ -94,7 +93,7 @@ class Trolley:
 
         Parameters
         ----------
-        objects: Sequence[DICOMObject]
+        objects: list[Union[DICOMObject, InstanceReference]]
             Any combination of Study, Series and Instance objects
 
         Returns
@@ -134,10 +133,10 @@ class Trolley:
             The downloaded dataset and the context that was used to download it
         """
 
-        for ds in self.wado.datasets_async(
-            instances=self.extract_instances(objects), max_workers=max_workers,
-        ):
-            yield ds
+        yield from self.wado.datasets_async(
+            instances=self.extract_instances(objects),
+            max_workers=max_workers,
+        )
 
 
 def to_wado_reference(instance: Instance) -> InstanceReference:
