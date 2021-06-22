@@ -41,10 +41,10 @@ class DICOMQuery(BaseModel):
     """
 
     # DICOM parameters (used in CFIND directly)
-    StudyInstanceUID: str = ""
-    AccessionNumber: str = ""
-    StudyID: str = ""
-    PatientName: str = ""
+    StudyInstanceUID: Optional[str] = ""
+    AccessionNumber: Optional[str] = ""
+    StudyID: Optional[str] = ""
+    PatientName: Optional[str] = ""
 
     # meta parameters: how to return results
     QueryRetrieveLevel: str = (
@@ -54,7 +54,7 @@ class DICOMQuery(BaseModel):
     # NON DICOM parameters (are transformed into DICOM parameters
     minStudyDate: Optional[datetime]
     maxStudyDate: Optional[datetime]
-    includeFields: List[str] = []  # which dicom fields to return
+    includeFields: Optional[List[str]] = []  # which dicom fields to return
 
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
