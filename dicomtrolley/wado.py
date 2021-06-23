@@ -6,7 +6,7 @@ from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Sequence
 
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 from pydicom.dataset import Dataset
 from pydicom.errors import InvalidDicomError
 from pydicom.filebase import DicomBytesIO
@@ -23,10 +23,10 @@ class InstanceReference:
 
     study_instance_uid: str
     series_instance_uid: str
-    sop_instance_iud: str
+    sop_instance_uid: str
 
     def __str__(self):
-        return f"InstanceReference {self.sop_instance_iud}"
+        return f"InstanceReference {self.sop_instance_uid}"
 
 
 class Wado:
