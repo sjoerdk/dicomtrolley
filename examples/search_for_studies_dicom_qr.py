@@ -13,11 +13,8 @@ from datetime import datetime
 from os import environ
 
 from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
-from dicomtrolley.mint import Mint
-from dicomtrolley.servers import IMPAXDataCenter
-from dicomtrolley.trolley import Trolley
-from dicomtrolley.wado import Wado
 
+print("Setting up DICOM query-retrieve")
 dicom_qr = DICOMQR(
     host=environ["HOST"],
     port=int(environ["PORT"]),
@@ -25,17 +22,8 @@ dicom_qr = DICOMQR(
     aec=environ["AEC"],
 )
 
-session = IMPAXDataCenter(environ["LOGIN_URL"]).log_in(
-    environ["USER"], environ["PASSWORD"]
-)
 
-trolley = Trolley(
-    searcher=Mint(session, environ["MINT_URL"]),
-    wado=Wado(session, environ["WADO_URL"]),
-)
-
-
-print("More extensive search")
+print("Perform a search")
 studies = dicom_qr.find_studies(
     DICOMQuery(
         PatientName="BAL*",
