@@ -46,14 +46,14 @@ class MockWadoParameters:
 
     study_instance_uid = "111"
     series_instance_uid = "222"
-    sop_instance_iud = "333"
+    sop_instance_uid = "333"
 
     @classmethod
     def as_dict(cls):
         return {
             "studyUID": cls.study_instance_uid,
             "seriesUID": cls.series_instance_uid,
-            "objectUID": cls.sop_instance_iud,
+            "objectUID": cls.sop_instance_uid,
         }
 
     @classmethod
@@ -69,7 +69,7 @@ class MockWadoParameters:
         return InstanceReference(
             study_instance_uid=cls.study_instance_uid,
             series_instance_uid=cls.series_instance_uid,
-            sop_instance_iud=cls.sop_instance_iud,
+            sop_instance_uid=cls.sop_instance_uid,
         )
 
 
