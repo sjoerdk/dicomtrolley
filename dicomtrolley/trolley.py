@@ -147,7 +147,7 @@ def to_wado_reference(instance: Instance) -> InstanceReference:
     return InstanceReference(
         study_instance_uid=instance.parent.parent.uid,
         series_instance_uid=instance.parent.uid,
-        sop_instance_iud=instance.uid,
+        sop_instance_uid=instance.uid,
     )
 
 

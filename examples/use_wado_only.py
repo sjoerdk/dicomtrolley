@@ -26,12 +26,12 @@ wado = Wado(session, environ["WADO_URL"])
 instance1 = InstanceReference(
     series_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.105",
     study_instance_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
-    sop_instance_iud="1.2.840.113619.2.239.1783.1568025913.0.113",
+    sop_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.113",
 )
 
 instance2 = InstanceReference(
     series_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.76",
-    sop_instance_iud="1.2.840.113619.2.239.1783.1568025913.0.77.64",
+    sop_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.77.64",
     study_instance_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
 )
 

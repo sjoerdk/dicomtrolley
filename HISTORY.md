@@ -1,5 +1,14 @@
 # History
 
+## v0.5.4 (2021-06-23)
+
+* Fix typo
+
+## v0.5.3 (2021-06-23)
+
+* Correct usage of dataclass
+* DICOM-QR fix
+
 ## v0.5.2 (2021-04-12)
 
 * Adds WADO-only examples 
