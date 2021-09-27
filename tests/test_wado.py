@@ -19,7 +19,7 @@ def test_wado_get_dataset(a_wado, requests_mock):
         InstanceReference(
             study_instance_uid=MockWadoParameters.study_instance_uid,
             series_instance_uid=MockWadoParameters.series_instance_uid,
-            sop_instance_iud=MockWadoParameters.sop_instance_iud,
+            sop_instance_uid=MockWadoParameters.sop_instance_uid,
         )
     )
 
@@ -40,7 +40,7 @@ def test_wado_get_faulty_dataset(a_wado, requests_mock, mock_response):
             InstanceReference(
                 study_instance_uid=MockWadoParameters.study_instance_uid,
                 series_instance_uid=MockWadoParameters.series_instance_uid,
-                sop_instance_iud=MockWadoParameters.sop_instance_iud,
+                sop_instance_uid=MockWadoParameters.sop_instance_uid,
             )
         )
 
