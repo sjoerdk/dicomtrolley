@@ -1,8 +1,18 @@
 # History
 
-## v0.5.2 (2021-09-27)
+
+## v0.6.0 (2021-09-27)
 
 * Renames base exception DICOMTrolleyException to pep8 complient DICOMTrolleyError
+
+## v0.5.4 (2021-06-23)
+
+* Fix typo
+
+## v0.5.3 (2021-06-23)
+
+* Correct usage of dataclass
+* DICOM-QR fix
 
 ## v0.5.2 (2021-04-12)
 
