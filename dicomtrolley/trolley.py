@@ -124,7 +124,7 @@ class Trolley:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If getting or parsing of any instance fails
 
         Returns

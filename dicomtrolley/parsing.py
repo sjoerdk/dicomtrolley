@@ -5,7 +5,7 @@ from typing import Any, DefaultDict, List
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import Instance, Series, Study
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 
 
 class TreeNode(DefaultDict[Any, "TreeNode"]):
@@ -71,11 +71,11 @@ class DICOMParseTree:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If inserting fails for any reason
         """
         if instance and not series:
-            DICOMTrolleyException(
+            DICOMTrolleyError(
                 f"Instance was given ({instance}) but series was not. I can "
                 f"not insert this into a study/series/instance tree"
             )
@@ -88,9 +88,9 @@ class DICOMParseTree:
             else:
                 self.root[study].data = data
         except ValueError as e:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Error inserting dataset into {study}/{series}/{instance}: {e}"
-            )
+            ) from e
 
     def insert_dataset(self, ds: Dataset):
         self.insert(

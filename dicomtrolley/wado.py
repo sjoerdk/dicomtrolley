@@ -14,7 +14,7 @@ from pydicom.filereader import dcmread
 from requests.models import Response
 from requests_futures.sessions import FuturesSession
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 
 
 @dataclass
@@ -68,7 +68,7 @@ class Wado:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If response is not as expected or if parsing fails
 
         Returns
@@ -77,7 +77,7 @@ class Wado:
         """
         if response.status_code != 200:
 
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Calling {response.url} failed ({response.status_code} - "
                 f"{response.reason})\n"
                 f"response content was {str(response.content[:300])}"
@@ -86,18 +86,18 @@ class Wado:
         try:
             return dcmread(raw)
         except InvalidDicomError as e:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Error parsing response as dicom: {e}."
                 f" Response content (first 300 elements) was"
                 f" {str(response.content[:300])}"
-            )
+            ) from e
 
     def get_dataset(self, instance: InstanceReference):
         """Get DICOM dataset for the given instance (slice)
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If getting does not work for some reason
 
         Returns
@@ -136,7 +136,7 @@ class Wado:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             When a server response cannot be parsed as DICOM
 
         Returns

@@ -1,6 +1,6 @@
 import pytest
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree, TreeNode
 from tests.factories import (
     create_c_find_image_response,
@@ -62,5 +62,5 @@ def test_parse_tree():
 def test_parse_tree_exceptions():
     tree = DICOMParseTree()
     tree.insert_dataset(quick_dataset(StudyInstanceUID="1"))
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         tree.insert_dataset(quick_dataset(StudyInstanceUID="1"))

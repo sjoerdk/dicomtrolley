@@ -5,7 +5,7 @@ from typing import Sequence
 from pydantic.main import BaseModel
 from pydicom.dataset import Dataset
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 
 
 class DICOMObject(BaseModel):
@@ -71,12 +71,12 @@ class Searcher:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If no results or more than one result is returned by query
         """
         results = self.find_studies(query)
         if len(results) == 0 or len(results) > 1:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Expected exactly one study for query '{query}', but"
                 f" found {len(results)}"
             )

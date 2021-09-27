@@ -13,7 +13,7 @@ from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import PatientRootQueryRetrieveInformationModelFind
 
 from dicomtrolley.core import Searcher
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 
 
@@ -180,7 +180,7 @@ class DICOMQR(Searcher):
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             When finding fails
 
         Returns
@@ -220,7 +220,7 @@ class DICOMQR(Searcher):
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             When finding fails
         """
         if self.debug:
@@ -245,14 +245,14 @@ class DICOMQR(Searcher):
                         responses.append(identifier)
 
                 else:
-                    raise DICOMTrolleyException(
+                    raise DICOMTrolleyError(
                         "Connection timed out, was aborted or"
                         " received invalid response"
                     )
 
             assoc.release()
         else:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 "Association rejected, aborted or never connected"
             )
 

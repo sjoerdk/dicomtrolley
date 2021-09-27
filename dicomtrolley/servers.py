@@ -3,7 +3,7 @@
 import requests
 
 from dicomtrolley.dicom_qr import DICOMQR
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import Mint
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado import Wado
@@ -40,7 +40,7 @@ class VitreaConnection:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If login fails for some reason
 
         """
@@ -54,7 +54,7 @@ class VitreaConnection:
             },
         )
         if response.status_code == 401:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"login failed. {response.status_code}:{response.reason}"
             )
 
@@ -123,7 +123,7 @@ class IMPAXDataCenter:
 
         Raises
         ------
-        DICOMTrolleyException
+        DICOMTrolleyError
             If login fails for some reason
 
         """
@@ -140,14 +140,14 @@ class IMPAXDataCenter:
                 f"?j_username={user}&j_password={password}"
             )
         except requests.exceptions.ConnectionError as e:
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Error logging in to {self.wado_url}: {e}"
-            )
+            ) from e
 
         if (
             "Login Failed!" in response.text
         ):  # login fail status_code is 200 OK..
-            raise DICOMTrolleyException(
+            raise DICOMTrolleyError(
                 f"Logging in to {self.wado_url} failed. "
                 f"Invalid Credentials?"
             )

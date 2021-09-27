@@ -4,7 +4,7 @@ from xml.etree.ElementTree import Element
 
 import pytest
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import (
     MintAttribute,
     MintQuery,
@@ -43,7 +43,7 @@ def test_search_error_500(a_mint, requests_mock):
     instead mint format. This should be handled
     """
     set_mock_response(requests_mock, MINT_SEARCH_STUDY_LEVEL_ERROR_500)
-    with pytest.raises(DICOMTrolleyException) as e:
+    with pytest.raises(DICOMTrolleyError) as e:
         a_mint.find_studies(query=MintQuery(patientName="B*"))
     assert "Could not parse" in str(e)
 
@@ -51,7 +51,7 @@ def test_search_error_500(a_mint, requests_mock):
 def test_find_study_exception(a_mint, some_studies):
     """Using a find_study query that returns multiple studies is not allowed"""
     a_mint.find_studies = Mock(return_value=some_studies)
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         a_mint.find_study(MintQuery())
 
 

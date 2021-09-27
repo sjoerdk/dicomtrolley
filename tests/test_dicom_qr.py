@@ -5,7 +5,7 @@ import pynetdicom
 import pytest as pytest
 
 from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import QueryLevels
 from tests.factories import (
     create_c_find_image_response,
@@ -146,5 +146,5 @@ def test_send_cfind_no_connection(a_mock_ae_associate, monkeypatch):
     )
 
     qr = DICOMQR(host="host", port=123)
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         qr.send_c_find(query=DICOMQuery())

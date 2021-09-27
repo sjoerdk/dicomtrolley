@@ -13,7 +13,7 @@ from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import DICOMObject, Instance, Searcher, Series, Study
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.fields import (
     InstanceLevel,
     SeriesLevel,
@@ -277,18 +277,18 @@ def parse_mint_studies_response(xml_raw) -> List[MintStudy]:
 
     Raises
     ------
-    DICOMTrolleyException
+    DICOMTrolleyError
         If parsing fails
     """
     try:
         studies = ElementTree.fromstring(xml_raw).findall(
             MintStudy.xml_element
         )
-    except ParseError:
-        raise DICOMTrolleyException(
+    except ParseError as e:
+        raise DICOMTrolleyError(
             f"Could not parse server response as MINT "
             f"studies. Response was: {xml_raw}"
-        )
+        ) from e
     return [MintStudy.init_from_element(x) for x in studies]
 
 

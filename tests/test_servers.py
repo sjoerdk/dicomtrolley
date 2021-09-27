@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.servers import IMPAXDataCenter, VitreaConnection
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
@@ -25,7 +25,7 @@ def test_login(a_login, login_works):
 
 def test_login_fails(a_login, login_denied):
     """Check that correct exception is raised"""
-    with pytest.raises(DICOMTrolleyException) as e:
+    with pytest.raises(DICOMTrolleyError) as e:
         a_login.log_in(user="test", password="test", realm="test")
     assert "Unauthorized" in str(e)
 
@@ -44,7 +44,7 @@ def test_impax_login_works(an_impax, requests_mock):
 
 def test_impax_login_fails(an_impax, requests_mock):
     set_mock_response(requests_mock, LOGIN_DENIED_IMPAX)
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         an_impax.log_in("user", "pass")
 
 
@@ -54,5 +54,5 @@ def test_impax_login_fails_connection_error(requests_mock):
         method="GET",
         exc=requests.exceptions.ConnectionError,
     )
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         IMPAXDataCenter(wado_url=MockUrls.LOGIN).log_in("user", "pass")

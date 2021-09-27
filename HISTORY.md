@@ -1,5 +1,9 @@
 # History
 
+## v0.5.2 (2021-09-27)
+
+* Renames base exception DICOMTrolleyException to pep8 complient DICOMTrolleyError
+
 ## v0.5.2 (2021-04-12)
 
 * Adds WADO-only examples 

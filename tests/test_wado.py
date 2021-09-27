@@ -1,6 +1,6 @@
 import pytest
 
-from dicomtrolley.exceptions import DICOMTrolleyException
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.wado import InstanceReference
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
@@ -35,7 +35,7 @@ def test_wado_get_faulty_dataset(a_wado, requests_mock, mock_response):
     """Server can return strange invalid dicom-like responses. Catch these"""
     set_mock_response(requests_mock, mock_response)
 
-    with pytest.raises(DICOMTrolleyException):
+    with pytest.raises(DICOMTrolleyError):
         a_wado.get_dataset(
             InstanceReference(
                 study_instance_uid=MockWadoParameters.study_instance_uid,
