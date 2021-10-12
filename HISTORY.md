@@ -1,5 +1,8 @@
 # History
 
+## v0.7.0 (2021-10-12)
+
+* Adds additional search fields to DICOMQuery widening DICOM-QR search scope
 
 ## v0.6.0 (2021-09-27)
 
