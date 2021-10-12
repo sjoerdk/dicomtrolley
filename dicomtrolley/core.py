@@ -15,6 +15,9 @@ class DICOMObject(BaseModel):
     dicomtrolley download methods take instances based on DICOMObject as input
     """
 
+    class Config:
+        arbitrary_types_allowed = True  # allows the use of Dataset type below
+
     uid: str
     data: Dataset
 
