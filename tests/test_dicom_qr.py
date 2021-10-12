@@ -29,6 +29,36 @@ def test_qr_query():
     )  # should be added as default for QueryLevel
 
 
+def test_qr_query_exclude_default_params():
+    """If a parameter has not been explicitly given to a DICOMQuery, it should not
+    pollute any DICOM query so should be ignored
+    """
+    query = DICOMQuery(StudyInstanceUID="123")
+    assert (
+        query.PatientName == ""
+    )  # not passed in init, so default empty value
+    assert (
+        "StudyInstanceUID" in query.as_dataset()
+    )  # SID was passed so should exist
+    assert "PatientName" not in query.as_dataset()  # not passed, so ignored
+
+
+def test_qr_query_do_not_overwrite_parameters():
+    """If a parameter is passed in init and also in IncludeFields, don't overwrite
+    the init value
+    """
+    query = DICOMQuery(
+        StudyInstanceUID="123",
+        ProtocolName="foo",
+        includeFields=["StudyInstanceUID", "ProtocolName"],
+    )
+    assert query.StudyInstanceUID == "123"
+    assert query.ProtocolName == "foo"
+    ds = query.as_dataset()
+    assert ds.StudyInstanceUID == "123"
+    assert ds.ProtocolName == "foo"
+
+
 @pytest.mark.parametrize(
     "parameters",
     [

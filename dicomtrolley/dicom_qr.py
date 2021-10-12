@@ -45,6 +45,10 @@ class DICOMQuery(BaseModel):
     AccessionNumber: Optional[str] = ""
     StudyID: Optional[str] = ""
     PatientName: Optional[str] = ""
+    Modality: Optional[str] = ""
+    StudyDescription: Optional[str] = ""
+    SeriesDescription: Optional[str] = ""
+    ProtocolName: Optional[str] = ""
 
     # meta parameters: how to return results
     QueryRetrieveLevel: str = (

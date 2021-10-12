@@ -27,10 +27,18 @@ print("Perform a search")
 studies = dicom_qr.find_studies(
     DICOMQuery(
         PatientName="BAL*",
+        ProtocolName="Thorax",
         minStudyDate=datetime(year=2015, month=3, day=1),
         maxStudyDate=datetime(year=2015, month=4, day=1),
-        includeFields=["PatientBirthDate", "SOPClassesInStudy"],
-        QueryRetrieveLevel=QueryRetrieveLevels.STUDY,
+        includeFields=[
+            "PatientBirthDate",
+            "SOPClassesInStudy",
+            "Modality",
+            "StudyDescription",
+            "SeriesDescription",
+            "ProtocolName",
+        ],
+        QueryRetrieveLevel=QueryRetrieveLevels.SERIES,
     )
 )
 
