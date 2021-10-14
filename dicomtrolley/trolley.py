@@ -9,21 +9,40 @@ each other's classes. Core has knowledge of all and converts between them if nee
 
 """
 from pathlib import Path
-from typing import List, Sequence, Union
+from typing import List, Sequence, Tuple, Union
 
 from dicomtrolley.core import DICOMObject, Instance, Searcher, Study
+from dicomtrolley.parsing import DICOMObjectTree
+from dicomtrolley.types import DICOMDownloadable
 from dicomtrolley.wado import InstanceReference, Wado
 
 
 class Trolley:
     """Combines WADO and MINT or DICOM-QR to make make getting DICOM studies easy."""
 
-    def __init__(self, wado: Wado, searcher: Searcher):
+    def __init__(self, wado: Wado, searcher: Searcher, query_missing=True):
+        """
+
+        Parameters
+        ----------
+        wado: Wado
+            The wado connection to download with
+        searcher: Searcher
+            The module to use for queries
+        query_missing: bool, optional
+            if True, Trolley.download() will query for missing DICOM instances. For
+            example when passing a Study obtained from a study-level query, which does
+            not contain any information on instances
+            if False, missing instances will not be downloaded
+
+        """
         self.wado = wado
         self.searcher = searcher
+        self._searcher_cache = DICOMObjectTree([])
+        self.query_missing = query_missing
 
     def find_studies(self, query) -> List[Study]:
-        """Find study information using MINT.
+        """Find study information
 
         Parameters
         ----------
@@ -54,14 +73,14 @@ class Trolley:
 
     def download(
         self,
-        objects: Union[DICOMObject, Sequence[DICOMObject]],
+        objects: Union[DICOMDownloadable, Sequence[DICOMDownloadable]],
         output_dir,
         use_async=False,
         max_workers=None,
     ):
         """Download the given objects to output dir."""
         if not isinstance(objects, Sequence):
-            objects = [objects]
+            objects = [objects]  # if just a single item to download is passed
         storage = DICOMStorageDir(output_dir)
         if use_async:
             datasets = self.fetch_all_datasets_async(
@@ -73,27 +92,48 @@ class Trolley:
         for dataset in datasets:
             storage.save(dataset)
 
-    def fetch_all_datasets(self, objects: Sequence[DICOMObject]):
-        """Get full DICOM dataset for each instance in study.
+    def fetch_all_datasets(self, objects: Sequence[DICOMDownloadable]):
+        """Get full DICOM dataset for all instances contained in objects.
 
         Returns
         -------
         Iterator[Dataset]
             The downloaded dataset and the context that was used to download it
         """
-        yield from self.wado.datasets(self.extract_instances(objects))
+
+        yield from self.wado.datasets(self.objects_to_references(objects))
+
+    def objects_to_references(
+        self, objects: Sequence[DICOMDownloadable]
+    ) -> Sequence[InstanceReference]:
+        """Find all instances contained in the given objects. Query for missing"""
+        references, dicom_objects = self.split_references(objects)
+        if self.query_missing:
+            dicom_objects = self.ensure_instances(dicom_objects)
+        return references + self.extract_references(dicom_objects)
 
     @staticmethod
-    def extract_instances(
-        objects: Sequence[Union[DICOMObject, InstanceReference]]
-    ):
+    def split_references(
+        objects,
+    ) -> Tuple[List[InstanceReference], List[DICOMObject]]:
+        references, dicom_objects = [], []
+        for item in objects:
+            references.append(item) if isinstance(
+                item, InstanceReference
+            ) else dicom_objects.append(item)
+        return references, dicom_objects
+
+    @staticmethod
+    def extract_references(
+        objects: Sequence[DICOMDownloadable],
+    ) -> List[InstanceReference]:
         """Get all individual instances from input.
 
         A pre-processing step for getting datasets.
 
         Parameters
         ----------
-        objects: list[Union[DICOMObject, InstanceReference]]
+        objects: list[DICOMDownloadable]
             Any combination of Study, Series and Instance objects
 
         Returns
@@ -101,6 +141,7 @@ class Trolley:
         List[InstanceReference]
             A reference to each instance (slice)
         """
+        instances: List[InstanceReference]
         instances = []
         for item in objects:
             if isinstance(item, InstanceReference):
@@ -111,12 +152,49 @@ class Trolley:
                 ]
         return instances
 
+    def ensure_instances(self, objects: Sequence[DICOMObject]):
+        """Ensure that all objects contain instances. Perform additional image-level
+        queries with searcher if needed.
+
+        Note
+        ----
+        This method fires additional search queries and might take a long time to
+        return depending on the number of objects and missing instances
+        """
+
+        def has_instances(item_in):
+            return bool(item_in.all_instances())
+
+        # all information on studies, series and instances we have
+        self._searcher_cache = DICOMObjectTree(objects)
+        cache = self._searcher_cache
+
+        ensured = []
+        for item in objects:
+            if has_instances(item):
+                ensured.append(item)  # No work needed
+            else:
+                retrieved = cache.retrieve(
+                    item.reference()
+                )  # have we cached before?
+                if has_instances(retrieved):  # yes we have. Add that
+                    ensured.append(retrieved)
+                else:  # No instances, we'll have to query for them
+                    study = self.searcher.find_full_study_by_id(
+                        item.root().uid
+                    )
+                    cache.add_study(study)
+                    ensured.append(cache.retrieve(item.reference()))
+
+        self._searcher_cache = DICOMObjectTree([])
+        return ensured
+
     def fetch_all_datasets_async(self, objects, max_workers=None):
         """Get DICOM dataset for each instance given objects using multiple threads.
 
         Parameters
         ----------
-        objects: List[DICOMObject]
+        objects: Sequence[DICOMDownloadable]
             get dataset for each instance contained in these objects
         max_workers: int, optional
             Max number of ThreadPoolExecutor workers to use. Defaults to
@@ -134,21 +212,28 @@ class Trolley:
         """
 
         yield from self.wado.datasets_async(
-            instances=self.extract_instances(objects),
+            instances=self.objects_to_references(objects),
             max_workers=max_workers,
         )
 
 
-def to_wado_reference(instance: Instance) -> InstanceReference:
-    """Simplify a more extensive MINT instance to an InstanceReference.
+def to_wado_reference(
+    item: Union[Instance, InstanceReference]
+) -> InstanceReference:
+    """Simplify a more extensive instance to an InstanceReference.
 
-    needed for calls to WADO functions
+    needed for calls to WADO functions.
+
+    Opted to check for type here as I don't want put this functionality in core.
     """
-    return InstanceReference(
-        study_instance_uid=instance.parent.parent.uid,
-        series_instance_uid=instance.parent.uid,
-        sop_instance_uid=instance.uid,
-    )
+    if isinstance(item, InstanceReference):
+        return item
+    else:
+        return InstanceReference(
+            study_instance_uid=item.parent.parent.uid,
+            series_instance_uid=item.parent.uid,
+            sop_instance_uid=item.uid,
+        )
 
 
 class DICOMStorageDir:

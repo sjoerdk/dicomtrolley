@@ -4,6 +4,8 @@ from typing import List
 from pydicom.dataset import Dataset
 from pydicom.tag import Tag
 
+from dicomtrolley.dicom_qr import DICOMQR
+
 
 def quick_dataset(*_, **kwargs) -> Dataset:
     """Creates a pydicom dataset with keyword args as tagname - value pairs
@@ -74,3 +76,24 @@ def create_c_find_study_response(study_instance_uids) -> List[Dataset]:
         )
 
     return response
+
+
+def create_image_level_study(
+    study_instance_uid,
+    series_instance_uids: List[str],
+    sop_class_uids: List[str],
+) -> Dataset:
+    return DICOMQR.parse_c_find_response(
+        create_c_find_image_response(
+            study_instance_uid, series_instance_uids, sop_class_uids
+        )
+    )[0]
+
+
+def quick_image_level_study(uid) -> Dataset:
+    """Study with 2 series and some Instances in each series"""
+    return create_image_level_study(
+        uid,
+        series_instance_uids=["Series1", "series2"],
+        sop_class_uids=[f"Instance{i}" for i in range(1, 10)],
+    )

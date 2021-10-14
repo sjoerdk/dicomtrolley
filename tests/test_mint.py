@@ -48,9 +48,9 @@ def test_search_error_500(a_mint, requests_mock):
     assert "Could not parse" in str(e)
 
 
-def test_find_study_exception(a_mint, some_studies):
+def test_find_study_exception(a_mint, some_mint_studies):
     """Using a find_study query that returns multiple studies is not allowed"""
-    a_mint.find_studies = Mock(return_value=some_studies)
+    a_mint.find_studies = Mock(return_value=some_mint_studies)
     with pytest.raises(DICOMTrolleyError):
         a_mint.find_study(MintQuery())
 
@@ -124,14 +124,16 @@ def test_parse_attribs_empty_val():
 
 
 def test_study_instance_iterator(
-    a_study_with_instances, a_study_without_instances
+    a_mint_study_with_instances, a_mint_study_without_instances
 ):
 
-    assert len([x for x in a_study_with_instances.all_instances()]) == 14
-    assert len([x for x in a_study_without_instances.all_instances()]) == 0
+    assert len([x for x in a_mint_study_with_instances.all_instances()]) == 14
+    assert (
+        len([x for x in a_mint_study_without_instances.all_instances()]) == 0
+    )
 
 
-def test_study_dump(a_study_with_instances):
-    dump = a_study_with_instances.dump_content()
+def test_study_dump(a_mint_study_with_instances):
+    dump = a_mint_study_with_instances.dump_content()
     assert "BEELDENZORG" in dump
     assert "85551.608" in dump

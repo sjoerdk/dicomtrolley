@@ -12,7 +12,7 @@ from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import PatientRootQueryRetrieveInformationModelFind
 
-from dicomtrolley.core import Searcher
+from dicomtrolley.core import Searcher, Study
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 
@@ -194,7 +194,7 @@ class DICOMQR(Searcher):
         return self.parse_c_find_response(self.send_c_find(query))
 
     @staticmethod
-    def parse_c_find_response(responses):
+    def parse_c_find_response(responses) -> List[Study]:
         """Parse flat list of datasets from CFIND into a study/series/instance tree
 
         CFIND returns a flat list of datasets on the queries' QueryRetrieveLevel.
@@ -261,3 +261,11 @@ class DICOMQR(Searcher):
             )
 
         return responses
+
+    def find_full_study_by_id(self, study_uid: str) -> Study:
+        return self.find_study(
+            DICOMQuery(
+                StudyInstanceUID=study_uid,
+                QueryRetrieveLevel=QueryRetrieveLevels.IMAGE,
+            )
+        )

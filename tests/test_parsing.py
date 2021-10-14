@@ -1,10 +1,12 @@
 import pytest
 
+from dicomtrolley.core import DICOMObjectReference
 from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.parsing import DICOMParseTree, TreeNode
+from dicomtrolley.parsing import DICOMObjectTree, DICOMParseTree, TreeNode
 from tests.factories import (
     create_c_find_image_response,
     create_c_find_study_response,
+    create_image_level_study,
     quick_dataset,
 )
 
@@ -59,8 +61,78 @@ def test_parse_tree():
     assert studies[0].series[0].instances[0].data.StudyInstanceUID == "Study1"
 
 
+def test_parse_tree_from_studies(some_studies):
+    """Sometimes its useful to turn a set of Study objects back into a parse tree.
+    for example when augmenting existing data.
+    """
+    tree = DICOMParseTree.init_from_objects(some_studies)
+    recompiled = tree.as_studies()
+    for study_org, study_now in zip(some_studies, recompiled):
+        assert str(study_org.series) == str(study_now.series)
+
+
+def test_parse_tree_from_series(some_studies):
+    """It should be possible to create a parse tree from studies or instances only"""
+    a_series = some_studies[0].series[0]
+    tree = DICOMParseTree.init_from_objects([a_series])
+    recompiled = tree.as_studies()
+    assert str(a_series) == str(recompiled[0].series[0])
+
+
 def test_parse_tree_exceptions():
     tree = DICOMParseTree()
     tree.insert_dataset(quick_dataset(StudyInstanceUID="1"))
     with pytest.raises(DICOMTrolleyError):
         tree.insert_dataset(quick_dataset(StudyInstanceUID="1"))
+
+
+@pytest.fixture
+def a_tree(some_studies):
+    return DICOMObjectTree(objects=some_studies)
+
+
+def test_object_tree(a_tree):
+
+    # one study has instances, one does not
+    assert a_tree["Study1"].all_instances()
+    assert not a_tree["Study2"].all_instances()
+
+    # now add study 2 but with instances this time
+    a_tree.add_study(
+        create_image_level_study(
+            study_instance_uid="Study2",
+            series_instance_uids=["Series1"],
+            sop_class_uids=[f"Instance{i}" for i in range(1, 10)],
+        )
+    )
+
+    # this should have overwritten existing
+    assert len(a_tree.studies) == 2
+    assert a_tree["Study2"].all_instances()
+
+
+def test_object_tree_retrieve(a_tree):
+    # retrieving a series should work
+    series = a_tree.retrieve(
+        DICOMObjectReference(study_uid="Study1", series_uid="Series1")
+    )
+    assert series.uid == "Series1"
+
+    # retrieving a study should work
+    study = a_tree.retrieve(DICOMObjectReference(study_uid="Study2"))
+    assert study.uid == "Study2"
+
+    with pytest.raises(DICOMTrolleyError):
+        a_tree.retrieve(DICOMObjectReference(study_uid="unknown study"))
+
+
+def test_object_tree_retrieve_reference(a_tree):
+    """You can use DICOMObject.reference() to search for object with
+    identical ids
+    """
+    study = a_tree.studies[0]
+    series = a_tree.studies[0].series[0]
+    instance = a_tree.studies[0].series[0].instances[0]
+
+    for item in [study, series, instance]:
+        assert item == a_tree.retrieve(item.reference())

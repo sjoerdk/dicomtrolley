@@ -1,5 +1,12 @@
 # History
 
+## v0.8.0 (2021-10-14)
+
+* Makes it possible to download series and studies without instance information. 
+  Trolley will fire additional queries in the background to find missing instance info.
+  This makes it much easier to select from a study or series level query and download only 
+  selected without having to manually re-query at the image level
+
 ## v0.7.0 (2021-10-12)
 
 * Adds additional search fields to DICOMQuery widening DICOM-QR search scope

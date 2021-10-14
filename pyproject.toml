@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dicomtrolley"
-version = "0.7.1"
+version = "0.8.0"
 description = "Retrieve medical images via WADO, MINT and DICOM-QR"
 authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
 readme = "README.md"
