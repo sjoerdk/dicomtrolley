@@ -41,14 +41,15 @@ class DICOMQuery(BaseModel):
     """
 
     # DICOM parameters (used in CFIND directly)
-    StudyInstanceUID: Optional[str] = ""
     AccessionNumber: Optional[str] = ""
-    StudyID: Optional[str] = ""
-    PatientName: Optional[str] = ""
     Modality: Optional[str] = ""
-    StudyDescription: Optional[str] = ""
-    SeriesDescription: Optional[str] = ""
+    PatientID: Optional[str] = ""
+    PatientName: Optional[str] = ""
     ProtocolName: Optional[str] = ""
+    SeriesDescription: Optional[str] = ""
+    StudyDescription: Optional[str] = ""
+    StudyID: Optional[str] = ""
+    StudyInstanceUID: Optional[str] = ""
 
     # meta parameters: how to return results
     QueryRetrieveLevel: str = (
