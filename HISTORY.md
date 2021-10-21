@@ -1,5 +1,8 @@
 # History
 
+## v0.8.1 (2021-10-14)
+* Adds PatientID to DICOM query parameters
+
 ## v0.8.0 (2021-10-14)
 
 * Makes it possible to download series and studies without instance information. 
