@@ -11,10 +11,16 @@ each other's classes. Core has knowledge of all and converts between them if nee
 from pathlib import Path
 from typing import List, Sequence, Tuple, Union
 
-from dicomtrolley.core import DICOMObject, Instance, Searcher, Study
+from dicomtrolley.core import (
+    DICOMObject,
+    Instance,
+    InstanceReference,
+    Searcher,
+    Study,
+)
 from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.types import DICOMDownloadable
-from dicomtrolley.wado import InstanceReference, Wado
+from dicomtrolley.wado import Wado
 
 
 class Trolley:

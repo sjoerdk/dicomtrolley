@@ -7,7 +7,7 @@ import urllib
 from dataclasses import dataclass, field
 from typing import Any, Dict, Pattern, Union
 
-from dicomtrolley.wado import InstanceReference
+from dicomtrolley.core import InstanceReference
 from tests.factories import create_dicom_bytestream, quick_dataset
 
 

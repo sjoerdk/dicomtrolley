@@ -1,7 +1,7 @@
 import pytest
 
+from dicomtrolley.core import InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.wado import InstanceReference
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
     MockWadoParameters,

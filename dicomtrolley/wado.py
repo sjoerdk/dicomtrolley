@@ -4,7 +4,6 @@ https://www.dicomstandard.org/dicomweb/retrieve-wado-rs-and-wado-uri/
 """
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
-from dataclasses import dataclass
 from typing import Sequence
 
 from pydicom.dataset import Dataset
@@ -14,22 +13,11 @@ from pydicom.filereader import dcmread
 from requests.models import Response
 from requests_futures.sessions import FuturesSession
 
+from dicomtrolley.core import Downloader, InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
 
 
-@dataclass
-class InstanceReference:
-    """All information needed to download a single slice (SOPInstance) in WADO"""
-
-    study_instance_uid: str
-    series_instance_uid: str
-    sop_instance_uid: str
-
-    def __str__(self):
-        return f"InstanceReference {self.sop_instance_uid}"
-
-
-class Wado:
+class Wado(Downloader):
     """A connection to a WADO server"""
 
     def __init__(self, session, url):
@@ -110,16 +98,6 @@ class Wado:
                 self.url, params=self.to_wado_parameters(instance)
             )
         )
-
-    def datasets(self, instances: Sequence[InstanceReference]):
-        """Retrieve each instance via WADO
-
-        Returns
-        -------
-        Iterator[Dataset, None, None]
-        """
-        for instance in instances:
-            yield self.get_dataset(instance)
 
     def datasets_async(
         self, instances: Sequence[InstanceReference], max_workers=None

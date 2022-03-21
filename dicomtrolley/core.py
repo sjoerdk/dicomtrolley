@@ -1,4 +1,5 @@
 """Provides common base classes that allow different modules to talk to each other."""
+from dataclasses import dataclass
 from itertools import chain
 from typing import Sequence
 
@@ -193,6 +194,71 @@ class Study(DICOMObject):
     def reference(self) -> DICOMObjectReference:
         """Return a Reference to this object using uids"""
         return DICOMObjectReference(study_uid=self.uid)
+
+
+@dataclass
+class InstanceReference:
+    """All information needed to download a single slice (SOPInstance)"""
+
+    study_instance_uid: str
+    series_instance_uid: str
+    sop_instance_uid: str
+
+    def __str__(self):
+        return f"InstanceReference {self.sop_instance_uid}"
+
+
+class Downloader:
+    """Something that can fetch DICOM instances. Base class"""
+
+    def get_dataset(self, instance: InstanceReference):
+        """Get DICOM dataset for the given instance (slice)
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If getting does not work for some reason
+
+        Returns
+        -------
+        Dataset
+            A pydicom dataset
+        """
+        raise NotImplementedError
+
+    def datasets(self, instances: Sequence[InstanceReference]):
+        """Retrieve each instance via WADO
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+        """
+        for instance in instances:
+            yield self.get_dataset(instance)
+
+    def datasets_async(
+        self, instances: Sequence[InstanceReference], max_workers=None
+    ):
+        """Retrieve each instance in multiple threads
+
+        Parameters
+        ----------
+        instances: Sequence[InstanceReference]
+            Retrieve dataset for each of these instances
+        max_workers: int, optional
+            Use this number of workers in ThreadPoolExecutor. Defaults to
+            default for ThreadPoolExecutor
+
+        Raises
+        ------
+        DICOMTrolleyError
+            When a server response cannot be parsed as DICOM
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+        """
+        raise NotImplementedError
 
 
 class Searcher:

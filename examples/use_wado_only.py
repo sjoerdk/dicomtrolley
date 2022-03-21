@@ -11,8 +11,10 @@ DOWNLOAD_PATH  # Path to download to
 """
 from os import environ
 
+from dicomtrolley.core import InstanceReference
 from dicomtrolley.servers import VitreaConnection
-from dicomtrolley.wado import InstanceReference, Wado
+from dicomtrolley.wado import Wado
+
 
 # log in
 session = VitreaConnection(environ["LOGIN_URL"]).log_in(
