@@ -48,7 +48,7 @@ studies = trolley.find_studies(MintQuery(patientName='B*'))
 Query parameters can be found in [mint.Query](dicomtrolley/mint.py#L122). Valid include fields (which information gets sent back) can be found in [fields.py](dicomtrolley/fields.py):
 
 ```python
-studies = trolley.find_studies_mint(
+studies = trolley.find_studies(
     MintQuery(modalitiesInStudy='CT*', 
               patientSex="F", 
               minStudyDate=datetime(year=2015, month=3, day=1),
