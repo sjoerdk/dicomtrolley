@@ -16,6 +16,7 @@ repos:
     rev: 3.9.2
     hooks:
       - id: flake8
+        exclude: dicomtrolley/xml_templates.py
         language: python
         additional_dependencies:
           - flake8-bugbear
@@ -31,3 +32,4 @@ repos:
         additional_dependencies:
           - pydantic
           - types-requests
+          - types-Jinja2

@@ -1,11 +1,12 @@
-"""Combines WADO, MINT and DICOM-QR to make make getting DICOM studies easy.
+"""Combines WADO, RAD69, MINT and DICOM-QR to make make getting DICOM studies easy.
 
 Notes
 -----
 Design choices:
 
-WADO, MINT and DICOM-QR modules should be stand-alone. They are not allowed to use
-each other's classes. Core has knowledge of all and converts between them if needed
+WADO, RAD69, MINT and DICOM-QR modules should be stand-alone. They are not allowed to
+use each other's classes. Core has knowledge of all and converts between them if
+needed
 
 """
 from pathlib import Path
@@ -13,6 +14,7 @@ from typing import List, Sequence, Tuple, Union
 
 from dicomtrolley.core import (
     DICOMObject,
+    Downloader,
     Instance,
     InstanceReference,
     Searcher,
@@ -20,19 +22,20 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.types import DICOMDownloadable
-from dicomtrolley.wado import Wado
 
 
 class Trolley:
-    """Combines WADO and MINT or DICOM-QR to make make getting DICOM studies easy."""
+    """Combines a search and download method to get DICOM studies easily"""
 
-    def __init__(self, wado: Wado, searcher: Searcher, query_missing=True):
+    def __init__(
+        self, downloader: Downloader, searcher: Searcher, query_missing=True
+    ):
         """
 
         Parameters
         ----------
-        wado: Wado
-            The wado connection to download with
+        downloader: Downloader
+            The module to use for downloads
         searcher: Searcher
             The module to use for queries
         query_missing: bool, optional
@@ -42,7 +45,7 @@ class Trolley:
             if False, missing instances will not be downloaded
 
         """
-        self.wado = wado
+        self.downloader = downloader
         self.searcher = searcher
         self._searcher_cache = DICOMObjectTree([])
         self.query_missing = query_missing
@@ -107,7 +110,9 @@ class Trolley:
             The downloaded dataset and the context that was used to download it
         """
 
-        yield from self.wado.datasets(self.objects_to_references(objects))
+        yield from self.downloader.datasets(
+            self.objects_to_references(objects)
+        )
 
     def objects_to_references(
         self, objects: Sequence[DICOMDownloadable]
@@ -154,7 +159,7 @@ class Trolley:
                 instances.append(item)
             else:
                 instances = instances + [
-                    to_wado_reference(x) for x in item.all_instances()
+                    to_instance_reference(x) for x in item.all_instances()
                 ]
         return instances
 
@@ -217,13 +222,13 @@ class Trolley:
             The downloaded dataset and the context that was used to download it
         """
 
-        yield from self.wado.datasets_async(
+        yield from self.downloader.datasets_async(
             instances=self.objects_to_references(objects),
             max_workers=max_workers,
         )
 
 
-def to_wado_reference(
+def to_instance_reference(
     item: Union[Instance, InstanceReference]
 ) -> InstanceReference:
     """Simplify a more extensive instance to an InstanceReference.

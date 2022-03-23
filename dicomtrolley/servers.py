@@ -84,11 +84,9 @@ class VitreaConnection:
             logged in trolley with wado and mint
 
         """
-        session = VitreaConnection(login_url=self.login_url).log_in(
-            user=user, password=password, realm=realm
-        )
+        session = self.log_in(user=user, password=password, realm=realm)
         return Trolley(
-            wado=Wado(session=session, url=wado_url),
+            downloader=Wado(session=session, url=wado_url),
             searcher=Mint(session=session, url=mint_url),
         )
 
@@ -192,8 +190,8 @@ class IMPAXDataCenter:
         -------
 
         """
-        session = IMPAXDataCenter(self.wado_url).log_in(wado_user, wado_pass)
+        session = self.log_in(wado_user, wado_pass)
         return Trolley(
-            wado=Wado(session, self.wado_url),
+            downloader=Wado(session, self.wado_url),
             searcher=DICOMQR(host=host, port=port, aet=aet, aec=aec),
         )

@@ -26,7 +26,7 @@ session = VitreaConnection(environ["LOGIN_URL"]).log_in(
 
 trolley = Trolley(
     searcher=Mint(session, environ["MINT_URL"]),
-    wado=Wado(session, environ["WADO_URL"]),
+    downloader=Wado(session, environ["WADO_URL"]),
 )
 
 print("Quick search for studies")

@@ -15,7 +15,7 @@ from tests.factories import (
 @pytest.fixture
 def a_trolley(a_mint, a_wado) -> Trolley:
     """Trolley instance that will not hit any server"""
-    return Trolley(searcher=a_mint, wado=a_wado, query_missing=False)
+    return Trolley(searcher=a_mint, downloader=a_wado, query_missing=False)
 
 
 @pytest.mark.parametrize(
@@ -73,7 +73,7 @@ def test_trolley_download_study(a_trolley, some_mint_studies, tmpdir):
 
 def test_trolley_get_dataset(a_trolley, some_mint_studies, tmpdir):
     a_trolley.searcher.find_studies = Mock(return_value=some_mint_studies)
-    a_trolley.wado.get_dataset = Mock(
+    a_trolley.downloader.get_dataset = Mock(
         return_value=quick_dataset(
             StudyInstanceUID="foo",
             SeriesInstanceUID="baz",
@@ -87,7 +87,7 @@ def test_trolley_get_dataset(a_trolley, some_mint_studies, tmpdir):
 
 
 def test_trolley_get_dataset_async(a_trolley, some_mint_studies):
-    a_trolley.wado.datasets_async = Mock(
+    a_trolley.downloader.datasets_async = Mock(
         return_value=iter(
             [
                 quick_dataset(

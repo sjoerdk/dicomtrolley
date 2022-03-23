@@ -227,7 +227,7 @@ class Downloader:
         raise NotImplementedError
 
     def datasets(self, instances: Sequence[InstanceReference]):
-        """Retrieve each instance via WADO
+        """Retrieve each instance
 
         Returns
         -------

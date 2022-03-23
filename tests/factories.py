@@ -1,10 +1,12 @@
 from io import BytesIO
 from typing import List
 
+from jinja2.environment import Template
 from pydicom.dataset import Dataset
 from pydicom.tag import Tag
 
 from dicomtrolley.dicom_qr import DICOMQR
+from dicomtrolley.xml_templates import RAD69_SOAP_RESPONSE_TEMPLATE
 
 
 def quick_dataset(*_, **kwargs) -> Dataset:
@@ -41,6 +43,14 @@ def create_dicom_bytestream(dataset):
     dataset.save_as(content, write_like_original=False)
     content.seek(0)
     return content.read()
+
+
+def create_rad69_multipart_response_bytestream(dataset):
+    """Quick and dirty example of the multi-part response sent by a rad69 server"""
+    response = Template(RAD69_SOAP_RESPONSE_TEMPLATE.replace(" ", "")).render(
+        dicom_bytestream=create_dicom_bytestream(dataset)
+    )
+    return bytes(response, "utf-8")
 
 
 def create_c_find_image_response(

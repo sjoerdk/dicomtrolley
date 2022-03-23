@@ -7,8 +7,14 @@ import urllib
 from dataclasses import dataclass, field
 from typing import Any, Dict, Pattern, Union
 
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
 from dicomtrolley.core import InstanceReference
-from tests.factories import create_dicom_bytestream, quick_dataset
+from dicomtrolley.xml_templates import A_RAD69_RESPONSE_SOAP_HEADER
+from tests.factories import (
+    create_dicom_bytestream,
+    quick_dataset,
+)
 
 
 @dataclass
@@ -22,6 +28,7 @@ class MockResponse:
     content: bytes = field(default_factory=bytes)
     json: Dict[str, Any] = field(default_factory=dict)
     reason: str = ""
+    headers: Dict[str, str] = field(default_factory=dict)
     exc = None
 
     def as_dict(self):
@@ -39,6 +46,7 @@ class MockUrls:
     LOGIN = "https://testserver/login"
     MINT_URL = "https://testserver/mint"
     WADO_URL = "https://testserver/wado"
+    RAD69_URL = "https://testserver/rids"
 
 
 class MockWadoParameters:
@@ -248,4 +256,50 @@ MINT_SEARCH_STUDY_LEVEL_ERROR_500 = MockResponse(
 
 </body>
 </html>""",
+)
+
+
+def create_rad69_response_from_dataset(dataset):
+    """Create a multi-part rad69 response, with a soap part and dataset a dicom
+    byte stream
+    """
+    return create_rad69_response(create_dicom_bytestream(dataset))
+
+
+def create_rad69_response(bytes_part):
+    """Create a multi-part rad69 response, with a soap part and the given bytes as
+    second part
+    """
+
+    # Recorded from response of a Vitrea connection 8 server
+
+    multi_part_soap_response = MultipartEncoder(
+        fields={
+            "part1": A_RAD69_RESPONSE_SOAP_HEADER,
+            "part2": ("filename", bytes_part, "application/dicom"),
+        }
+    )
+
+    return MockResponse(
+        url=MockUrls.RAD69_URL,
+        content=multi_part_soap_response.read(),
+        method="POST",
+        headers={"Content-Type": multi_part_soap_response.content_type},
+    )
+
+
+RAD69_RESPONSE_INVALID_DICOM = create_rad69_response(bytes_part=bytes(1234))
+
+RAD69_RESPONSE_INVALID_NON_DICOM = MockResponse(
+    url=MockUrls.RAD69_URL,
+    method="POST",
+    status_code=502,
+    text="Bad server error rad69",
+)
+
+RAD69_RESPONSE_INVALID_NON_MULTIPART = MockResponse(
+    url=MockUrls.RAD69_URL,
+    method="POST",
+    status_code=200,
+    text="This is a non-error response, but its not multipart.. very unexpected",
 )

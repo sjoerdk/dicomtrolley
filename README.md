@@ -117,7 +117,7 @@ for ds in wado.datasets([instance]):
 `Trolley` can use DICOM-QR instead of MINT as a search method. See [dicom_qr.DICOMQuery](dicomtrolley/dicom_qr.py#L30) for query details.
 ```python
 dicom_qr = DICOMQR(host,port,aet,aec)
-trolley = Trolley(searcher=dicom_qr, wado=wado)
+trolley = Trolley(searcher=dicom_qr, downloader=wado)
 
 # Finding is similar to MINT, but a DICOMQuery is used instead
 trolley.find_studies(  
@@ -127,11 +127,27 @@ trolley.find_studies(
                      includeFields=["PatientBirthDate", "SOPClassesInStudy"],
                      QueryRetrieveLevel=QueryRetrieveLevels.STUDY)) 
 ```
+
+### RAD69
+The [RAD69](https://gazelle.ihe.net/content/rad-69-retrieve-imaging-document-set) protocol is an alternative to wado for downloading DICOM images.
+```python
+dicom_qr = DICOMQR(host,port,aet,aec)
+trolley = Trolley(searcher=dicom_qr, 
+                  downloader=Rad69(session=session,
+                                   url="https://server/rad69"))
+
+studies = trolley.find_studies(PatientName="AB*",)
+trolley.download(studies[0], path)  # rad69 download works exactly like wado 
+trolley.download(studies[1], path,  
+                 use_async=True)    # multi-threaded download is supported
+
+```
 ## Examples
 * [Search for studies in MINT](examples/search_for_studies_mint.py) 
 * [Search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)
 * [Find and download studies](examples/go_shopping.py)
 * [Using WADO only](examples/use_wado_only.py)
+* [Download studies with rad69](examples/go_shopping_rad69.py)
 
 ## Alternatives
 * [dicomweb-client](https://github.com/MGHComputationalPathology/dicomweb-client) - Active library supporting QIDO-RS, WADO-RS and STOW-RS. 
