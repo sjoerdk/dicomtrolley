@@ -1,8 +1,11 @@
 import pytest
+from jinja2 import Template
 
 from dicomtrolley.core import InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.rad69 import Rad69
+from dicomtrolley.xml_templates import RAD69_SOAP_REQUEST_TEMPLATE
 from tests.conftest import set_mock_response
 from tests.factories import quick_dataset
 from tests.mock_responses import (
@@ -63,6 +66,40 @@ def test_rad69_get_faulty_dataset(a_rad69, requests_mock, mock_response):
                 sop_instance_uid=3,
             )
         )
+
+
+def test_rad69_template():
+    """Verify that all fields in the main soap template are filled correctly"""
+    tree = DICOMParseTree()
+    tree.insert(
+        data=[],
+        study_uid="study1",
+        series_uid="series1",
+        instance_uid="instance1",
+    )
+    tree.insert(
+        data=[],
+        study_uid="study1",
+        series_uid="series1",
+        instance_uid="instance2",
+    )
+    tree.insert(
+        data=[],
+        study_uid="study1",
+        series_uid="series2",
+        instance_uid="instance1",
+    )
+    studies = tree.as_studies()
+    rendered = Template(RAD69_SOAP_REQUEST_TEMPLATE).render(
+        uuid="a_uuid",
+        studies=studies,
+        transfer_syntax_list=["1.2.840.10008.1.2", "1.2.840.10008.1.2.1"],
+    )
+    assert "study1" in rendered
+    assert "series1" in rendered
+    assert "series2" in rendered
+    assert "instance1" in rendered
+    assert "instance2" in rendered
 
 
 def test_wado_datasets_async(a_rad69, requests_mock):

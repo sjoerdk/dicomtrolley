@@ -260,9 +260,7 @@ MINT_SEARCH_STUDY_LEVEL_ERROR_500 = MockResponse(
 
 
 def create_rad69_response_from_dataset(dataset):
-    """Create a multi-part rad69 response, with a soap part and dataset a dicom
-    byte stream
-    """
+    """Create a multi-part rad69 response, with a soap part and a dicom byte stream"""
     return create_rad69_response(create_dicom_bytestream(dataset))
 
 

@@ -14,19 +14,25 @@ RAD69_SOAP_REQUEST_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
                                             <a:To >http://localhost:2647/XdsService/IHEXDSIDocSource.svc</a:To>
                                         </s:Header>
                                         <s:Body>response
-                                            <iherad:RetrieveImagingDocumentSetRequest xmlns:iherad="urn:ihe:rad:xdsi-b:2009" xmlns:ihe="urn:ihe:iti:xds-b:2007">
-                                                <iherad:StudyRequest studyInstanceUID="{{ study_instance_uid }}">
-                                                    <iherad:SeriesRequest seriesInstanceUID="{{ series_instance_uid }}">
-                                                        <ihe:DocumentRequest>
-                                                            <ihe:RepositoryUniqueId>1.3.6.1.4.1000</ihe:RepositoryUniqueId>
-                                                            <ihe:DocumentUniqueId>{{ sop_instance_uid }}</ihe:DocumentUniqueId>
-                                                        </ihe:DocumentRequest>
-                                                    </iherad:SeriesRequest>
-                                                </iherad:StudyRequest>
-                                                <iherad:TransferSyntaxUIDList> {% for transfer_syntax_id in transfer_syntax_list %}
-                                                    <iherad:TransferSyntaxUID>{{ transfer_syntax_id }}</iherad:TransferSyntaxUID> {% endfor %}
-                                                </iherad:TransferSyntaxUIDList>
-                                            </iherad:RetrieveImagingDocumentSetRequest>
+                                            {% for study in studies %}
+                                                <iherad:RetrieveImagingDocumentSetRequest xmlns:iherad="urn:ihe:rad:xdsi-b:2009" xmlns:ihe="urn:ihe:iti:xds-b:2007">
+                                                    <iherad:StudyRequest studyInstanceUID="{{ study.uid }}">
+                                                        {% for series in study.series %}
+                                                        <iherad:SeriesRequest seriesInstanceUID="{{ series.uid }}">
+                                                            {% for instance in series.instances  %}
+                                                            <ihe:DocumentRequest>
+                                                                <ihe:RepositoryUniqueId>1.3.6.1.4.1000</ihe:RepositoryUniqueId>
+                                                                <ihe:DocumentUniqueId>{{ instance.uid }}</ihe:DocumentUniqueId>
+                                                            </ihe:DocumentRequest>
+                                                            {% endfor %}
+                                                        </iherad:SeriesRequest>
+                                                        {% endfor %}
+                                                    </iherad:StudyRequest>
+                                                    <iherad:TransferSyntaxUIDList> {% for transfer_syntax_id in transfer_syntax_list %}
+                                                        <iherad:TransferSyntaxUID>{{ transfer_syntax_id }}</iherad:TransferSyntaxUID> {% endfor %}
+                                                    </iherad:TransferSyntaxUIDList>
+                                                </iherad:RetrieveImagingDocumentSetRequest>
+                                            {% endfor %}
                                             </s:Body>
                                     </s:Envelope>
                                 """
