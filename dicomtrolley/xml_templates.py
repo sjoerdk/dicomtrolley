@@ -16,7 +16,7 @@ RAD69_SOAP_REQUEST_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
                                         <s:Body>response
                                             {% for study in studies %}
                                                 <iherad:RetrieveImagingDocumentSetRequest xmlns:iherad="urn:ihe:rad:xdsi-b:2009" xmlns:ihe="urn:ihe:iti:xds-b:2007">
-                                                    <iherad:StudyRequest studyInstanceUID="{{ study.uid }}.1">
+                                                    <iherad:StudyRequest studyInstanceUID="{{ study.uid }}">
                                                         {% for series in study.series %}
                                                         <iherad:SeriesRequest seriesInstanceUID="{{ series.uid }}">
                                                             {% for instance in series.instances  %}
