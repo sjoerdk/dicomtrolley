@@ -2,13 +2,13 @@ default_language_version:
   python: python3
 repos:
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.19.4
+    rev: v2.32.0
     hooks:
       - id: pyupgrade
         language: python
         args: [--py36-plus]
   - repo: https://github.com/ambv/black
-    rev: 21.6b0
+    rev: 22.3.0
     hooks:
       - id: black
         language: python
@@ -26,7 +26,7 @@ repos:
           - mccabe
           - yesqa
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v0.902'
+    rev: 'v0.942'
     hooks:
       - id: mypy
         additional_dependencies:
