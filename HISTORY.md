@@ -1,5 +1,12 @@
 # History
 
+## v1.1.0 (2022-04-14)
+* Improves rad69 downloading. Can now handle chunked rad69 soap response stream with low memory use  
+
+## v1.0.0 (2022-03-23)
+* Adds Rad69 as download method 
+* Replaces 'wado' argument to Trolley with abstract downloader. Abstract 'Downloader' class is implemented by both Wado and Rad69  
+
 ## v0.8.1 (2021-10-14)
 * Adds PatientID to DICOM query parameters
 
