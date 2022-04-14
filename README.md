@@ -6,7 +6,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
-Retrieve medical images via WADO, MINT and DICOM-QR
+Retrieve medical images via WADO, MINT, RAD69 and DICOM-QR
 
 * Requires python 3.7, 3.8 or 3.9
 * Uses `pydicom` and `pynetdicom`. Images and query results are `pydicom.Dataset` instances
@@ -200,9 +200,7 @@ Create a pull request
 A merged pull request will only be published to pypi if it has a new version number. 
 To bump dicomtrolley's version, do the following.
 * dicomtrolley uses [semantic versioning](https://semver.org/) Check whether your addition is a PATCH, MINOR or MAJOR version.
-* Manually increment the version number in the following places:
-  * `pyproject.toml` -> `version = "v0.1.2"`
-  * `dicomtrolley/__init__.py` -> `__version__ = "v0.1.2"`
+* Manually increment the version number:
+  * `pyproject.toml` -> `version = "0.1.2"`
   
 * Add a brief description of your updates new version to `HISTORY.md`
-   
