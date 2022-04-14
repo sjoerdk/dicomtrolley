@@ -10,7 +10,10 @@ from typing import Any, Dict, Pattern, Union
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from dicomtrolley.core import InstanceReference
-from dicomtrolley.xml_templates import A_RAD69_RESPONSE_SOAP_HEADER
+from dicomtrolley.xml_templates import (
+    A_RAD69_RESPONSE_SOAP_HEADER,
+    RAD69_SOAP_RESPONSE_NOT_FOUND,
+)
 from tests.factories import (
     create_dicom_bytestream,
     quick_dataset,
@@ -261,21 +264,32 @@ MINT_SEARCH_STUDY_LEVEL_ERROR_500 = MockResponse(
 
 def create_rad69_response_from_dataset(dataset):
     """Create a multi-part rad69 response, with a soap part and a dicom byte stream"""
-    return create_rad69_response(create_dicom_bytestream(dataset))
+    return create_rad69_response_from_datasets([dataset])
 
 
-def create_rad69_response(bytes_part):
-    """Create a multi-part rad69 response, with a soap part and the given bytes as
-    second part
+def create_rad69_response_from_datasets(datasets, soap_header=None):
+    """Create a multi-part rad69 response, with a soap part and a dicom byte stream"""
+    return create_rad69_response(
+        bytes_parts=[create_dicom_bytestream(dataset) for dataset in datasets],
+        soap_header=soap_header,
+    )
+
+
+def create_rad69_response(bytes_parts, soap_header=None):
+    """Create a multi-part rad69 response, with a soap part and the given list of
+    bytes as subsequent parts. Each element in bytes_part should be the bytes for one
+    dicom object
     """
+    if not soap_header:
+        soap_header = A_RAD69_RESPONSE_SOAP_HEADER
 
     # Recorded from response of a Vitrea connection 8 server
-
     multi_part_soap_response = MultipartEncoder(
-        fields={
-            "part1": A_RAD69_RESPONSE_SOAP_HEADER,
-            "part2": ("filename", bytes_part, "application/dicom"),
-        }
+        fields=[("part1", soap_header)]
+        + [
+            (f"part{idx+2}", ("filename", bytes_part, "application/dicom"))
+            for idx, bytes_part in enumerate(bytes_parts)
+        ],
     )
 
     return MockResponse(
@@ -286,7 +300,7 @@ def create_rad69_response(bytes_part):
     )
 
 
-RAD69_RESPONSE_INVALID_DICOM = create_rad69_response(bytes_part=bytes(1234))
+RAD69_RESPONSE_INVALID_DICOM = create_rad69_response(bytes_parts=[bytes(1234)])
 
 RAD69_RESPONSE_INVALID_NON_DICOM = MockResponse(
     url=MockUrls.RAD69_URL,
@@ -300,4 +314,20 @@ RAD69_RESPONSE_INVALID_NON_MULTIPART = MockResponse(
     method="POST",
     status_code=200,
     text="This is a non-error response, but its not multipart.. very unexpected",
+)
+
+# Response when trying to request a non-existant slice
+RAD69_RESPONSE_OBJECT_NOT_FOUND = MockResponse(
+    url=MockUrls.RAD69_URL,
+    method="POST",
+    status_code=200,
+    headers={
+        "Date": "Thu, 14 Apr 2022 08:22:54 GMT",
+        "Accept": "application/soap+xml, text/html, image/gif,"
+        " image/jpeg, *; q=.2, */*; q=.2",
+        "Content-Type": "application/soap+xml; charset=utf-8",
+        "Content-Length": "1181",
+        "Server": "Jetty(9.4.12.v20180830)",
+    },
+    text=RAD69_SOAP_RESPONSE_NOT_FOUND,
 )

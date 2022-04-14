@@ -38,10 +38,8 @@ studies = trolley.find_studies(
 
 print(f"Found {len(studies)} studies. Taking one with least instances")
 studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
-study = studies[1]
+study = studies[7]
 print(f"Downloading study with {study.data.NumberOfStudyRelatedInstances}")
-
-
 print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
 trolley.download(study, environ["DOWNLOAD_PATH"], use_async=False)
 print("Done")
