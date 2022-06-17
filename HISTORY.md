@@ -1,4 +1,6 @@
 # History
+## v1.1.1 (2022-05-18)
+* Adds jpeg lossless transfer syntax (1.2.840.10008.1.2.4.70) to rad-69 requests 
 
 ## v1.1.0 (2022-04-14)
 * Improves rad69 downloading. Can now handle chunked rad69 soap response stream with low memory use  

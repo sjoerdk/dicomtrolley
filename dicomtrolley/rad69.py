@@ -86,7 +86,11 @@ class Rad69(Downloader):
         return Template(self.template).render(
             uuid=str(uuid.uuid4()),
             studies=studies,
-            transfer_syntax_list=["1.2.840.10008.1.2", "1.2.840.10008.1.2.1"],
+            transfer_syntax_list=[
+                "1.2.840.10008.1.2.4.70",
+                "1.2.840.10008.1.2",
+                "1.2.840.10008.1.2.1",
+            ],
         )
 
     def get_dataset(self, instance: InstanceReference):
