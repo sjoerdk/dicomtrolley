@@ -1,4 +1,9 @@
 # History
+## v1.2.0 (2022-06-22)
+* Introduces alternate disk storages for Trolley
+* Adds FlatStorageDir class as alternate storage
+* Adds test coverage configuration with .coveragerc
+
 ## v1.1.1 (2022-05-18)
 * Adds jpeg lossless transfer syntax (1.2.840.10008.1.2.4.70) to rad-69 requests 
 
