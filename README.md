@@ -142,6 +142,34 @@ trolley.download(studies[1], path,
                  use_async=True)    # multi-threaded download is supported
 
 ```
+### Download
+By default, trolley writes downloads to disk as `StudyID/SeriesID/InstanceID`, sorting files into separate
+study and series folders. You can change this by passing a `DICOMDiskStorage` instance to trolley:
+
+```python
+from dicomtrolley.storage import FlatStorageDir
+
+#  Creates no sub-folders, just write to single flat file
+storage = FlatStorageDir(path=tmpdir)
+trolley = Trolley(searcher=mint, downloader=wado,
+                  storage=storage)
+```
+
+You can create your own custom storage method by subclassing 
+[storage.DICOMDiskStorage](dicomtrolley/storage.py#L8):
+
+```python
+from dicomtrolley.storage import DICOMDiskStorage
+
+class MyStorage(DICOMDiskStorage):
+  """Saves to unique uid filename"""
+  def save(self, dataset, path):    
+    dataset.save_as(Path(path) / uuid.uuid4())
+
+trolley = Trolley(searcher=mint, downloader=wado,
+                  storage=MyStorage())
+```
+
 ## Examples
 * [Search for studies in MINT](examples/search_for_studies_mint.py) 
 * [Search for studies in DICOM-QR](examples/search_for_studies_dicom_qr.py)

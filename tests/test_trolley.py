@@ -5,7 +5,8 @@ import pytest
 
 from dicomtrolley.core import Series
 from dicomtrolley.mint import MintQuery
-from dicomtrolley.trolley import DICOMStorageDir, Trolley
+from dicomtrolley.storage import FlatStorageDir
+from dicomtrolley.trolley import Trolley
 from tests.factories import (
     quick_dataset,
     quick_image_level_study,
@@ -16,36 +17,6 @@ from tests.factories import (
 def a_trolley(a_mint, a_wado) -> Trolley:
     """Trolley instance that will not hit any server"""
     return Trolley(searcher=a_mint, downloader=a_wado, query_missing=False)
-
-
-@pytest.mark.parametrize(
-    "dataset, expected_path",
-    [
-        (
-            quick_dataset(
-                StudyInstanceUID="A", SeriesInstanceUID="B", SOPInstanceUID="C"
-            ),
-            "/tmp/A/B/C",
-        ),
-        (
-            quick_dataset(StudyInstanceUID="A", SeriesInstanceUID="B"),
-            "/tmp/A/B/unknown",
-        ),
-        (quick_dataset(), "/tmp/unknown/unknown/unknown"),
-    ],
-)
-def test_storage_dir_generate_path(dataset, expected_path):
-    storage = DICOMStorageDir("/tmp")
-    assert storage.generate_path(dataset) == Path("/tmp") / expected_path
-
-
-def test_storage_dir_write(tmpdir):
-    """Make sure writing to disk works. Seems slight overkill. But coverage."""
-    expected_path = Path(str(tmpdir)) / "unknown/unknown/unknown"
-    assert not expected_path.exists()
-    DICOMStorageDir(str(tmpdir)).save(quick_dataset())
-    assert expected_path.exists()
-    assert "tmp" in str(DICOMStorageDir("/tmp"))
 
 
 def test_trolley_find(a_trolley, some_mint_studies):
@@ -105,24 +76,64 @@ def test_trolley_get_dataset_async(a_trolley, some_mint_studies):
     assert datasets[0].SOPInstanceUID == "bimini"
 
 
-def test_trolley_download(
-    a_trolley, tmpdir, a_mint_study_with_instances, monkeypatch
-):
-    a_trolley.fetch_all_datasets = Mock(
-        return_value=iter(
-            [
-                quick_dataset(PatientName="pat1", StudyDescription="a study"),
-                quick_dataset(PatientName="pat2", StudyDescription="a study2"),
-            ]
-        )
-    )
-    storage = Mock(spec=DICOMStorageDir)
+@pytest.fixture
+def some_datasets():
+    return [
+        quick_dataset(
+            StudyInstanceUID="st1",
+            SeriesInstanceUID="se1",
+            SOPInstanceUID="in1",
+        ),
+        quick_dataset(
+            StudyInstanceUID="st2",
+            SeriesInstanceUID="se2",
+            SOPInstanceUID="in2",
+        ),
+        quick_dataset(
+            SeriesInstanceUID="se3",  # missing StudyInstanceUID
+            SOPInstanceUID="in3",
+        ),
+    ]
 
-    monkeypatch.setattr(
-        "dicomtrolley.trolley.DICOMStorageDir", Mock(return_value=storage)
+
+def test_trolley_download(
+    a_trolley, tmpdir, a_mint_study_with_instances, some_datasets
+):
+    expected = (
+        (Path(tmpdir) / "st1" / "se1" / "in1"),
+        (Path(tmpdir) / "st2" / "se2" / "in2"),
+        (Path(tmpdir) / "unknown" / "se3" / "in3"),
     )
-    a_trolley.download(a_mint_study_with_instances, tmpdir)
-    assert storage.save.called
+
+    a_trolley.fetch_all_datasets = Mock(return_value=iter(some_datasets))
+    for path in expected:
+        assert not path.exists()
+
+    a_trolley.download(objects=a_mint_study_with_instances, output_dir=tmpdir)
+
+    for path in expected:
+        assert path.exists()
+
+
+def test_trolley_alternate_storage_download(
+    tmpdir, a_mint_study_with_instances, some_datasets, a_mint, a_wado
+):
+    expected = (
+        (Path(tmpdir) / "in1"),
+        (Path(tmpdir) / "in2"),
+        (Path(tmpdir) / "in3"),
+    )
+    trolley = Trolley(
+        searcher=a_mint, downloader=a_wado, storage=FlatStorageDir(path=tmpdir)
+    )
+    trolley.fetch_all_datasets = Mock(return_value=iter(some_datasets))
+    for path in expected:
+        assert not path.exists()
+
+    trolley.download(objects=a_mint_study_with_instances, output_dir=tmpdir)
+
+    for path in expected:
+        assert path.exists()
 
 
 def test_trolley_ensure_instances(a_trolley, some_studies):

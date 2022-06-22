@@ -5,12 +5,11 @@ Notes
 Design choices:
 
 WADO, RAD69, MINT and DICOM-QR modules should be stand-alone. They are not allowed to
-use each other's classes. Core has knowledge of all and converts between them if
+use each other's classes. Trolley has knowledge of all and converts between them if
 needed
-
 """
-from pathlib import Path
-from typing import List, Sequence, Tuple, Union
+import tempfile
+from typing import List, Optional, Sequence, Tuple, Union
 
 from dicomtrolley.core import (
     DICOMObject,
@@ -21,6 +20,7 @@ from dicomtrolley.core import (
     Study,
 )
 from dicomtrolley.parsing import DICOMObjectTree
+from dicomtrolley.storage import DICOMDiskStorage, StorageDir
 from dicomtrolley.types import DICOMDownloadable
 
 
@@ -28,7 +28,11 @@ class Trolley:
     """Combines a search and download method to get DICOM studies easily"""
 
     def __init__(
-        self, downloader: Downloader, searcher: Searcher, query_missing=True
+        self,
+        downloader: Downloader,
+        searcher: Searcher,
+        query_missing=True,
+        storage: Optional[DICOMDiskStorage] = None,
     ):
         """
 
@@ -43,12 +47,18 @@ class Trolley:
             example when passing a Study obtained from a study-level query, which does
             not contain any information on instances
             if False, missing instances will not be downloaded
-
+        storage: DICOMDiskStorage instance, optional
+            All downloads are saved to disk by calling this objects' save() method.
+            Defaults to basic StorageDir (saves as /studyid/seriesid/instanceid)
         """
         self.downloader = downloader
         self.searcher = searcher
         self._searcher_cache = DICOMObjectTree([])
         self.query_missing = query_missing
+        if storage:
+            self.storage = storage
+        else:
+            self.storage = StorageDir(tempfile.gettempdir())
 
     def find_studies(self, query) -> List[Study]:
         """Find study information
@@ -90,7 +100,6 @@ class Trolley:
         """Download the given objects to output dir."""
         if not isinstance(objects, Sequence):
             objects = [objects]  # if just a single item to download is passed
-        storage = DICOMStorageDir(output_dir)
         if use_async:
             datasets = self.fetch_all_datasets_async(
                 objects=objects, max_workers=max_workers
@@ -99,7 +108,7 @@ class Trolley:
             datasets = self.fetch_all_datasets(objects=objects)
 
         for dataset in datasets:
-            storage.save(dataset)
+            self.storage.save(dataset=dataset, path=output_dir)
 
     def fetch_all_datasets(self, objects: Sequence[DICOMDownloadable]):
         """Get full DICOM dataset for all instances contained in objects.
@@ -245,34 +254,3 @@ def to_instance_reference(
             series_instance_uid=item.parent.uid,
             sop_instance_uid=item.uid,
         )
-
-
-class DICOMStorageDir:
-    """A directory that you can write datasets to."""
-
-    def __init__(self, path: str):
-        self.path = path
-
-    def __str__(self):
-        return f"DICOMStorageDir at {self.path}"
-
-    def save(self, dataset):
-        """Write dataset. Creates sub-folders if needed."""
-
-        slice_path = Path(self.path) / self.generate_path(dataset)
-        slice_path.parent.mkdir(parents=True, exist_ok=True)
-        dataset.save_as(slice_path)
-
-    def generate_path(self, dataset):
-        """A path studyid/seriesid/instanceid to save a slice to."""
-
-        stu_uid = self.get_value(dataset, "StudyInstanceUID")
-        ser_uid = self.get_value(dataset, "SeriesInstanceUID")
-        sop_uid = self.get_value(dataset, "SOPInstanceUID")
-        return Path(self.path) / stu_uid / ser_uid / sop_uid
-
-    @staticmethod
-    def get_value(dataset, tag_name):
-        """Extract value for use in path. If not found return default."""
-        default = "unknown"
-        return str(dataset.get(tag_name, default)).replace(".", "_")
