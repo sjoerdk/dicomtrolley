@@ -56,7 +56,7 @@ class DICOMQuery(BaseModel):
         QueryRetrieveLevels.STUDY
     )  # depth to return results at
 
-    # NON DICOM parameters (are transformed into DICOM parameters
+    # NON DICOM parameters (are transformed into DICOM parameters)
     minStudyDate: Optional[datetime]
     maxStudyDate: Optional[datetime]
     includeFields: Optional[List[str]] = []  # which dicom fields to return

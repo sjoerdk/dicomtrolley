@@ -15,18 +15,38 @@ from tests.factories import (
 
 
 def test_qr_query():
-    query = DICOMQuery(
-        StudyInstanceUID="123",
-        QueryRetrieveLevel=QueryLevels.SERIES,
-        minStudyDate=datetime(year=2020, month=3, day=1),
-    )
-    ds = query.as_dataset()
-    assert ds.StudyInstanceUID == "123"
-    assert ds.StudyDate == "20200301-"
-    assert ds.QueryRetrieveLevel == QueryLevels.SERIES
-    assert (
-        ds.SeriesInstanceUID == ""
-    )  # should be added as default for QueryLevel
+    """A dicom qr query should be rendered into a query dataset"""
+
+    dicom_parameters = {
+        "AccessionNumber": "123",
+        "Modality": "US",
+        "PatientID": "1234",
+        "PatientName": "Patient*",
+        "ProtocolName": "A procotol",
+        "SeriesDescription": "A series",
+        "StudyDescription": "A study",
+        "StudyID": "12345",
+        "StudyInstanceUID": "4567",
+        "QueryRetrieveLevel": "IMAGE",
+    }
+    meta_parameters = {
+        "minStudyDate": datetime(year=2020, month=3, day=1),
+        "maxStudyDate": datetime(year=2020, month=3, day=5),
+        "includeFields": ["NumberOfStudyRelatedInstances"],
+    }
+
+    all_parameters = {**dicom_parameters, **meta_parameters}
+    query = DICOMQuery(**all_parameters)
+    dataset = query.as_dataset()
+
+    # Regular dicom parameters should all have been translated
+    for keyword, expected in dicom_parameters.items():
+        assert dataset[keyword].value == expected
+
+    # meta parameter should have been converted
+    assert dataset["StudyDate"].value == "20200301-20200305"
+    assert dataset.QueryRetrieveLevel == "IMAGE"
+    assert "NumberOfStudyRelatedInstances" in dataset
 
 
 def test_qr_query_exclude_default_params():

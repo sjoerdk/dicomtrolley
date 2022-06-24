@@ -21,7 +21,9 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.storage import DICOMDiskStorage, StorageDir
-from dicomtrolley.types import DICOMDownloadable
+
+# Anything that can be downloaded by trolley
+DICOMDownloadable = Union[DICOMObject, InstanceReference]
 
 
 class Trolley:
