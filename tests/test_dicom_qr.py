@@ -155,13 +155,13 @@ def test_find_study_with_basic_query():
     """Basic query should be converted"""
 
     qr = DICOMQR(host="host", port=123)
-    qr.send_c_find = Mock()
+    called = []
+    qr.send_c_find = lambda x: called.append(x)
     qr.parse_c_find_response = Mock()
 
     qr.find_studies(query=Query(PatientID="test"))
-    called = qr.send_c_find.call_args.args[0]
-    assert type(called) == DICOMQuery
-    assert called.PatientID == "test"
+    assert type(called[0]) == DICOMQuery
+    assert called[0].PatientID == "test"
 
 
 def test_parse_instance_response():
