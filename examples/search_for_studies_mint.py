@@ -27,26 +27,26 @@ mint = Mint(session, environ["MINT_URL"])
 
 print("Quick search for some studies")
 studies = mint.find_studies(
-    MintQuery(patientName="B*", includeFields=["PatientBirthDate"])
+    MintQuery(PatientName="B*", include_fields=["PatientBirthDate"])
 )
 print(f"Found {len(studies)} studies")
 
 print("More extensive search")
 studies = mint.find_studies(
     MintQuery(
-        patientName="B*",  # wildcards can be used
-        modalitiesInStudy="CT*",  # more parameters can be found
-        patientSex="M",  # in dicomtrolley.mint.MintQuery
-        minStudyDate=datetime(year=2015, month=3, day=1),
-        maxStudyDate=datetime(year=2020, month=3, day=1),
-        includeFields=[
+        PatientName="B*",  # wildcards can be used
+        ModalitiesInStudy="CT*",  # more parameters can be found
+        PatientSex="M",  # in dicomtrolley.mint.MintQuery
+        min_study_date=datetime(year=2015, month=3, day=1),
+        max_study_date=datetime(year=2020, month=3, day=1),
+        include_fields=[
             "PatientBirthDate",  # which fields to get back.
             "SOPClassesInStudy",
         ],  # see dicomtrolley.fields for options
-        queryLevel=QueryLevels.INSTANCE,  # get instance info. Slow but thorough
+        query_level=QueryLevels.INSTANCE,  # get instance info. Slow but thorough
     )
 )
-# includeFields requested 'PatientBirthDate'. This should now be in Study.data
+# include_fields requested 'PatientBirthDate'. This should now be in Study.data
 print(f"Birthdates: {[x.data.PatientBirthDate for x in studies]}")
 
 # You can traverse study/series/instances like a tree

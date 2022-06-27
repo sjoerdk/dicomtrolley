@@ -1,9 +1,11 @@
 """Provides common base classes that allow different modules to talk to each other."""
 from dataclasses import dataclass
+from datetime import date, datetime
 from itertools import chain
-from typing import Sequence
+from typing import List, Optional, Sequence
 
 from pydantic.main import BaseModel
+from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -259,6 +261,88 @@ class Downloader:
         Iterator[Dataset, None, None]
         """
         raise NotImplementedError
+
+
+class QueryLevels:
+    STUDY = "STUDY"
+    SERIES = "SERIES"
+    INSTANCE = "INSTANCE"
+
+    ALL = {STUDY, SERIES, INSTANCE}
+
+
+class Query(BaseModel):
+    """All information required to perform a DICOM query
+
+    Notes
+    -----
+    *  Different backends use slightly different query parameters. This class
+       implements all common parameters.
+    *  DICOM queries consist of a number of DICOM tags followed by a search
+       criterium. The naming format for these parameters follows DICOM conventions
+       (CamelCase). In addition, a query has non-DICOM meta-parameters. Here regular
+       python (lower_case_underscore) naming is used
+    """
+
+    # Dicom parameters
+    StudyInstanceUID: str = ""
+    AccessionNumber: str = ""
+    PatientName: str = ""
+    PatientID: str = ""
+    ModalitiesInStudy: str = ""
+    InstitutionName: str = ""
+    PatientSex: str = ""
+    StudyDescription: str = ""
+    SeriesDescription: str = ""
+    InstitutionalDepartmentName: str = ""
+    PatientBirthDate: Optional[date]
+
+    # non-DICOM parameters. Translated into derived parameters when querying
+    max_study_date: Optional[datetime]
+    min_study_date: Optional[datetime]
+    include_fields: List[str] = []  # which dicom fields to return
+
+    class Config:
+        extra = "forbid"  # raise ValueError when passing an unknown keyword to init
+
+    @classmethod
+    def init_from_basic_query(cls, query: "BasicQuery"):
+        """Generate this class from a BasicQuery object
+
+        All child classes should implement
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def validate_keyword(keyword):
+        if not tag_for_keyword(keyword):
+            raise ValueError(f"{keyword} is not a valid DICOM keyword")
+
+
+class BasicQuery(Query):
+    """Simple limited DICOM query that is accepted by all backends
+
+    Notes
+    -----
+    = Query inheritance in dicomtrolley =
+
+    dicomtrolley supports multiple DICOM search backends. The queries for these are
+    are quite similar but also differ in subtle ways. For instance, MINT and dicomQR
+    share a concept of query levels. A `MintQuery` is like a `BaseQuery` but not
+    quite. These small differences make it difficult to use a straight-forward
+    parent-child class structure.
+
+    To solve these issues, we split the concept of a 'general query' into two classes.
+    First, `Query` holds all common attributes and functions. Second,
+    `BasicQuery(Query)` is the generic query that should be accepted by all searchers
+
+    """
+
+    query_level: str = QueryLevels.STUDY  # to which depth to return results
+
+    @classmethod
+    def init_from_basic_query(cls, query: "BasicQuery"):
+        return query
 
 
 class Searcher:

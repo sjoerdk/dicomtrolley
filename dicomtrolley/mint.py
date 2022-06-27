@@ -2,17 +2,23 @@
 See:
 https://code.google.com/archive/p/medical-imaging-network-transport/downloads
 """
-import datetime
-from typing import ClassVar, List, Optional, Sequence, Set
+from typing import ClassVar, List, Sequence, Set, Union
 from xml.etree import ElementTree
 from xml.etree.ElementTree import ParseError
 
-from pydantic.class_validators import validator
-from pydantic.main import BaseModel
+from pydantic.class_validators import root_validator
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
-from dicomtrolley.core import DICOMObject, Instance, Searcher, Series, Study
+from dicomtrolley.core import (
+    BasicQuery,
+    DICOMObject,
+    Instance,
+    Query,
+    Searcher,
+    Series,
+    Study,
+)
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.fields import (
     InstanceLevel,
@@ -28,6 +34,23 @@ class QueryLevels:
     INSTANCE = "INSTANCE"
 
     ALL = {STUDY, SERIES, INSTANCE}
+
+    @classmethod
+    def translate_from_basic_level(cls, value):
+        """Translate from BasicQuery. For converting between queries
+
+        Notes
+        -----
+        For MINT the query level values are identical to the generic query levels.
+        Defining translation here anyway to be able to change generic values without
+        side effects
+        """
+        translation = {
+            QueryLevels.STUDY: cls.STUDY,
+            QueryLevels.SERIES: cls.SERIES,
+            QueryLevels.INSTANCE: cls.INSTANCE,
+        }
+        return translation[value]
 
 
 class MintObject(DICOMObject):
@@ -122,92 +145,94 @@ class MintAttribute:
     xml_element = "{http://medical.nema.org/mint}attr"
 
 
-class MintQuery(BaseModel):
+class MintQuery(Query):
     """Things you can search for with the MINT find DICOM studies function
 
     Notes
     -----
     * All string arguments support (*) as a wildcard
-    * non-pep8 parameter naming format follows MINT url parameters naming
     """
 
-    # String parameters (wildcards allowed)
-    studyInstanceUID: str = ""
-    accessionNumber: str = ""
-    patientName: str = ""
-    patientID: str = ""
-    modalitiesInStudy: str = ""
-    institutionName: str = ""
-    patientSex: str = ""
-    studyDescription: str = ""
-    institutionalDepartmentName: str = ""
-
-    # date search parameters
-    patientBirthDate: Optional[datetime.date]
-    minStudyDate: Optional[datetime.datetime]
-    maxStudyDate: Optional[datetime.datetime]
-
-    # meta parameters: how to return results
-    queryLevel: str = QueryLevels.STUDY  # to which depth to return results
-    includeFields: List[str] = []  # which dicom fields to return
+    query_level: str = QueryLevels.STUDY  # to which depth to return results
+    include_fields: List[str] = []  # which dicom fields to return
     limit: int = 0  # how many results to return. 0 = all
 
-    class Config:
-        extra = "forbid"  # raise ValueError when passing an unknown keyword to init
+    @classmethod
+    def init_from_basic_query(cls, query: BasicQuery):
+        basic_params = query.dict()
+        # translate to MINT version of query level
+        basic_params["query_level"] = QueryLevels.translate_from_basic_level(
+            basic_params.pop("query_level")
+        )
+        return cls(**basic_params)
 
     def __str__(self):
         return str(self.as_parameters())
 
-    @validator("maxStudyDate", always=True)
-    def min_max_study_date_xor(cls, value, values):  # noqa: B902, N805
+    @root_validator()
+    def min_max_study_date_xor(cls, values):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
-        if values.get("minStudyDate", None) and not value:
+        min_date = values.get("min_study_date")
+        max_date = values.get("max_study_date")
+        if min_date and not max_date:
             raise ValueError(
-                f"minStudyDate parameter was passed "
-                f"({values['minStudyDate']}), "
-                f"but maxStudyDate was not. Both need to be given"
+                f"min_study_date parameter was passed"
+                f"({min_date}), "
+                f"but max_study_date was not. Both need to be given"
             )
-        elif value and not values.get("minStudyDate", None):
+        elif max_date and not min_date:
             raise ValueError(
-                f"maxStudyDate parameter was passed ({value}), "
-                f"but minStudyDate was not. Both need to be given"
+                f"max_study_date parameter was passed ({max_date}), "
+                f"but min_study_date was not. Both need to be given"
             )
-        return value
+        return values
 
-    @validator("includeFields")
-    def include_fields_check(cls, include_fields, values):  # noqa: B902, N805
+    @root_validator()
+    def include_fields_check(cls, values):  # noqa: B902, N805
         """Include fields should be valid and match query level"""
-        query_level = values["queryLevel"]
-        valid_fields = get_valid_fields(query_level=query_level)
+        include_fields = values.get("include_fields")
+        if not include_fields:
+            return values  # May not exist if include_fields is invalid type
         for field in include_fields:
-            if field not in valid_fields:
-                raise ValueError(
-                    f'"{field}" is not a valid include field for query '
-                    f"level {query_level}. Valid fields: {valid_fields}"
-                )
-        return include_fields
+            cls.validate_keyword(field)
+
+        query_level = values.get("query_level")
+        if query_level:  # May be None for child classes
+            valid_fields = get_valid_fields(query_level=query_level)
+            for field in include_fields:
+                if field not in valid_fields:
+                    raise ValueError(
+                        f'"{field}" is not a valid include field for query '
+                        f"level {query_level}. Valid fields: {valid_fields}"
+                    )
+        return values
 
     def as_parameters(self):
         """All non-empty query parameters. For use as url parameters"""
         parameters = {x: y for x, y in self.dict().items() if y}
 
-        if "minStudyDate" in parameters:
-            parameters["minStudyDate"] = parameters["minStudyDate"].strftime(
-                "%Y%m%d"
-            )
-
-        if "maxStudyDate" in parameters:
-            parameters["maxStudyDate"] = parameters["maxStudyDate"].strftime(
-                "%Y%m%d"
-            )
-
-        if "patientBirthDate" in parameters:
-            parameters["patientBirthDate"] = parameters[
-                "patientBirthDate"
+        if "min_study_date" in parameters:
+            parameters["min_study_date"] = parameters[
+                "min_study_date"
             ].strftime("%Y%m%d")
 
-        if "includeFields" in parameters:
-            parameters["includeFields"] = ",".join(parameters["includeFields"])
+        if "max_study_date" in parameters:
+            parameters["max_study_date"] = parameters[
+                "max_study_date"
+            ].strftime("%Y%m%d")
+
+        if "PatientBirthDate" in parameters:
+            parameters["PatientBirthDate"] = parameters[
+                "PatientBirthDate"
+            ].strftime("%Y%m%d")
+
+        if "query_level" in parameters:
+            parameters["QueryLevel"] = parameters.pop("query_level")
+
+        if "include_fields" in parameters:
+            parameters["IncludeFields"] = ",".join(
+                parameters.pop("include_fields")
+            )
 
         return parameters
 
@@ -252,12 +277,14 @@ class Mint(Searcher):
         self.session = session
         self.url = url
 
-    def find_studies(self, query: MintQuery) -> Sequence[MintStudy]:
+    def find_studies(
+        self, query: Union[BasicQuery, MintQuery]
+    ) -> Sequence[MintStudy]:
         """Get all studies matching query
 
         Parameters
         ----------
-        query: MintQuery
+        query: BasicQuery or MintQuery
             Search based on these parameters. See Query object
 
         Returns
@@ -267,14 +294,19 @@ class Mint(Searcher):
             If Query.QueryLevel is SERIES or INSTANCE, MintStudy objects might
             contain MintSeries and MintInstance instances.
         """
+        if isinstance(query, BasicQuery):
+            query = MintQuery.init_from_basic_query(query)
+
         search_url = self.url + "/studies"
-        response = self.session.get(search_url, params=query.as_parameters())
+        response = self.session.get(
+            search_url, params=query.as_parameters()  # type: ignore
+        )
         return parse_mint_studies_response(response.text)
 
     def find_full_study_by_id(self, study_uid: str) -> Study:
         return self.find_study(
             MintQuery(
-                studyInstanceUID=study_uid, queryLevel=QueryLevels.INSTANCE
+                StudyInstanceUID=study_uid, query_level=QueryLevels.INSTANCE
             )
         )
 

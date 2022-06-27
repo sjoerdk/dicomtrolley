@@ -13,7 +13,8 @@ Please set these before running this example
 """
 from os import environ
 
-from dicomtrolley.mint import Mint, MintQuery, QueryLevels
+from dicomtrolley.core import BasicQuery
+from dicomtrolley.mint import Mint, QueryLevels
 from dicomtrolley.servers import VitreaConnection
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado import Wado
@@ -31,8 +32,8 @@ trolley = Trolley(
 
 print("Quick search for studies")
 studies = trolley.find_studies(
-    MintQuery(
-        patientName="B*", includeFields=["NumberOfStudyRelatedInstances"]
+    BasicQuery(
+        PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
     )
 )
 
@@ -42,8 +43,8 @@ study = studies[1]
 
 print(f"Getting slice info for {study}")
 studies_full = trolley.find_studies(
-    MintQuery(studyInstanceUID=study.uid, queryLevel=QueryLevels.INSTANCE)
-)  # queryLevel=INSTANCE will return all instances inside each study
+    BasicQuery(StudyInstanceUID=study.uid, query_level=QueryLevels.INSTANCE)
+)  # query_level=INSTANCE will return all instances inside each study
 
 
 print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")

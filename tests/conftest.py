@@ -1,9 +1,10 @@
+from datetime import date, datetime
 from typing import List
 
 import pytest
 import requests
 
-from dicomtrolley.core import Series, Study
+from dicomtrolley.core import BasicQuery, Series, Study
 from dicomtrolley.dicom_qr import DICOMQR
 from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
 from dicomtrolley.wado import Wado
@@ -52,6 +53,7 @@ def mock_mint_responses(requests_mock):
 
 @pytest.fixture
 def a_mint(a_session):
+    """Mint search with faked urls"""
     return Mint(session=a_session, url=MockUrls.MINT_URL)
 
 
@@ -137,3 +139,31 @@ def some_studies(an_image_level_study, a_study_level_study):
     """
 
     return an_image_level_study + a_study_level_study
+
+
+@pytest.fixture
+def a_basic_query():
+    """A BasicQuery with all possible parameters filled in"""
+
+    dicom_parameters = {
+        "AccessionNumber": "123",
+        "InstitutionName": "Hospital",
+        "InstitutionalDepartmentName": "Department",
+        "ModalitiesInStudy": "MR*",
+        "PatientID": "1234",
+        "PatientName": "Patient*",
+        "PatientSex": "F",
+        "StudyDescription": "A study",
+        "StudyInstanceUID": "4567",
+    }
+
+    meta_parameters = {
+        "query_level": "INSTANCE",
+        "PatientBirthDate": date(year=1990, month=1, day=1),
+        "min_study_date": datetime(year=2020, month=3, day=1),
+        "max_study_date": datetime(year=2020, month=3, day=5),
+        "include_fields": ["NumberOfStudyRelatedInstances"],
+    }
+
+    all_parameters = {**dicom_parameters, **meta_parameters}
+    return BasicQuery(**all_parameters)

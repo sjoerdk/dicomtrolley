@@ -2,17 +2,16 @@
 
 See http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.3.html
 """
-from datetime import datetime
-from typing import List, Optional
+
+from typing import List, Union
 
 from pydantic.class_validators import validator
-from pydantic.main import BaseModel
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import PatientRootQueryRetrieveInformationModelFind
 
-from dicomtrolley.core import Searcher, Study
+from dicomtrolley.core import BasicQuery, Query, QueryLevels, Searcher, Study
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 
@@ -26,8 +25,18 @@ class QueryRetrieveLevels:
 
     ALL = {STUDY, SERIES, IMAGE}
 
+    @classmethod
+    def translate_from_basic_level(cls, value):
+        """Translate from BasicQuery. For converting between queries"""
+        translation = {
+            QueryLevels.STUDY: cls.STUDY,
+            QueryLevels.SERIES: cls.SERIES,
+            QueryLevels.INSTANCE: cls.IMAGE,
+        }
+        return translation[value]
 
-class DICOMQuery(BaseModel):
+
+class DICOMQuery(Query):
     """Things you can search for with DICOM QR.
 
     Notes
@@ -40,31 +49,28 @@ class DICOMQuery(BaseModel):
 
     """
 
-    # DICOM parameters (used in CFIND directly)
-    AccessionNumber: Optional[str] = ""
-    Modality: Optional[str] = ""
-    PatientID: Optional[str] = ""
-    PatientName: Optional[str] = ""
-    ProtocolName: Optional[str] = ""
-    SeriesDescription: Optional[str] = ""
-    StudyDescription: Optional[str] = ""
-    StudyID: Optional[str] = ""
-    StudyInstanceUID: Optional[str] = ""
+    Modality: str = ""
+    ProtocolName: str = ""
+    StudyID: str = ""
 
-    # meta parameters: how to return results
-    QueryRetrieveLevel: str = (
-        QueryRetrieveLevels.STUDY
-    )  # depth to return results at
-
-    # NON DICOM parameters (are transformed into DICOM parameters)
-    minStudyDate: Optional[datetime]
-    maxStudyDate: Optional[datetime]
-    includeFields: Optional[List[str]] = []  # which dicom fields to return
+    # to which depth to return results
+    query_retrieve_level: str = QueryRetrieveLevels.STUDY
 
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
 
-    @validator("QueryRetrieveLevel")
+    @classmethod
+    def init_from_basic_query(cls, query: BasicQuery):
+        basic_params = query.dict()
+        # translate to dicom QR's version of query level
+        basic_params[
+            "query_retrieve_level"
+        ] = QueryRetrieveLevels.translate_from_basic_level(
+            basic_params.pop("query_level")
+        )
+        return cls(**basic_params)
+
+    @validator("query_retrieve_level")
     def query_retrieve_value_should_be_valid(
         cls, value, values  # noqa: B902, N805
     ):
@@ -75,7 +81,7 @@ class DICOMQuery(BaseModel):
             )
         return value
 
-    @validator("includeFields", always=True)
+    @validator("include_fields", always=True)
     def include_fields_check(cls, include_fields, values):  # noqa: B902, N805
         """Include fields should be valid dicom fields"""
         for field in include_fields:
@@ -119,20 +125,22 @@ class DICOMQuery(BaseModel):
             x: y for x, y in self.dict().items()
         }  # all params for query
         parameters["StudyDate"] = self.get_study_date(
-            parameters.pop("minStudyDate"), parameters.pop("maxStudyDate")
+            parameters.pop("min_study_date"), parameters.pop("max_study_date")
         )
 
         # add useful default include fields
         default_fields = self.get_default_include_fields(
-            parameters["QueryRetrieveLevel"]
+            parameters["query_retrieve_level"]
         )
-        parameters["includeFields"] = list(
-            set(parameters["includeFields"]) | set(default_fields)
+        parameters["include_fields"] = list(
+            set(parameters["include_fields"]) | set(default_fields)
         )
 
         ds = Dataset()
         # in CFIND, empty elements are interpreted as 'need to be returned filled'
-        for field in parameters.pop("includeFields"):  # for each include field
+        for field in parameters.pop(
+            "include_fields"
+        ):  # for each include field
             if tag_for_keyword(field):
                 setattr(ds, field, "")  # add an empty DICOM element
         parameters = {
@@ -175,12 +183,12 @@ class DICOMQR(Searcher):
         self.aec = aec
         self.debug = debug
 
-    def find_studies(self, query: DICOMQuery):
+    def find_studies(self, query: Union[BasicQuery, DICOMQuery]):
         """
 
         Parameters
         ----------
-        query: DICOMQuery
+        query: BasicQuery or DICOMQuery
             Find arguments matching this query
 
         Raises
@@ -192,6 +200,9 @@ class DICOMQR(Searcher):
         -------
         List[Study]
         """
+        if isinstance(query, BasicQuery):
+            query = DICOMQuery.init_from_basic_query(query)
+
         return self.parse_c_find_response(self.send_c_find(query))
 
     @staticmethod
@@ -267,6 +278,6 @@ class DICOMQR(Searcher):
         return self.find_study(
             DICOMQuery(
                 StudyInstanceUID=study_uid,
-                QueryRetrieveLevel=QueryRetrieveLevels.IMAGE,
+                query_retrieve_level=QueryRetrieveLevels.IMAGE,
             )
         )

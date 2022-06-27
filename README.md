@@ -33,7 +33,7 @@ trolley = Trolley(searcher=Mint(session, "https://server/mint"),
                   wado=Wado(session, "https://server/wado"]))
 
 # find some studies (using MINT)
-studies = trolley.find_studies(MintQuery(patientName='B*'))  
+studies = trolley.find_studies(BasicQuery(PatientName='B*'))  
 
 # download the fist one (using WADO)
 trolley.download(studies[0], output_dir='/tmp/trolley')
@@ -42,18 +42,18 @@ trolley.download(studies[0], output_dir='/tmp/trolley')
 ### Finding studies
 
 ```python
-studies = trolley.find_studies(MintQuery(patientName='B*'))
+studies = trolley.find_studies(BasicQuery(PatientName='B*'))
 ```
 
-Query parameters can be found in [mint.Query](dicomtrolley/mint.py#L122). Valid include fields (which information gets sent back) can be found in [fields.py](dicomtrolley/fields.py):
+Basic query parameters can be found in [core.Query](dicomtrolley/core.py#L274). Valid include fields (which information gets sent back) can be found in [fields.py](dicomtrolley/fields.py):
 
 ```python
 studies = trolley.find_studies(
-    MintQuery(modalitiesInStudy='CT*', 
-              patientSex="F", 
-              minStudyDate=datetime(year=2015, month=3, day=1),
-              maxStudyDate=datetime(year=2020, month=3, day=1),
-              includeFields=['PatientBirthDate', 'SOPClassesInStudy']))
+    BasicQuery(modalitiesInStudy='CT*', 
+               patientSex="F", 
+               min_study_date=datetime(year=2015, month=3, day=1),
+               max_study_date=datetime(year=2020, month=3, day=1),
+               include_fields=['PatientBirthDate', 'SOPClassesInStudy']))
 ```
 
 ### Finding series and instance details
@@ -61,8 +61,8 @@ To include series and instance level information as well, use the `queryLevel` p
 
 ```python
 studies = trolley.find_studies(  # find studies series and instances
-    MintQuery(studyInstanceID='B*', 
-              queryLevel=QueryLevels.INSTANCE)
+    BasicQuery(studyInstanceID='B*', 
+              query_level=QueryLevels.INSTANCE)
 
 a_series = studies.series[0]  # studies now contain series    
 an_instance = a_series.instances[0]  # and series contain instances
@@ -71,8 +71,8 @@ an_instance = a_series.instances[0]  # and series contain instances
 ### Downloading data
 Any study, series or instance can be downloaded
 ```python
-studies = trolley.find_studies(MintQuery(patientName='B*',
-                                         queryLevel=QueryLevels.INSTANCE))
+studies = trolley.find_studies(BasicQuery(PatientName='B*',
+                                          query_level=QueryLevels.INSTANCE))
 
 path = '/tmp/trolley'
 trolley.download(studies, path)                             # all studies
@@ -84,8 +84,8 @@ More control over download: obtain `pydicom.Dataset` instances directly
 
 ```python
 studies = trolley.find_studies(              # find study including instances
-    Query(PatientID='1234', 
-          queryLevel=QueryLevels.INSTANCE)
+    BasicQuery(PatientID='1234', 
+               query_level=QueryLevels.INSTANCE)
 
 for ds in trolley.get_dataset(studies):      # obtain Dataset for each instance
     ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
@@ -122,10 +122,10 @@ trolley = Trolley(searcher=dicom_qr, downloader=wado)
 # Finding is similar to MINT, but a DICOMQuery is used instead
 trolley.find_studies(  
     query=DICOMQuery(PatientName="BAL*",   
-                     minStudyDate=datetime(year=2015, month=3, day=1),
-                     maxStudyDate=datetime(year=2015, month=4, day=1),
-                     includeFields=["PatientBirthDate", "SOPClassesInStudy"],
-                     QueryRetrieveLevel=QueryRetrieveLevels.STUDY)) 
+                     min_study_date=datetime(year=2015, month=3, day=1),
+                     max_study_date=datetime(year=2015, month=4, day=1),
+                     include_fields=["PatientBirthDate", "SOPClassesInStudy"],
+                     query_retrieve_level=QueryRetrieveLevels.STUDY)) 
 ```
 
 ### RAD69
@@ -142,7 +142,7 @@ trolley.download(studies[1], path,
                  use_async=True)    # multi-threaded download is supported
 
 ```
-### Download
+### Download format
 By default, trolley writes downloads to disk as `StudyID/SeriesID/InstanceID`, sorting files into separate
 study and series folders. You can change this by passing a `DICOMDiskStorage` instance to trolley:
 
@@ -168,6 +168,24 @@ class MyStorage(DICOMDiskStorage):
 
 trolley = Trolley(searcher=mint, downloader=wado,
                   storage=MyStorage())
+```
+
+### DICOM Query types
+For most DICOM queries you can use a [BasicQuery](dicomtrolley/core.py#L322) instance:
+
+```python
+from dicomtrolley.core import QueryLevels 
+trolley.find_studies(BasicQuery(PatientID='1234', 
+                                query_level=QueryLevels.INSTANCE)
+```
+
+If you want to have more control over backend-specific options you can use a backend-specific
+query like [MintQuery](dicomtrolley/mint.py#L140) or [DICOMQuery](dicomtrolley/dicom_qr.py#L38). The query then needs to match the backend:
+
+```python
+trolley = Trolley(searcher=Mint(session, "https://server/mint"),
+                  wado=Wado(session, "https://server/wado"]))
+trolley.find_studies(MintQuery(PatientID='1234', limit=5))
 ```
 
 ## Examples

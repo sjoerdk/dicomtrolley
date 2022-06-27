@@ -32,7 +32,7 @@ trolley = Trolley(
 print("Quick search for studies")
 studies = trolley.find_studies(
     MintQuery(
-        patientName="B*", includeFields=["NumberOfStudyRelatedInstances"]
+        PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
     )
 )
 

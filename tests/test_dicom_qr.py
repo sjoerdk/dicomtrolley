@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import pynetdicom
 import pytest as pytest
 
+from dicomtrolley.core import BasicQuery
 from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import QueryLevels
@@ -27,12 +28,12 @@ def test_qr_query():
         "StudyDescription": "A study",
         "StudyID": "12345",
         "StudyInstanceUID": "4567",
-        "QueryRetrieveLevel": "IMAGE",
     }
     meta_parameters = {
-        "minStudyDate": datetime(year=2020, month=3, day=1),
-        "maxStudyDate": datetime(year=2020, month=3, day=5),
-        "includeFields": ["NumberOfStudyRelatedInstances"],
+        "query_retrieve_level": "IMAGE",
+        "min_study_date": datetime(year=2020, month=3, day=1),
+        "max_study_date": datetime(year=2020, month=3, day=5),
+        "include_fields": ["NumberOfStudyRelatedInstances"],
     }
 
     all_parameters = {**dicom_parameters, **meta_parameters}
@@ -45,7 +46,7 @@ def test_qr_query():
 
     # meta parameter should have been converted
     assert dataset["StudyDate"].value == "20200301-20200305"
-    assert dataset.QueryRetrieveLevel == "IMAGE"
+    assert dataset.query_retrieve_level == "IMAGE"
     assert "NumberOfStudyRelatedInstances" in dataset
 
 
@@ -70,7 +71,7 @@ def test_qr_query_do_not_overwrite_parameters():
     query = DICOMQuery(
         StudyInstanceUID="123",
         ProtocolName="foo",
-        includeFields=["StudyInstanceUID", "ProtocolName"],
+        include_fields=["StudyInstanceUID", "ProtocolName"],
     )
     assert query.StudyInstanceUID == "123"
     assert query.ProtocolName == "foo"
@@ -84,14 +85,14 @@ def test_qr_query_do_not_overwrite_parameters():
     [
         {
             "StudyInstanceUID": "123",
-            "QueryRetrieveLevel": QueryLevels.SERIES,
-            "minStudyDate": datetime(year=2020, month=3, day=1),
+            "query_retrieve_level": QueryLevels.SERIES,
+            "min_study_date": datetime(year=2020, month=3, day=1),
         },
         {
             "AccessionNumber": "123",
-            "QueryRetrieveLevel": QueryRetrieveLevels.IMAGE,
+            "query_retrieve_level": QueryRetrieveLevels.IMAGE,
         },
-        {"StudyID": "123", "QueryRetrieveLevel": QueryRetrieveLevels.STUDY},
+        {"StudyID": "123", "query_retrieve_level": QueryRetrieveLevels.STUDY},
     ],
 )
 def test_qr_query_allowed_parameters(parameters):
@@ -103,13 +104,27 @@ def test_qr_query_allowed_parameters(parameters):
     "parameters",
     [
         {"StudyThing": "123"},  # invalid dicom tag
-        {"QueryRetrieveLevel": "Something"},  # invalid retrieve level
+        {"query_retrieve_level": "Something"},  # invalid retrieve level
         {"unknown": "123"},  # trying to set non-existent parameter
     ],
 )
 def test_qr_query_exceptions(parameters):
     with pytest.raises(ValueError):
         DICOMQuery(**parameters)
+
+
+def test_query_from_basic(a_basic_query):
+    query = DICOMQuery.init_from_basic_query(a_basic_query)
+
+    # check that query level has been translated properly
+    assert a_basic_query.query_level == "INSTANCE"
+    assert query.query_retrieve_level == "IMAGE"
+    assert "query_level" not in query.dict()
+
+    # and all other basic values have been passed along
+    for key, value in a_basic_query.dict().items():
+        if key != "query_level":
+            assert query.dict()[key] == value
 
 
 def test_find_studies(monkeypatch):
@@ -126,6 +141,19 @@ def test_find_studies(monkeypatch):
     assert len(studies) == 1
     assert studies[0].uid == "Study1"
     assert len(studies[0].series[0].instances) == 9
+
+
+def test_find_study_with_basic_query():
+    """Basic query should be converted"""
+
+    qr = DICOMQR(host="host", port=123)
+    qr.send_c_find = Mock()
+    qr.parse_c_find_response = Mock()
+
+    qr.find_studies(query=BasicQuery(PatientID="test"))
+    called = qr.send_c_find.call_args.args[0]
+    assert type(called) == DICOMQuery
+    assert called.PatientID == "test"
 
 
 def test_parse_instance_response():

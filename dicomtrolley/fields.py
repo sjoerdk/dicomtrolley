@@ -8,7 +8,7 @@ manual. These list might be different for different software.
 
 
 class InstanceLevel:
-    """attributes can be returned if queryLevel=INSTANCE"""
+    """attributes can be returned if query_level=INSTANCE"""
 
     fields = {
         "SOPInstanceUID",
@@ -43,7 +43,7 @@ class InstanceLevel:
 
 
 class SeriesLevel:
-    """attributes can be returned if queryLevel=SERIES, or queryLevel=INSTANCE"""
+    """attributes can be returned if query_level=SERIES, or query_level=INSTANCE"""
 
     fields = {
         "SeriesInstanceUID",
@@ -72,11 +72,11 @@ class SeriesLevel:
 
 
 class SeriesLevelPromotable:
-    """Instance level attributes that may be returned even if queryLevel=SERIES
+    """Instance level attributes that may be returned even if query_level=SERIES
 
     These attributes are promotable from the Image-level to the Series-level metadata
     if the attribute value for all SOP instances in that series contain the same
-    value. Therefore these attributes may be returned in a queryLevel=SERIES query,
+    value. Therefore these attributes may be returned in a query_level=SERIES query,
     but only when this condition is satisfied.
 
     Notes
@@ -102,7 +102,7 @@ class SeriesLevelPromotable:
 
 
 class StudyLevel:
-    """All fields that can be returned for queryLevel=STUDY, SERIES or INSTANCE.
+    """All fields that can be returned for query_level=STUDY, SERIES or INSTANCE.
 
     Notes
     -----

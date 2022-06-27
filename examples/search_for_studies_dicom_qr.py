@@ -9,7 +9,6 @@ AEC   # Application Entity Called - The name of the server you are calling
 Please set these before running this example
 
 """
-from datetime import datetime
 from os import environ
 
 from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
@@ -26,19 +25,8 @@ dicom_qr = DICOMQR(
 print("Perform a search")
 studies = dicom_qr.find_studies(
     DICOMQuery(
-        PatientName="BAL*",
-        ProtocolName="Thorax",
-        minStudyDate=datetime(year=2015, month=3, day=1),
-        maxStudyDate=datetime(year=2015, month=4, day=1),
-        includeFields=[
-            "PatientBirthDate",
-            "SOPClassesInStudy",
-            "Modality",
-            "StudyDescription",
-            "SeriesDescription",
-            "ProtocolName",
-        ],
-        QueryRetrieveLevel=QueryRetrieveLevels.SERIES,
+        PatientName="*",
+        query_retrieve_level=QueryRetrieveLevels.STUDY,
     )
 )
 
