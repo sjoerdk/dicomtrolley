@@ -4,7 +4,7 @@ from typing import List
 import pytest
 import requests
 
-from dicomtrolley.core import BasicQuery, Series, Study
+from dicomtrolley.core import Query, Series, Study
 from dicomtrolley.dicom_qr import DICOMQR
 from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
 from dicomtrolley.wado import Wado
@@ -143,7 +143,7 @@ def some_studies(an_image_level_study, a_study_level_study):
 
 @pytest.fixture
 def a_basic_query():
-    """A BasicQuery with all possible parameters filled in"""
+    """A Query with all possible parameters filled in"""
 
     dicom_parameters = {
         "AccessionNumber": "123",
@@ -166,4 +166,4 @@ def a_basic_query():
     }
 
     all_parameters = {**dicom_parameters, **meta_parameters}
-    return BasicQuery(**all_parameters)
+    return Query(**all_parameters)

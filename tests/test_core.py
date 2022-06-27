@@ -1,7 +1,15 @@
+from datetime import date, datetime
+
 import pytest
 from pydicom.dataset import Dataset
 
-from dicomtrolley.core import DICOMObjectReference, Instance, Series, Study
+from dicomtrolley.core import (
+    DICOMObjectReference,
+    Instance,
+    Query,
+    Series,
+    Study,
+)
 
 
 @pytest.fixture
@@ -50,3 +58,44 @@ def test_reference():
     """Incomplete references should yield an error"""
     with pytest.raises(ValueError):
         DICOMObjectReference(study_uid="foo", instance_uid="baz")
+
+
+def test_query():
+    """Make sure all parameters of a query are checked"""
+    dicom_parameters = {
+        "AccessionNumber": "123",
+        "InstitutionName": "Hospital",
+        "InstitutionalDepartmentName": "Department",
+        "ModalitiesInStudy": "MR*",
+        "PatientID": "1234",
+        "PatientName": "Patient*",
+        "PatientSex": "F",
+        "StudyDescription": "A study",
+        "StudyInstanceUID": "4567",
+    }
+    meta_parameters = {
+        "query_level": "INSTANCE",
+        "PatientBirthDate": date(year=1990, month=1, day=1),
+        "min_study_date": datetime(year=2020, month=3, day=1),
+        "max_study_date": datetime(year=2020, month=3, day=5),
+        "include_fields": ["NumberOfStudyRelatedInstances"],
+    }
+
+    all_parameters = {**dicom_parameters, **meta_parameters}
+    # this should just not raise any validation error
+    Query(**all_parameters)
+
+
+@pytest.mark.parametrize(
+    "query_params",
+    (
+        {
+            "query_level": "Unknown_level",
+        },
+        {"include_fields": ["NotADicomKeyword"]},
+    ),
+)
+def test_query_validation_error(query_params):
+    """These queries should fail validation"""
+    with pytest.raises(ValueError):
+        Query(**query_params)

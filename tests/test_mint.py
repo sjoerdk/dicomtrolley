@@ -4,7 +4,7 @@ from xml.etree.ElementTree import Element
 
 import pytest
 
-from dicomtrolley.core import BasicQuery
+from dicomtrolley.core import Query
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import (
     MintAttribute,
@@ -63,7 +63,7 @@ def test_find_study_with_basic_query(requests_mock, a_mint):
     """Basic query should be converted"""
     params = MINT_SEARCH_ANY.as_dict()
     requests_mock.register_uri(**params)
-    a_mint.find_studies(BasicQuery(PatientID="test"))
+    a_mint.find_studies(Query(PatientID="test"))
 
 
 @pytest.mark.parametrize(
@@ -183,23 +183,6 @@ def test_query_full():
     assert parameters["max_study_date"] == "20200305"
     assert parameters["QueryLevel"] == "INSTANCE"
     assert "NumberOfStudyRelatedInstances" in parameters["IncludeFields"]
-
-
-def test_query_from_basic(a_basic_query):
-
-    query = MintQuery.init_from_basic_query(a_basic_query)
-    # the only difference should be the default limit parameter
-    difference = set(query.dict().keys()).difference(
-        set(a_basic_query.dict().keys())
-    )
-    assert "limit" in difference
-
-    # otherwise, all values should be the same
-    intersection = set(query.dict().keys()).intersection(
-        set(a_basic_query.dict().keys())
-    )
-    for key in intersection:
-        assert query.dict()[key] == a_basic_query.dict()[key]
 
 
 def test_study_instance_iterator(

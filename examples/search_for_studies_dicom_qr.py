@@ -11,7 +11,8 @@ Please set these before running this example
 """
 from os import environ
 
-from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
+from dicomtrolley.core import QueryLevels
+from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery
 
 print("Setting up DICOM query-retrieve")
 dicom_qr = DICOMQR(
@@ -26,7 +27,7 @@ print("Perform a search")
 studies = dicom_qr.find_studies(
     DICOMQuery(
         PatientName="*",
-        query_retrieve_level=QueryRetrieveLevels.STUDY,
+        query_level=QueryLevels.STUDY,
     )
 )
 

@@ -13,7 +13,7 @@ Please set these before running this example
 """
 from os import environ
 
-from dicomtrolley.core import BasicQuery
+from dicomtrolley.core import Query
 from dicomtrolley.mint import Mint, QueryLevels
 from dicomtrolley.servers import VitreaConnection
 from dicomtrolley.trolley import Trolley
@@ -32,9 +32,7 @@ trolley = Trolley(
 
 print("Quick search for studies")
 studies = trolley.find_studies(
-    BasicQuery(
-        PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
-    )
+    Query(PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"])
 )
 
 print(f"Found {len(studies)} studies. Taking one with least instances")
@@ -43,7 +41,7 @@ study = studies[1]
 
 print(f"Getting slice info for {study}")
 studies_full = trolley.find_studies(
-    BasicQuery(StudyInstanceUID=study.uid, query_level=QueryLevels.INSTANCE)
+    Query(StudyInstanceUID=study.uid, query_level=QueryLevels.INSTANCE)
 )  # query_level=INSTANCE will return all instances inside each study
 
 

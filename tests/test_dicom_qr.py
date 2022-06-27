@@ -4,8 +4,8 @@ from unittest.mock import Mock
 import pynetdicom
 import pytest as pytest
 
-from dicomtrolley.core import BasicQuery
-from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery, QueryRetrieveLevels
+from dicomtrolley.core import Query
+from dicomtrolley.dicom_qr import DICOMQR, DICOMQuery
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import QueryLevels
 from tests.factories import (
@@ -30,7 +30,7 @@ def test_qr_query():
         "StudyInstanceUID": "4567",
     }
     meta_parameters = {
-        "query_retrieve_level": "IMAGE",
+        "query_level": "INSTANCE",
         "min_study_date": datetime(year=2020, month=3, day=1),
         "max_study_date": datetime(year=2020, month=3, day=5),
         "include_fields": ["NumberOfStudyRelatedInstances"],
@@ -45,8 +45,8 @@ def test_qr_query():
         assert dataset[keyword].value == expected
 
     # meta parameter should have been converted
-    assert dataset["StudyDate"].value == "20200301-20200305"
-    assert dataset.query_retrieve_level == "IMAGE"
+    assert dataset.StudyDate == "20200301-20200305"
+    assert dataset.QueryRetrieveLevel == "IMAGE"
     assert "NumberOfStudyRelatedInstances" in dataset
 
 
@@ -85,14 +85,14 @@ def test_qr_query_do_not_overwrite_parameters():
     [
         {
             "StudyInstanceUID": "123",
-            "query_retrieve_level": QueryLevels.SERIES,
+            "query_level": QueryLevels.SERIES,
             "min_study_date": datetime(year=2020, month=3, day=1),
         },
         {
             "AccessionNumber": "123",
-            "query_retrieve_level": QueryRetrieveLevels.IMAGE,
+            "query_level": QueryLevels.INSTANCE,
         },
-        {"StudyID": "123", "query_retrieve_level": QueryRetrieveLevels.STUDY},
+        {"StudyID": "123", "query_level": QueryLevels.STUDY},
     ],
 )
 def test_qr_query_allowed_parameters(parameters):
@@ -104,7 +104,7 @@ def test_qr_query_allowed_parameters(parameters):
     "parameters",
     [
         {"StudyThing": "123"},  # invalid dicom tag
-        {"query_retrieve_level": "Something"},  # invalid retrieve level
+        {"query_level": "Something"},  # invalid retrieve level
         {"unknown": "123"},  # trying to set non-existent parameter
     ],
 )
@@ -113,18 +113,26 @@ def test_qr_query_exceptions(parameters):
         DICOMQuery(**parameters)
 
 
-def test_query_from_basic(a_basic_query):
-    query = DICOMQuery.init_from_basic_query(a_basic_query)
+def test_query_as_parameters(a_basic_query):
+    """Check conversion from general fields into QR-specific parameters"""
 
+    query_ds = DICOMQuery(
+        query_level=QueryLevels.INSTANCE,
+        PatientID="test",
+        include_fields=["Modality"],
+    ).as_dataset()
     # check that query level has been translated properly
-    assert a_basic_query.query_level == "INSTANCE"
-    assert query.query_retrieve_level == "IMAGE"
-    assert "query_level" not in query.dict()
 
-    # and all other basic values have been passed along
-    for key, value in a_basic_query.dict().items():
-        if key != "query_level":
-            assert query.dict()[key] == value
+    assert query_ds.QueryRetrieveLevel == "IMAGE"  # converted from INSTANCE
+    assert query_ds.PatientID == "test"  # just passed
+
+    # added as useful includes for IMAGE
+    assert "SeriesInstanceUID" in query_ds
+    assert "StudyInstanceUID" in query_ds
+    assert "SOPInstanceUID" in query_ds
+
+    # because it was given as include field
+    assert "Modality" in query_ds
 
 
 def test_find_studies(monkeypatch):
@@ -137,7 +145,7 @@ def test_find_studies(monkeypatch):
         )
     )
 
-    studies = qr.find_studies(query=None)
+    studies = qr.find_studies(query=Query())
     assert len(studies) == 1
     assert studies[0].uid == "Study1"
     assert len(studies[0].series[0].instances) == 9
@@ -150,7 +158,7 @@ def test_find_study_with_basic_query():
     qr.send_c_find = Mock()
     qr.parse_c_find_response = Mock()
 
-    qr.find_studies(query=BasicQuery(PatientID="test"))
+    qr.find_studies(query=Query(PatientID="test"))
     called = qr.send_c_find.call_args.args[0]
     assert type(called) == DICOMQuery
     assert called.PatientID == "test"

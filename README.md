@@ -33,7 +33,7 @@ trolley = Trolley(searcher=Mint(session, "https://server/mint"),
                   wado=Wado(session, "https://server/wado"]))
 
 # find some studies (using MINT)
-studies = trolley.find_studies(BasicQuery(PatientName='B*'))  
+studies = trolley.find_studies(Query(PatientName='B*'))  
 
 # download the fist one (using WADO)
 trolley.download(studies[0], output_dir='/tmp/trolley')
@@ -42,14 +42,14 @@ trolley.download(studies[0], output_dir='/tmp/trolley')
 ### Finding studies
 
 ```python
-studies = trolley.find_studies(BasicQuery(PatientName='B*'))
+studies = trolley.find_studies(Query(PatientName='B*'))
 ```
 
 Basic query parameters can be found in [core.Query](dicomtrolley/core.py#L274). Valid include fields (which information gets sent back) can be found in [fields.py](dicomtrolley/fields.py):
 
 ```python
 studies = trolley.find_studies(
-    BasicQuery(modalitiesInStudy='CT*', 
+    Query(modalitiesInStudy='CT*', 
                patientSex="F", 
                min_study_date=datetime(year=2015, month=3, day=1),
                max_study_date=datetime(year=2020, month=3, day=1),
@@ -61,8 +61,8 @@ To include series and instance level information as well, use the `queryLevel` p
 
 ```python
 studies = trolley.find_studies(  # find studies series and instances
-    BasicQuery(studyInstanceID='B*', 
-              query_level=QueryLevels.INSTANCE)
+    Query(studyInstanceID='B*', 
+          query_level=QueryLevels.INSTANCE)
 
 a_series = studies.series[0]  # studies now contain series    
 an_instance = a_series.instances[0]  # and series contain instances
@@ -71,8 +71,8 @@ an_instance = a_series.instances[0]  # and series contain instances
 ### Downloading data
 Any study, series or instance can be downloaded
 ```python
-studies = trolley.find_studies(BasicQuery(PatientName='B*',
-                                          query_level=QueryLevels.INSTANCE))
+studies = trolley.find_studies(Query(PatientName='B*',
+                                     query_level=QueryLevels.INSTANCE))
 
 path = '/tmp/trolley'
 trolley.download(studies, path)                             # all studies
@@ -84,8 +84,8 @@ More control over download: obtain `pydicom.Dataset` instances directly
 
 ```python
 studies = trolley.find_studies(              # find study including instances
-    BasicQuery(PatientID='1234', 
-               query_level=QueryLevels.INSTANCE)
+    Query(PatientID='1234', 
+          query_level=QueryLevels.INSTANCE)
 
 for ds in trolley.get_dataset(studies):      # obtain Dataset for each instance
     ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
@@ -125,7 +125,7 @@ trolley.find_studies(
                      min_study_date=datetime(year=2015, month=3, day=1),
                      max_study_date=datetime(year=2015, month=4, day=1),
                      include_fields=["PatientBirthDate", "SOPClassesInStudy"],
-                     query_retrieve_level=QueryRetrieveLevels.STUDY)) 
+                     query_level=QueryRetrieveLevels.STUDY)) 
 ```
 
 ### RAD69
@@ -136,7 +136,7 @@ trolley = Trolley(searcher=dicom_qr,
                   downloader=Rad69(session=session,
                                    url="https://server/rad69"))
 
-studies = trolley.find_studies(PatientName="AB*",)
+studies = trolley.find_studies(Query(PatientName="AB*"))
 trolley.download(studies[0], path)  # rad69 download works exactly like wado 
 trolley.download(studies[1], path,  
                  use_async=True)    # multi-threaded download is supported
@@ -171,12 +171,12 @@ trolley = Trolley(searcher=mint, downloader=wado,
 ```
 
 ### DICOM Query types
-For most DICOM queries you can use a [BasicQuery](dicomtrolley/core.py#L322) instance:
+For most DICOM queries you can use a [Query](dicomtrolley/core.py#L322) instance:
 
 ```python
 from dicomtrolley.core import QueryLevels 
-trolley.find_studies(BasicQuery(PatientID='1234', 
-                                query_level=QueryLevels.INSTANCE)
+trolley.find_studies(Query(PatientID='1234', 
+                           query_level=QueryLevels.INSTANCE)
 ```
 
 If you want to have more control over backend-specific options you can use a backend-specific

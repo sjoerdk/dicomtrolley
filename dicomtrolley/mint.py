@@ -2,7 +2,7 @@
 See:
 https://code.google.com/archive/p/medical-imaging-network-transport/downloads
 """
-from typing import ClassVar, List, Sequence, Set, Union
+from typing import ClassVar, List, Sequence, Set
 from xml.etree import ElementTree
 from xml.etree.ElementTree import ParseError
 
@@ -11,10 +11,10 @@ from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
-    BasicQuery,
     DICOMObject,
     Instance,
     Query,
+    QueryLevels,
     Searcher,
     Series,
     Study,
@@ -28,7 +28,7 @@ from dicomtrolley.fields import (
 )
 
 
-class QueryLevels:
+class MintQueryLevels:
     STUDY = "STUDY"
     SERIES = "SERIES"
     INSTANCE = "INSTANCE"
@@ -36,8 +36,8 @@ class QueryLevels:
     ALL = {STUDY, SERIES, INSTANCE}
 
     @classmethod
-    def translate_from_basic_level(cls, value):
-        """Translate from BasicQuery. For converting between queries
+    def translate(cls, value):
+        """Translate from Query. For converting between queries
 
         Notes
         -----
@@ -153,21 +153,7 @@ class MintQuery(Query):
     * All string arguments support (*) as a wildcard
     """
 
-    query_level: str = QueryLevels.STUDY  # to which depth to return results
-    include_fields: List[str] = []  # which dicom fields to return
     limit: int = 0  # how many results to return. 0 = all
-
-    @classmethod
-    def init_from_basic_query(cls, query: BasicQuery):
-        basic_params = query.dict()
-        # translate to MINT version of query level
-        basic_params["query_level"] = QueryLevels.translate_from_basic_level(
-            basic_params.pop("query_level")
-        )
-        return cls(**basic_params)
-
-    def __str__(self):
-        return str(self.as_parameters())
 
     @root_validator()
     def min_max_study_date_xor(cls, values):  # noqa: B902, N805
@@ -189,12 +175,10 @@ class MintQuery(Query):
 
     @root_validator()
     def include_fields_check(cls, values):  # noqa: B902, N805
-        """Include fields should be valid and match query level"""
+        """Include fields should match query level"""
         include_fields = values.get("include_fields")
         if not include_fields:
             return values  # May not exist if include_fields is invalid type
-        for field in include_fields:
-            cls.validate_keyword(field)
 
         query_level = values.get("query_level")
         if query_level:  # May be None for child classes
@@ -206,6 +190,9 @@ class MintQuery(Query):
                         f"level {query_level}. Valid fields: {valid_fields}"
                     )
         return values
+
+    def __str__(self):
+        return str(self.as_parameters())
 
     def as_parameters(self):
         """All non-empty query parameters. For use as url parameters"""
@@ -227,7 +214,9 @@ class MintQuery(Query):
             ].strftime("%Y%m%d")
 
         if "query_level" in parameters:
-            parameters["QueryLevel"] = parameters.pop("query_level")
+            parameters["QueryLevel"] = MintQueryLevels.translate(
+                parameters.pop("query_level")
+            )
 
         if "include_fields" in parameters:
             parameters["IncludeFields"] = ",".join(
@@ -239,25 +228,25 @@ class MintQuery(Query):
 
 def get_valid_fields(query_level) -> Set[str]:
     """All fields that can be returned at the given MINT query level"""
-    if query_level == QueryLevels.INSTANCE:
+    if query_level == MintQueryLevels.INSTANCE:
         return (
             StudyLevel.fields
             | SeriesLevel.fields
             | SeriesLevelPromotable.fields
             | InstanceLevel.fields
         )
-    elif query_level == QueryLevels.SERIES:
+    elif query_level == MintQueryLevels.SERIES:
         return (
             StudyLevel.fields
             | SeriesLevel.fields
             | SeriesLevelPromotable.fields
         )
-    elif query_level == QueryLevels.STUDY:
+    elif query_level == MintQueryLevels.STUDY:
         return StudyLevel.fields
     else:
         raise ValueError(
             f'Unknown query level "{query_level}". Valid values '
-            f"are {QueryLevels.ALL}"
+            f"are {MintQueryLevels.ALL}"
         )
 
 
@@ -277,14 +266,12 @@ class Mint(Searcher):
         self.session = session
         self.url = url
 
-    def find_studies(
-        self, query: Union[BasicQuery, MintQuery]
-    ) -> Sequence[MintStudy]:
+    def find_studies(self, query: Query) -> Sequence[MintStudy]:
         """Get all studies matching query
 
         Parameters
         ----------
-        query: BasicQuery or MintQuery
+        query: Query or MintQuery
             Search based on these parameters. See Query object
 
         Returns
@@ -294,19 +281,18 @@ class Mint(Searcher):
             If Query.QueryLevel is SERIES or INSTANCE, MintStudy objects might
             contain MintSeries and MintInstance instances.
         """
-        if isinstance(query, BasicQuery):
-            query = MintQuery.init_from_basic_query(query)
 
         search_url = self.url + "/studies"
         response = self.session.get(
-            search_url, params=query.as_parameters()  # type: ignore
+            search_url, params=MintQuery.from_query(query).as_parameters()
         )
         return parse_mint_studies_response(response.text)
 
     def find_full_study_by_id(self, study_uid: str) -> Study:
         return self.find_study(
             MintQuery(
-                StudyInstanceUID=study_uid, query_level=QueryLevels.INSTANCE
+                StudyInstanceUID=study_uid,
+                query_level=QueryLevels.INSTANCE,
             )
         )
 

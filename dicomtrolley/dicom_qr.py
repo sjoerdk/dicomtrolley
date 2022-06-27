@@ -3,15 +3,14 @@
 See http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.3.html
 """
 
-from typing import List, Union
+from typing import Dict, List
 
-from pydantic.class_validators import validator
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import PatientRootQueryRetrieveInformationModelFind
 
-from dicomtrolley.core import BasicQuery, Query, QueryLevels, Searcher, Study
+from dicomtrolley.core import Query, QueryLevels, Searcher, Study
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 
@@ -26,8 +25,8 @@ class QueryRetrieveLevels:
     ALL = {STUDY, SERIES, IMAGE}
 
     @classmethod
-    def translate_from_basic_level(cls, value):
-        """Translate from BasicQuery. For converting between queries"""
+    def translate(cls, value):
+        """Translate from base levels. For converting between queries"""
         translation = {
             QueryLevels.STUDY: cls.STUDY,
             QueryLevels.SERIES: cls.SERIES,
@@ -53,51 +52,17 @@ class DICOMQuery(Query):
     ProtocolName: str = ""
     StudyID: str = ""
 
-    # to which depth to return results
-    query_retrieve_level: str = QueryRetrieveLevels.STUDY
-
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
 
-    @classmethod
-    def init_from_basic_query(cls, query: BasicQuery):
-        basic_params = query.dict()
-        # translate to dicom QR's version of query level
-        basic_params[
-            "query_retrieve_level"
-        ] = QueryRetrieveLevels.translate_from_basic_level(
-            basic_params.pop("query_level")
-        )
-        return cls(**basic_params)
-
-    @validator("query_retrieve_level")
-    def query_retrieve_value_should_be_valid(
-        cls, value, values  # noqa: B902, N805
-    ):
-        if value not in QueryRetrieveLevels.ALL:
-            raise ValueError(
-                f'Unknown QueryRetrieveLevel "{value}". '
-                f"Allowed:{QueryRetrieveLevels.ALL}"
-            )
-        return value
-
-    @validator("include_fields", always=True)
-    def include_fields_check(cls, include_fields, values):  # noqa: B902, N805
-        """Include fields should be valid dicom fields"""
-        for field in include_fields:
-            if not tag_for_keyword(field):
-                raise ValueError(f"{field} is not a valid DICOM keyword")
-
-        return include_fields
-
     @staticmethod
-    def get_default_include_fields(query_retrieve_level):
+    def get_default_include_fields(query_level):
         """Include fields you definitely want to get back"""
-        if query_retrieve_level == QueryRetrieveLevels.STUDY:
+        if query_level == QueryRetrieveLevels.STUDY:
             return ["StudyInstanceUID"]
-        elif query_retrieve_level == QueryRetrieveLevels.SERIES:
+        elif query_level == QueryRetrieveLevels.SERIES:
             return ["StudyInstanceUID", "SeriesInstanceUID"]
-        elif query_retrieve_level == QueryRetrieveLevels.IMAGE:
+        elif query_level == QueryRetrieveLevels.IMAGE:
             return ["StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID"]
 
     @staticmethod
@@ -117,8 +82,8 @@ class DICOMQuery(Query):
         else:
             return None
 
-    def as_dataset(self):
-        """A dataset that can be used as a CFIND query."""
+    def as_parameters(self) -> Dict[str, str]:
+        """Parameters that can be used in constructing a DICOM QR query"""
 
         # remove non-DICOM parameters and replace with DICOM tags based on them
         parameters = {
@@ -128,14 +93,24 @@ class DICOMQuery(Query):
             parameters.pop("min_study_date"), parameters.pop("max_study_date")
         )
 
+        # translate values and change parameter name to fit DICOM-QR naming
+        parameters["QueryRetrieveLevel"] = QueryRetrieveLevels.translate(
+            parameters.pop("query_level")
+        )
+
         # add useful default include fields
         default_fields = self.get_default_include_fields(
-            parameters["query_retrieve_level"]
+            parameters["QueryRetrieveLevel"]
         )
         parameters["include_fields"] = list(
             set(parameters["include_fields"]) | set(default_fields)
         )
 
+        return parameters
+
+    def as_dataset(self):
+        """A dataset that can be used as a CFIND query."""
+        parameters = self.as_parameters()
         ds = Dataset()
         # in CFIND, empty elements are interpreted as 'need to be returned filled'
         for field in parameters.pop(
@@ -183,12 +158,12 @@ class DICOMQR(Searcher):
         self.aec = aec
         self.debug = debug
 
-    def find_studies(self, query: Union[BasicQuery, DICOMQuery]):
+    def find_studies(self, query: Query):
         """
 
         Parameters
         ----------
-        query: BasicQuery or DICOMQuery
+        query: Query
             Find arguments matching this query
 
         Raises
@@ -200,10 +175,9 @@ class DICOMQR(Searcher):
         -------
         List[Study]
         """
-        if isinstance(query, BasicQuery):
-            query = DICOMQuery.init_from_basic_query(query)
-
-        return self.parse_c_find_response(self.send_c_find(query))
+        return self.parse_c_find_response(
+            self.send_c_find(DICOMQuery.from_query(query))
+        )
 
     @staticmethod
     def parse_c_find_response(responses) -> List[Study]:
@@ -278,6 +252,6 @@ class DICOMQR(Searcher):
         return self.find_study(
             DICOMQuery(
                 StudyInstanceUID=study_uid,
-                query_retrieve_level=QueryRetrieveLevels.IMAGE,
+                query_level=QueryLevels.INSTANCE,
             )
         )
