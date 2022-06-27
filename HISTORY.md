@@ -1,4 +1,8 @@
 # History
+## v2.0.0 (2022-06-27)
+* Introduces unified Query object that can be used for any backend. Changes parameter naming and capitalisation for many queries so major version.
+* 
+
 ## v1.2.0 (2022-06-22)
 * Introduces alternate disk storages for Trolley
 * Adds FlatStorageDir class as alternate storage
