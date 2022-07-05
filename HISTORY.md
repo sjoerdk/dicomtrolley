@@ -1,4 +1,8 @@
 # History
+
+## v2.0.1 (2022-07-05)
+* Fixes capitalization error in rad69 template
+
 ## v2.0.1 (2022-07-05)
 * Works around exponential resource usage in pydantic 0.9 by pinning to 0.8
 
