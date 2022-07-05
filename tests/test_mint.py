@@ -12,7 +12,9 @@ from dicomtrolley.mint import (
     MintSeries,
     QueryLevels,
     parse_attribs,
+    parse_mint_studies_response,
 )
+from tests import RESOURCE_PATH
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
     MINT_SEARCH_ANY,
@@ -199,3 +201,13 @@ def test_study_dump(a_mint_study_with_instances):
     dump = a_mint_study_with_instances.dump_content()
     assert "BEELDENZORG" in dump
     assert "85551.608" in dump
+
+
+def test_parse_raw_xml():
+    """With certain versions of pydantic, this command takes exponential
+    memory and time. Make sure that this is not the case
+    """
+
+    with open(RESOURCE_PATH / "mint_response.xml") as f:
+        raw_xml = f.read()
+    parse_mint_studies_response(raw_xml)
