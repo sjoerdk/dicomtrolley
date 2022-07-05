@@ -1,4 +1,7 @@
 # History
+## v2.0.1 (2022-07-05)
+* Works around exponential resource usage in pydantic 0.9 by pinning to 0.8
+
 ## v2.0.0 (2022-06-27)
 * Introduces unified Query object that can be used for any backend. Changes parameter naming 
   and capitalisation for many queries so major version.
