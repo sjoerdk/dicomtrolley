@@ -1,6 +1,6 @@
 # History
 
-## v2.0.1 (2022-07-05)
+## v2.0.2 (2022-07-05)
 * Fixes capitalization error in rad69 template
 
 ## v2.0.1 (2022-07-05)
