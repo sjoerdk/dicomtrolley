@@ -15,11 +15,11 @@ target-version = ['py38']
 python = "^3.7"
 requests = "^2.25.1"
 pydicom = "^2.1.2"
-pydantic = "^1.8.1"
 requests-futures = "^1.0.0"
 pynetdicom = "^1.5.6"
 Jinja2 = "^3.0.3"
 requests-toolbelt = "^0.9.1"
+pydantic = "~1.8.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
