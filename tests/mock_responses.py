@@ -99,6 +99,26 @@ LOGIN_DENIED = MockResponse(
     method="POST",
 )
 
+MINT_401 = MockResponse(
+    url=MockUrls.MINT_URL,
+    status_code=401,
+    reason="Unauthorized",
+    method="GET",
+    text="""<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<title>Error 401 you need to log in to access this page.</title>
+</head>
+<body><h2>HTTP ERROR 401</h2>
+<p>Problem accessing /rest/api/vault/mint/studies. Reason:
+<pre>    you need to log in to access this page.</pre></p><hr>
+<a href="http://eclipse.org/jetty">Powered by Jetty://
+ 9.4.12.v20180830</a><hr/>
+
+</body>
+</html>""",
+)
+
 LOGIN_IMPAX_INITIAL = MockResponse(
     url=MockUrls.LOGIN, text="whatever", status_code=200, method="GET"
 )
