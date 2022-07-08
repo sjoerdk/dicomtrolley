@@ -11,14 +11,16 @@ DOWNLOAD_PATH  # Path to download to
 """
 from os import environ
 
+from dicomtrolley.auth import create_session
 from dicomtrolley.core import InstanceReference
-from dicomtrolley.servers import VitreaConnection
 from dicomtrolley.wado import Wado
 
-
-# log in
-session = VitreaConnection(environ["LOGIN_URL"]).log_in(
-    environ["USER"], environ["PASSWORD"], environ["REALM"]
+# Create auto-login session
+session = create_session(
+    environ["LOGIN_URL"],
+    environ["USER"],
+    environ["PASSWORD"],
+    environ["REALM"],
 )
 
 wado = Wado(session, environ["WADO_URL"])

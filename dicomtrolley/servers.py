@@ -20,6 +20,10 @@ class VitreaConnection:
         login_url: str
             Full url of login method, including https://
         """
+        DeprecationWarning(
+            "VitreaConnection will be removed in future versions. "
+            "Use dicomtrolley.auth.VitreaAuth instead"
+        )
         self.login_url = login_url
 
     def log_in(self, user, password, realm):

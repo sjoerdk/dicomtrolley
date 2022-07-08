@@ -13,15 +13,17 @@ Please set these before running this example
 """
 from os import environ
 
+from dicomtrolley.auth import create_session
 from dicomtrolley.mint import Mint, MintQuery
 from dicomtrolley.rad69 import Rad69
-from dicomtrolley.servers import VitreaConnection
 from dicomtrolley.trolley import Trolley
 
-print("logging in")
-
-session = VitreaConnection(environ["LOGIN_URL"]).log_in(
-    environ["USER"], environ["PASSWORD"], environ["REALM"]
+print("Creating session")
+session = create_session(
+    environ["LOGIN_URL"],
+    environ["USER"],
+    environ["PASSWORD"],
+    environ["REALM"],
 )
 
 trolley = Trolley(

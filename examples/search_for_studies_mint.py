@@ -13,17 +13,19 @@ Please set these before running this example
 from datetime import datetime
 from os import environ
 
+from dicomtrolley.auth import create_session
 from dicomtrolley.mint import Mint, MintQuery, QueryLevels
-from dicomtrolley.servers import VitreaConnection
 
-# Log in to get an authenticated session
-session = VitreaConnection(environ["LOGIN_URL"]).log_in(
-    environ["USER"], environ["PASSWORD"], environ["REALM"]
+# Create auto-login session
+session = create_session(
+    environ["LOGIN_URL"],
+    environ["USER"],
+    environ["PASSWORD"],
+    environ["REALM"],
 )
 
 # Using mint for search
 mint = Mint(session, environ["MINT_URL"])
-
 
 print("Quick search for some studies")
 studies = mint.find_studies(

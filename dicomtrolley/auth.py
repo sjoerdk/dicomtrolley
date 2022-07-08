@@ -1,13 +1,40 @@
 """Authentication mechanisms for DICOM servers"""
-
+import requests
 from requests.auth import AuthBase
 from requests.models import Request
 
 from dicomtrolley.exceptions import DICOMTrolleyError
 
 
+def create_session(login_url, user, password, realm="DefaultSystemRealm"):
+    """Returns a requests Session that logs in to Vitrea automatically as needed.
+
+    Facilitates single-line session creation. For readable code
+
+    Parameters
+    ----------
+    login_url: str
+        Call this url to log in
+    user: str
+        username
+    password: str
+        password
+    realm: str, optional
+        Vitrea realm to pass when logging in. Defaults to 'DefaultSystemRealm'
+    """
+    session = requests.Session()
+    session.auth = VitreaAuth(
+        login_url=login_url, user=user, password=password, realm=realm
+    )
+    return session
+
+
 class VitreaAuth(AuthBase):
     """Can log in to a server running Vitrea Connection 8.2.0.1
+
+    Usage
+    -----
+
 
     Raises
     ------

@@ -24,13 +24,12 @@ pip install dicomtrolley
 ### Basic example
 
 ```python
-# Create a logged-in http session
-session = VitreaConnection(
-    "https://server/login").log_in(user,password,realm)
+# Create a http session
+session = create_session("https://server/login",user,password,realm)
                            
 # Use this session to create a trolley using MINT and WADO
 trolley = Trolley(searcher=Mint(session, "https://server/mint"),
-                  wado=Wado(session, "https://server/wado"]))
+                  wado=Wado(session, "https://server/wado"))
 
 # find some studies (using MINT)
 studies = trolley.find_studies(Query(PatientName='B*'))  
@@ -60,11 +59,11 @@ studies = trolley.find_studies(
 To include series and instance level information as well, use the `queryLevel` parameter
 
 ```python
-studies = trolley.find_studies(  # find studies series and instances
+studies = trolley.find_studies(      # find studies series and instances
     Query(studyInstanceID='B*', 
-          query_level=QueryLevels.INSTANCE)
+          query_level=QueryLevels.INSTANCE))
 
-a_series = studies.series[0]  # studies now contain series    
+a_series = studies.series[0]         # studies now contain series    
 an_instance = a_series.instances[0]  # and series contain instances
 ```
 

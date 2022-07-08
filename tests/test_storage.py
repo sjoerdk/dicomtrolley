@@ -11,13 +11,13 @@ from tests.factories import quick_dataset
     [
         (
             quick_dataset(
-                StudyInstanceUID="A", SeriesInstanceUID="B", SOPInstanceUID="C"
+                StudyInstanceUID="1", SeriesInstanceUID="2", SOPInstanceUID="3"
             ),
-            "A/B/C",
+            "1/2/3",
         ),
         (
-            quick_dataset(StudyInstanceUID="A", SeriesInstanceUID="B"),
-            "A/B/unknown",
+            quick_dataset(StudyInstanceUID="1", SeriesInstanceUID="2"),
+            "1/2/unknown",
         ),
         (quick_dataset(), "unknown/unknown/unknown"),
     ],
