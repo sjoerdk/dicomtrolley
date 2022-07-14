@@ -1,9 +1,11 @@
 import re
+from unittest.mock import Mock
 from uuid import uuid4
 
 import pytest
 import requests
 from jinja2 import Template
+from requests.exceptions import ChunkedEncodingError
 
 from dicomtrolley.core import InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -86,6 +88,40 @@ def test_rad69_error_from_server(
             )
         )
     assert re.match(error_contains, str(e))
+
+
+def test_requests_chunked_encoding_error_handling(
+    a_rad69, requests_mock, monkeypatch
+):
+    """Recreates #20, uncaught error from unexpected server connection closing"""
+
+    # Rig bytestream reading to fail
+    def failing_iter(*args, **kwargs):
+        """Creates an iterator that fails at the first __next__ call"""
+        an_iter = Mock()
+        an_iter.__iter__ = Mock(return_value=iter([]))
+        an_iter.__next__ = Mock(
+            side_effect=ChunkedEncodingError(
+                "Remove host just closed the connection. Rude"
+            )
+        )
+        return an_iter
+
+    monkeypatch.setattr(
+        "dicomtrolley.rad69.HTTPMultiPartStream.create_bytes_iterator",
+        failing_iter,
+    )
+
+    # Make sure rad69 call succeeds far enough to hit server error
+    response = create_rad69_response_from_datasets(
+        [quick_dataset(PatientName="Patient_1")]
+    )
+    set_mock_response(requests_mock, response)
+
+    with pytest.raises(DICOMTrolleyError):
+        _ = [
+            x for x in a_rad69.datasets([])
+        ]  # emtpy call suffices due to mocking
 
 
 def test_rad69_template():

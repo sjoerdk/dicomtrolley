@@ -312,10 +312,14 @@ class HTTPMultiPartStream:
         self.response = response
         self.boundary = self._find_boundary(response)
 
-        self._bytes_iterator = iter(
-            response.iter_content(chunk_size=stream_chunk_size)
+        self._bytes_iterator = self.create_bytes_iterator(
+            response, stream_chunk_size
         )
         self._buffer = b""
+
+    @staticmethod
+    def create_bytes_iterator(response, stream_chunk_size):
+        return iter(response.iter_content(chunk_size=stream_chunk_size))
 
     @staticmethod
     def _split_on_find(content, bound):
