@@ -15,6 +15,7 @@ from jinja2.environment import Template
 from pydicom.errors import InvalidDicomError
 from pydicom.filebase import DicomBytesIO
 from pydicom.filereader import dcmread
+from requests.exceptions import ChunkedEncodingError
 from requests.structures import CaseInsensitiveDict
 from requests_futures.sessions import FuturesSession
 
@@ -350,9 +351,16 @@ class HTTPMultiPartStream:
         part = self.get_next_part_from_buffer()
         if not part:
             while not part:
-                self._buffer = self._buffer + next(self._bytes_iterator)
+                self._buffer = self._buffer + self.read_next_chunk()
                 part = self.get_next_part_from_buffer()
         return HTMLPart(part, encoding=self.response.encoding)
+
+    def read_next_chunk(self):
+        """Read next chunk of bytes from iterator"""
+        try:
+            return next(self._bytes_iterator)
+        except ChunkedEncodingError as e:
+            raise DICOMTrolleyError from e
 
     def get_next_part_from_buffer(self):
         """Return first part in buffer and remove this from buffer"""
