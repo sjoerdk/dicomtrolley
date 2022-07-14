@@ -1,4 +1,7 @@
 # History
+## v2.1.1 (2022-07-14)
+* Rebrands some requests server exceptions to dicom trolley exceptions for easier handling
+
 ## v2.1.0 (2022-07-11)
 * Adds VitreaAuth based on requests AuthBase for easier login and session timeout recovery
 
