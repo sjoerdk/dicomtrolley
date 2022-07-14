@@ -1,4 +1,6 @@
 # History
+## v2.1.0 (2022-07-11)
+* Adds VitreaAuth based on requests AuthBase for easier login and session timeout recovery
 
 ## v2.0.2 (2022-07-05)
 * Fixes capitalization error in rad69 template
