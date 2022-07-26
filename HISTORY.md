@@ -1,4 +1,7 @@
 # History
+## v2.1.2 (2022-07-16)
+* Now re-raises underlying urllib3.exceptions.ProtocolError to dicom trolley exception
+ 
 ## v2.1.1 (2022-07-14)
 * Rebrands some requests server exceptions to dicom trolley exceptions for easier handling
 
