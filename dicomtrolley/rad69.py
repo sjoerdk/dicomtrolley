@@ -18,6 +18,7 @@ from pydicom.filereader import dcmread
 from requests.exceptions import ChunkedEncodingError
 from requests.structures import CaseInsensitiveDict
 from requests_futures.sessions import FuturesSession
+from urllib3.exceptions import ProtocolError
 
 from dicomtrolley.core import Downloader, InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -360,6 +361,8 @@ class HTTPMultiPartStream:
         try:
             return next(self._bytes_iterator)
         except ChunkedEncodingError as e:
+            raise DICOMTrolleyError from e
+        except ProtocolError as e:
             raise DICOMTrolleyError from e
 
     def get_next_part_from_buffer(self):
