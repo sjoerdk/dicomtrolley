@@ -6,6 +6,7 @@ import pytest
 import requests
 from jinja2 import Template
 from requests.exceptions import ChunkedEncodingError
+from urllib3.exceptions import ProtocolError
 
 from dicomtrolley.core import InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -90,21 +91,26 @@ def test_rad69_error_from_server(
     assert re.match(error_contains, str(e))
 
 
+@pytest.mark.parametrize(
+    "underlying_error",
+    (
+        ChunkedEncodingError("Remote host just closed the connection. Rude"),
+        ProtocolError("Remote host was really bad"),
+    ),
+)
 def test_requests_chunked_encoding_error_handling(
-    a_rad69, requests_mock, monkeypatch
+    a_rad69, requests_mock, monkeypatch, underlying_error
 ):
-    """Recreates #20, uncaught error from unexpected server connection closing"""
+    """Recreates #20 and #22 uncaught error from unexpected server connection
+    closing
+    """
 
     # Rig bytestream reading to fail
     def failing_iter(*args, **kwargs):
         """Creates an iterator that fails at the first __next__ call"""
         an_iter = Mock()
         an_iter.__iter__ = Mock(return_value=iter([]))
-        an_iter.__next__ = Mock(
-            side_effect=ChunkedEncodingError(
-                "Remove host just closed the connection. Rude"
-            )
-        )
+        an_iter.__next__ = Mock(side_effect=underlying_error)
         return an_iter
 
     monkeypatch.setattr(
