@@ -124,10 +124,11 @@ def test_requests_chunked_encoding_error_handling(
     )
     set_mock_response(requests_mock, response)
 
-    with pytest.raises(DICOMTrolleyError):
+    with pytest.raises(DICOMTrolleyError) as e:
         _ = [
             x for x in a_rad69.datasets([])
         ]  # emtpy call suffices due to mocking
+    assert e.value  # make sure error is not emtpy
 
 
 def test_rad69_template():

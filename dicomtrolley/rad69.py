@@ -361,9 +361,9 @@ class HTTPMultiPartStream:
         try:
             return next(self._bytes_iterator)
         except ChunkedEncodingError as e:
-            raise DICOMTrolleyError from e
+            raise DICOMTrolleyError(str(e)) from e
         except ProtocolError as e:
-            raise DICOMTrolleyError from e
+            raise DICOMTrolleyError(str(e)) from e
 
     def get_next_part_from_buffer(self):
         """Return first part in buffer and remove this from buffer"""
