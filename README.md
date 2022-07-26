@@ -230,7 +230,7 @@ dicomtrolley uses [poetry](https://python-poetry.org/docs/) for dependency and p
   
 ### Add your code 
 Make your code contributions. Make sure document and add tests for new features.
-To automatically publish to pypi, increment the version number. See below. 
+To automatically publish to pypi, increment the version number and push to master. See below. 
 
 ### Lint your code
 * Run all tests
