@@ -1,4 +1,8 @@
 # History
+
+## v2.1.3 (2022-08-02)
+* Makes session timeout exceptions more informative for better debugging
+
 ## v2.1.2 (2022-07-16)
 * Now re-raises underlying urllib3.exceptions.ProtocolError to dicom trolley exception
  
