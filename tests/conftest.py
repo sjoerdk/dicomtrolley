@@ -65,14 +65,14 @@ def a_wado(a_session):
 @pytest.fixture
 def a_mint_study_with_instances() -> MintStudy:
     """An example MintStudy object"""
-    studies = parse_mint_studies_response(MINT_SEARCH_INSTANCE_LEVEL.text)
+    studies = parse_mint_studies_response(MINT_SEARCH_INSTANCE_LEVEL)
     return studies[0]
 
 
 @pytest.fixture
 def a_mint_study_without_instances() -> MintStudy:
     """An example MintStudy object"""
-    studies = parse_mint_studies_response(MINT_SEARCH_STUDY_LEVEL.text)
+    studies = parse_mint_studies_response(MINT_SEARCH_STUDY_LEVEL)
     return studies[0]
 
 

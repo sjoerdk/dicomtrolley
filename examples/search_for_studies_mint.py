@@ -29,7 +29,11 @@ mint = Mint(session, environ["MINT_URL"])
 
 print("Quick search for some studies")
 studies = mint.find_studies(
-    MintQuery(PatientName="B*", include_fields=["PatientBirthDate"])
+    MintQuery(
+        AccessionNumber="1982043.02262661",
+        include_fields=["PatientBirthDate", "SeriesDescription"],
+        query_level=QueryLevels.SERIES,
+    )
 )
 print(f"Found {len(studies)} studies")
 

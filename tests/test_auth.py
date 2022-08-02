@@ -1,3 +1,4 @@
+import re
 import uuid
 from typing import List, Optional
 
@@ -7,6 +8,8 @@ from pydantic.main import BaseModel
 from requests import Request
 
 from dicomtrolley.auth import DICOMTrolleyAuthError, VitreaAuth
+from dicomtrolley.core import Query
+from dicomtrolley.mint import Mint
 from tests.mock_responses import MINT_401, MINT_SEARCH_STUDY_LEVEL
 
 
@@ -50,6 +53,27 @@ def test_vitrea_auth_wrong_credentials(mock_vitrea_server):
         session.get(server.mint_url)
 
 
+@pytest.fixture
+def a_session_with_auth(mock_vitrea_server):
+    """A session with auto-login auth with correct credentials"""
+    session = requests.Session()
+    session.auth = VitreaAuth(
+        login_url=mock_vitrea_server.login_url,
+        user=VITREA_CREDENTIALS.user_id,
+        password=VITREA_CREDENTIALS.password,
+        realm=VITREA_CREDENTIALS.realm,
+    )
+    return session
+
+
+def test_get_mint(a_session_with_auth, mock_vitrea_server):
+    """Recreates T00060 mint parsing error when request is timed out"""
+    mint = Mint(session=a_session_with_auth, url=mock_vitrea_server.mint_url)
+    # querying studies should raise 401 not authorized from server,
+    # but this should be handled by auth internally with a re-login
+    mint.find_studies(Query(PatientName="test"))
+
+
 class VitreaCredentials(BaseModel):
     """Credentials needed to log in to a Vitrea server"""
 
@@ -83,7 +107,7 @@ class VitreaServer:
     ):
         self.url = url
         self.login_url = f"{url}/login"
-        self.mint_url = f"{url}/mint"
+        self.mint_url = f"{url}/mint/*"
 
         self.allowed_credentials = allowed_credentials
         self._authorized_tokens: List[str] = []
@@ -108,8 +132,9 @@ class VitreaServer:
         )
 
     def register_mint_response(self, requests_mock):
+        starts_with_mint_url = re.compile(self.mint_url + ".*")
         requests_mock.register_uri(
-            "GET", url=self.mint_url, text=self.create_mint_callback()
+            "GET", url=starts_with_mint_url, text=self.create_mint_callback()
         )
 
     def register_all_responses(self, requests_mock):

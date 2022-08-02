@@ -286,7 +286,7 @@ class Mint(Searcher):
         response = self.session.get(
             search_url, params=MintQuery.from_query(query).as_parameters()
         )
-        return parse_mint_studies_response(response.text)
+        return parse_mint_studies_response(response)
 
     def find_full_study_by_id(self, study_uid: str) -> Study:
         return self.find_study(
@@ -297,7 +297,7 @@ class Mint(Searcher):
         )
 
 
-def parse_mint_studies_response(xml_raw) -> List[MintStudy]:
+def parse_mint_studies_response(response) -> List[MintStudy]:
     """Parse the xml response to a MINT find DICOM studies call
 
     Raises
@@ -305,14 +305,16 @@ def parse_mint_studies_response(xml_raw) -> List[MintStudy]:
     DICOMTrolleyError
         If parsing fails
     """
+    xml_raw = response.text
     try:
         studies = ElementTree.fromstring(xml_raw).findall(
             MintStudy.xml_element
         )
     except ParseError as e:
         raise DICOMTrolleyError(
-            f"Could not parse server response as MINT "
-            f"studies. Response was: {xml_raw}"
+            f"Could not parse server response from {response.url} "
+            f"({response.status_code}:{response.reason}) as MINT "
+            f"studies. Response text was: {xml_raw}"
         ) from e
     return [MintStudy.init_from_element(x) for x in studies]
 

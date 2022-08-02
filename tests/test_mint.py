@@ -19,6 +19,7 @@ from tests.conftest import set_mock_response
 from tests.mock_responses import (
     MINT_SEARCH_ANY,
     MINT_SEARCH_STUDY_LEVEL_ERROR_500,
+    MockResponse,
 )
 
 
@@ -210,4 +211,5 @@ def test_parse_raw_xml():
 
     with open(RESOURCE_PATH / "mint_response.xml") as f:
         raw_xml = f.read()
-    parse_mint_studies_response(raw_xml)
+
+    parse_mint_studies_response(MockResponse(text=raw_xml, url="fakeurl"))
