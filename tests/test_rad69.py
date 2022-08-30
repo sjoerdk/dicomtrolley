@@ -91,6 +91,16 @@ def test_rad69_error_from_server(
     assert re.match(error_contains, str(e))
 
 
+@pytest.fixture
+def mock_rad69_response(requests_mock):
+    """Make sure that calling the rad69 test url returns a response"""
+    response = create_rad69_response_from_datasets(
+        [quick_dataset(PatientName="Patient_1")]
+    )
+    set_mock_response(requests_mock, response)
+    return requests_mock
+
+
 @pytest.mark.parametrize(
     "underlying_error",
     (
@@ -99,7 +109,7 @@ def test_rad69_error_from_server(
     ),
 )
 def test_requests_chunked_encoding_error_handling(
-    a_rad69, requests_mock, monkeypatch, underlying_error
+    a_rad69, mock_rad69_response, monkeypatch, underlying_error
 ):
     """Recreates #20 and #22 uncaught error from unexpected server connection
     closing
@@ -118,12 +128,6 @@ def test_requests_chunked_encoding_error_handling(
         failing_iter,
     )
 
-    # Make sure rad69 call succeeds far enough to hit server error
-    response = create_rad69_response_from_datasets(
-        [quick_dataset(PatientName="Patient_1")]
-    )
-    set_mock_response(requests_mock, response)
-
     with pytest.raises(DICOMTrolleyError) as e:
         _ = [
             x for x in a_rad69.datasets([])
@@ -131,8 +135,9 @@ def test_requests_chunked_encoding_error_handling(
     assert e.value  # make sure error is not emtpy
 
 
-def test_rad69_template():
-    """Verify that all fields in the main soap template are filled correctly"""
+@pytest.fixture
+def some_studies():
+    """Some studies that can be used for queries"""
     tree = DICOMParseTree()
     tree.insert(
         data=[],
@@ -152,17 +157,49 @@ def test_rad69_template():
         series_uid="series2",
         instance_uid="instance1",
     )
-    studies = tree.as_studies()
+    return tree.as_studies()
+
+
+def test_rad69_template(some_studies):
+    """Verify that all fields in the main soap template are filled correctly"""
+
     rendered = Template(RAD69_SOAP_REQUEST_TEMPLATE).render(
         uuid="a_uuid",
-        studies=studies,
+        studies=some_studies,
         transfer_syntax_list=["1.2.840.10008.1.2", "1.2.840.10008.1.2.1"],
     )
+
     assert "study1" in rendered
     assert "series1" in rendered
     assert "series2" in rendered
     assert "instance1" in rendered
     assert "instance2" in rendered
+
+
+def test_request_splitting(a_rad69, mock_rad69_response):
+    instances = [
+        InstanceReference(
+            study_instance_uid="study1",
+            series_instance_uid="series1",
+            sop_instance_uid="s1_instance1",
+        ),
+        InstanceReference(
+            study_instance_uid="study1",
+            series_instance_uid="series1",
+            sop_instance_uid="s1_instance2",
+        ),
+        InstanceReference(
+            study_instance_uid="study1",
+            series_instance_uid="series2",
+            sop_instance_uid="s2_instance1",
+        ),
+    ]
+
+    _ = a_rad69.datasets(instances)
+
+    call_history = mock_rad69_response.request_history
+    # rad69 request should have been split between the two series
+    assert len(call_history) == 2
 
 
 def test_wado_datasets_async(a_rad69, requests_mock):

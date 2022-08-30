@@ -7,8 +7,9 @@ And the corresponding transaction: https://profiles.ihe.net/ITI/TF/Volume2/ITI-4
 import email.parser
 import math
 import uuid
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Sequence, Tuple
+from typing import Dict, List, Sequence, Tuple
 from xml.etree import ElementTree
 
 from jinja2.environment import Template
@@ -32,7 +33,9 @@ from dicomtrolley.xml_templates import (
 class Rad69(Downloader):
     """A connection to a Rad69 server"""
 
-    def __init__(self, session, url, http_chunk_size=65536):
+    def __init__(
+        self, session, url, http_chunk_size=65536, request_per_series=True
+    ):
         """
         Parameters
         ----------
@@ -43,6 +46,10 @@ class Rad69(Downloader):
         http_chunk_size: int, optional
             Number of bytes to read each time when streaming chunked rad69 responses.
             Defaults to 64 Kb (65536 bytes)
+        request_per_series: bool, optional
+            If true, split rad69 requests per series when downloading. If false,
+            request all instances at once. Splitting reduces load on server.
+            defaults to True.
         """
 
         self.session = session
@@ -50,6 +57,7 @@ class Rad69(Downloader):
         self.http_chunk_size = http_chunk_size
         self.template = RAD69_SOAP_REQUEST_TEMPLATE
         self.post_headers = {"Content-Type": "application/soap+xml"}
+        self.request_per_series = request_per_series
 
     def datasets(self, instances: Sequence[InstanceReference]):
         """Retrieve all instances by querying rad69 for all in one request
@@ -58,6 +66,12 @@ class Rad69(Downloader):
         -------
         Iterator[Dataset, None, None]
         """
+        if self.request_per_series:
+            per_series: Dict[str, List[InstanceReference]] = defaultdict(list)
+            for x in instances:
+                per_series[x.series_instance_uid].append(x)
+
+        # TODO: create a chained iterator that posts only when needed
         response = self.session.post(
             url=self.url,
             headers=self.post_headers,
