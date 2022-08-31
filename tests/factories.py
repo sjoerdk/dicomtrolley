@@ -1,10 +1,21 @@
 from io import BytesIO
 from typing import List
 
+import factory
 from pydicom.dataset import Dataset
 from pydicom.tag import Tag
 
+from dicomtrolley.core import InstanceReference
 from dicomtrolley.dicom_qr import DICOMQR
+
+
+class InstanceReferenceFactory(factory.Factory):
+    class Meta:
+        model = InstanceReference
+
+    study_instance_uid = factory.Sequence(lambda n: f"study_{n}")
+    series_instance_uid = factory.Sequence(lambda n: f"series_{n}")
+    sop_instance_uid = factory.Sequence(lambda n: f"instance_{n}")
 
 
 def quick_dataset(*_, **kwargs) -> Dataset:

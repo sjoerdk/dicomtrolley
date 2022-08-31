@@ -21,7 +21,7 @@ from dicomtrolley.xml_templates import (
     RAD69_SOAP_REQUEST_TEMPLATE,
 )
 from tests.conftest import set_mock_response
-from tests.factories import quick_dataset
+from tests.factories import InstanceReferenceFactory, quick_dataset
 from tests.mock_responses import (
     MockUrls,
     RAD69_RESPONSE_INVALID_DICOM,
@@ -130,14 +130,13 @@ def test_requests_chunked_encoding_error_handling(
 
     with pytest.raises(DICOMTrolleyError) as e:
         _ = [
-            x for x in a_rad69.datasets([])
+            x for x in a_rad69.datasets([InstanceReferenceFactory()])
         ]  # emtpy call suffices due to mocking
     assert e.value  # make sure error is not emtpy
 
 
 @pytest.fixture
 def some_studies():
-    """Some studies that can be used for queries"""
     tree = DICOMParseTree()
     tree.insert(
         data=[],
@@ -176,8 +175,10 @@ def test_rad69_template(some_studies):
     assert "instance2" in rendered
 
 
-def test_request_splitting(a_rad69, mock_rad69_response):
-    instances = [
+@pytest.fixture
+def some_instances():
+    """Some instances that can be used in trolley search and download commands"""
+    return [
         InstanceReference(
             study_instance_uid="study1",
             series_instance_uid="series1",
@@ -195,11 +196,41 @@ def test_request_splitting(a_rad69, mock_rad69_response):
         ),
     ]
 
-    _ = a_rad69.datasets(instances)
 
+def test_request_splitting(a_rad69, mock_rad69_response, some_instances):
+    """Rad69 downloader can split requests per series to lighten server load"""
+    results = a_rad69.datasets(some_instances)
     call_history = mock_rad69_response.request_history
-    # rad69 request should have been split between the two series
+
+    # results is an iterator that should only issue requests when needed
+    # without having read any results, no calls should have been done
+    assert len(call_history) == 0
+
+    # When asking for results, call should be issued
+    _ = next(results)
+    assert len(call_history) == 1
+    _ = next(results)
     assert len(call_history) == 2
+
+    # Check that the actual instances called for are as expected
+    call_1 = call_history[0].text
+    call_2 = call_history[1].text
+    assert "s1_instance1" in call_1
+    assert "s1_instance2" in call_1
+    assert "s2_instance1" not in call_1
+    assert "s2_instance1" in call_2
+
+
+def test_request_splitting_disabled(
+    a_rad69, mock_rad69_response, some_instances
+):
+    """Check that turning off request splitting works as expected"""
+    a_rad69.request_per_series = False
+    _ = list(a_rad69.datasets(some_instances))
+    assert len(mock_rad69_response.request_history) == 1
+    assert "s1_instance1" in mock_rad69_response.request_history[0].text
+    assert "s1_instance2" in mock_rad69_response.request_history[0].text
+    assert "s2_instance1" in mock_rad69_response.request_history[0].text
 
 
 def test_wado_datasets_async(a_rad69, requests_mock):
@@ -237,7 +268,8 @@ def test_wado_datasets_streamed(a_rad69, requests_mock):
     set_mock_response(requests_mock, response)
 
     # check with empty call because mock response does not care
-    datasets = [x for x in a_rad69.datasets([])]
+    datasets = [x for x in a_rad69.datasets([InstanceReferenceFactory()])]
+
     assert len(datasets) == 3
 
 
@@ -329,6 +361,6 @@ def test_huge_xml_part(requests_mock, a_rad69):
     )
 
     sets = list(
-        a_rad69.datasets(instances=[])
+        a_rad69.datasets(instances=[InstanceReferenceFactory()])
     )  # mock call does not care about instances
     assert len(sets) == 1

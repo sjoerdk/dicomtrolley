@@ -9,6 +9,7 @@ import math
 import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from itertools import chain
 from typing import Dict, List, Sequence, Tuple
 from xml.etree import ElementTree
 
@@ -70,14 +71,22 @@ class Rad69(Downloader):
             per_series: Dict[str, List[InstanceReference]] = defaultdict(list)
             for x in instances:
                 per_series[x.series_instance_uid].append(x)
+            return chain.from_iterable(
+                self.create_download_iterator(x) for x in per_series.values()
+            )
 
-        # TODO: create a chained iterator that posts only when needed
+        else:
+            return self.create_download_iterator(instances)
+
+    def create_download_iterator(self, instances: Sequence[InstanceReference]):
+        """Perform a rad69 reqeust and iterate over the returned datasets"""
         response = self.session.post(
             url=self.url,
             headers=self.post_headers,
             data=self.create_instances_request(instances),
             stream=True,
         )
+
         return self.parse_rad69_response(response)
 
     def create_instance_request(self, instance: InstanceReference):
