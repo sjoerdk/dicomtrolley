@@ -27,6 +27,7 @@ pytest-randomly = "^3.5.0"
 pytest-cov = "^2.11.1"
 tox = "^3.23.0"
 requests-mock = "^1.8.0"
+factory-boy = "^3.2.1"
 
 [tool.tox]
 legacy_tox_ini = """
