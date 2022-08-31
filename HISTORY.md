@@ -1,5 +1,8 @@
 # History
 
+## v2.1.4 (2022-08-31)
+* Splits rad69 requests by series by default. This reduces server load
+ 
 ## v2.1.3 (2022-08-02)
 * Makes session timeout exceptions more informative for better debugging
 
