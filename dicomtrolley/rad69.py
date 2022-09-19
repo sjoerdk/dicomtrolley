@@ -373,10 +373,9 @@ class HTTPMultiPartStream:
     def __next__(self):
         # is there a part between two boundaries in current buffer?
         part = self.get_next_part_from_buffer()
-        if not part:
-            while not part:
-                self._buffer = self._buffer + self.read_next_chunk()
-                part = self.get_next_part_from_buffer()
+        while not part:
+            self._buffer = self._buffer + self.read_next_chunk()
+            part = self.get_next_part_from_buffer()
         return HTMLPart(part, encoding=self.response.encoding)
 
     def read_next_chunk(self):
@@ -409,7 +408,7 @@ class HTTPMultiPartStream:
         Returns
         -------
         Tuple[bytes, bytes]
-            The content found between first two boundaries and the rest. Rest will
+            Tuple[The content found between first two boundaries, Rest]. Rest will
             start with a boundary, content found will not, discarding the boundary
             there.
             If no second boundary is found or bytes_in is empty,
