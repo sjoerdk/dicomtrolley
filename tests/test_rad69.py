@@ -10,10 +10,9 @@ from urllib3.exceptions import ProtocolError
 
 from dicomtrolley.core import InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.http import HTTPMultiPartStream, PartIterator
 from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.rad69 import (
-    HTTPMultiPartStream,
-    PartIterator,
     Rad69,
 )
 from dicomtrolley.xml_templates import (
@@ -124,7 +123,7 @@ def test_requests_chunked_encoding_error_handling(
         return an_iter
 
     monkeypatch.setattr(
-        "dicomtrolley.rad69.SafeChunks",
+        "dicomtrolley.http.SafeChunks",
         failing_iter,
     )
 
