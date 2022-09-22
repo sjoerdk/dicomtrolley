@@ -1,5 +1,5 @@
 # History
-## v2.1.15 (2022-09-22)
+## v2.1.6 (2022-09-22)
 * Fixes small-chunk performance issue(#28)
 * Improves rad69 download stream processing
 
