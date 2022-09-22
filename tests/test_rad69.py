@@ -13,7 +13,7 @@ from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.rad69 import (
     HTTPMultiPartStream,
-    MultipartContentError,
+    PartIterator,
     Rad69,
 )
 from dicomtrolley.xml_templates import (
@@ -124,7 +124,7 @@ def test_requests_chunked_encoding_error_handling(
         return an_iter
 
     monkeypatch.setattr(
-        "dicomtrolley.rad69.HTTPMultiPartStream.create_bytes_iterator",
+        "dicomtrolley.rad69.SafeChunks",
         failing_iter,
     )
 
@@ -303,46 +303,31 @@ def test_http_multi_part_stream_chunk_size(
     assert len(parts) == 4
 
 
-def test_http_multi_part_stream_exceptions(requests_mock):
-    """Corrupted datastreams should raise exceptions"""
-    datasets = [
-        quick_dataset(PatientName=f"Patient_{idx}") for idx in range(3)
-    ]
-    mock_response = create_rad69_response_from_datasets(datasets)
-    content = mock_response.content
-    mock_response.content = content[30:]  # missing part of initial boundary
-    set_mock_response(requests_mock, mock_response)
-
-    stream = HTTPMultiPartStream(requests.post(MockUrls.RAD69_URL))
-    with pytest.raises(MultipartContentError):
-        _ = [part for part in stream]
-
-
 @pytest.mark.parametrize(
-    "boundary, byte_stream, part, rest",
+    "boundary, byte_stream, parts",
     [
         (
             b"--a_boundary123",
             b"--a_boundary123\r\nsome content--a_boundary123andthensome",
-            b"\r\nsome content",
-            b"--a_boundary123andthensome",
+            [b"\r\nsome content"],
         ),
-        (b"--123", b"--123content--123content2", b"content", b"--123content2"),
+        (b"--123", b"--123content--123content2", [b"content"]),
         (
             b"--123",
             b"--123contentbutnoendboundary",
-            b"",
-            b"--123contentbutnoendboundary",
+            [],
         ),
+        (b"--123", b"--123--123--123content--123", [b"content"]),
+        (b"--123", b"nostart_but_end--123", [b"nostart_but_end"]),
     ],
 )
-def test_break_off_first_part(boundary, byte_stream, part, rest):
+def test_break_off_first_part(boundary, byte_stream, parts):
     """Test the function used to break a bytestream into parts"""
-    part_out, rest_out = HTTPMultiPartStream.split_off_first_part(
-        byte_stream, boundary
+    iterator = PartIterator(
+        bytes_iterator=(x for x in [byte_stream]), boundary=boundary
     )
-    assert part_out == part
-    assert rest_out == rest
+    parts_found = [x for x in iterator]
+    assert parts == parts_found
 
 
 def test_huge_xml_part(requests_mock, a_rad69):

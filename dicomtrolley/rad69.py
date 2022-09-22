@@ -10,7 +10,7 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from itertools import chain
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, Iterator, List, Optional, Sequence
 from xml.etree import ElementTree
 
 from jinja2.environment import Template
@@ -35,7 +35,7 @@ class Rad69(Downloader):
     """A connection to a Rad69 server"""
 
     def __init__(
-        self, session, url, http_chunk_size=65536, request_per_series=True
+        self, session, url, http_chunk_size=5242880, request_per_series=True
     ):
         """
         Parameters
@@ -46,7 +46,7 @@ class Rad69(Downloader):
             rad69 endpoint, including protocol and port. Like https://server:2525/rids
         http_chunk_size: int, optional
             Number of bytes to read each time when streaming chunked rad69 responses.
-            Defaults to 64 Kb (65536 bytes)
+            Defaults to 5MB (5242880 bytes)
         request_per_series: bool, optional
             If true, split rad69 requests per series when downloading. If false,
             request all instances at once. Splitting reduces load on server.
@@ -195,7 +195,7 @@ class Rad69(Downloader):
             )
 
     def parse_rad69_response(self, response):
-        """Create a Dataset out of http response from a rad69 server
+        """Extract datasets out of http response from a rad69 server
 
         Raises
         ------
@@ -322,6 +322,36 @@ class HTMLPart:
         return self.content.decode(self.encoding)
 
 
+class SafeChunks:
+    """Iterator that returns byte chunks from stream
+
+    Takes into account servers might ignore chunk_size. If returned
+    chunks are smaller than expected, collates chunks until chunk of at least
+    stream_chunk_size is received
+    """
+
+    def __init__(self, response, chunk_size):
+        self.chunk_size = chunk_size
+        self._chunk_iterator = response.iter_content(chunk_size=chunk_size)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        sized_chunk = bytearray()
+        while len(sized_chunk) < self.chunk_size:
+            try:
+                sized_chunk += next(self._chunk_iterator)
+            except StopIteration:
+                if sized_chunk:
+                    return (
+                        sized_chunk  # some data was received, return last bit
+                    )
+                else:
+                    raise  # no data was received and no more chunks. End.
+        return sized_chunk
+
+
 class HTTPMultiPartStream:
     """Converts a streamed http multipart response into separate parts.
 
@@ -336,15 +366,10 @@ class HTTPMultiPartStream:
     def __init__(self, response, stream_chunk_size=65536):
         self.response = response
         self.boundary = self._find_boundary(response)
-
-        self._bytes_iterator = self.create_bytes_iterator(
-            response, stream_chunk_size
+        self._part_iterator = PartIterator(
+            bytes_iterator=SafeChunks(response, stream_chunk_size),
+            boundary=b"--" + self._find_boundary(response),
         )
-        self._buffer = b""
-
-    @staticmethod
-    def create_bytes_iterator(response, stream_chunk_size):
-        return iter(response.iter_content(chunk_size=stream_chunk_size))
 
     @staticmethod
     def _split_on_find(content, bound):
@@ -353,6 +378,7 @@ class HTTPMultiPartStream:
 
     @classmethod
     def _find_boundary(cls, multipart_response):
+        """Find the string that separates the parts"""
         content_type_info = tuple(
             x.strip()
             for x in multipart_response.headers.get("content-type").split(";")
@@ -371,12 +397,57 @@ class HTTPMultiPartStream:
         return self
 
     def __next__(self):
+        """
+        Returns
+        -------
+        HTMLPart
+            One part in a multipart response
+        """
         # is there a part between two boundaries in current buffer?
-        part = self.get_next_part_from_buffer()
-        while not part:
-            self._buffer = self._buffer + self.read_next_chunk()
-            part = self.get_next_part_from_buffer()
-        return HTMLPart(part, encoding=self.response.encoding)
+        return HTMLPart(
+            next(self._part_iterator), encoding=self.response.encoding
+        )
+
+
+class PartIterator:
+    """Splits incoming bytes into parts based on boundary.
+
+    Tries to be efficient with scanning the buffer for boundary byte strings by
+    remembering what was scanned before.
+    """
+
+    def __init__(self, bytes_iterator: Iterator[bytes], boundary: bytes):
+        self.boundary = boundary
+        self._bytes_iterator = bytes_iterator
+        self._buffer_fresh = bytearray()
+        self._buffer_scanned = bytearray()
+
+        self.last_scanned = 0
+
+    def __next__(self):
+        """
+
+        Returns
+        -------
+        Bytes
+            bytes between two boundaries, or None if none can be found
+
+        Raises
+        ------
+        StopIteration
+            When no next chunks can be read
+
+        """
+        part = None
+        while part is None:
+            part = self.scan_for_part()  # find part in buffer
+            if part is None:  # if nothing in buffer, try to add data
+                self._buffer_fresh += self.read_next_chunk()
+
+        return part
+
+    def __iter__(self):
+        return self
 
     def read_next_chunk(self):
         """Read next chunk of bytes from iterator"""
@@ -387,62 +458,51 @@ class HTTPMultiPartStream:
         except ProtocolError as e:
             raise DICOMTrolleyError(str(e)) from e
 
-    def get_next_part_from_buffer(self):
-        """Return first part in buffer and remove this from buffer"""
-        part, rest = self.split_off_first_part(
-            self._buffer, b"--" + self.boundary
-        )
-        if part:
-            self._buffer = rest
-            return part
-        else:
-            return None
-
-    @staticmethod
-    def split_off_first_part(
-        bytes_in: bytes, boundary: bytes
-    ) -> Tuple[bytes, bytes]:
-        """Find the content between two boundaries.
-        Expects bytes_in to start with a boundary
+    def scan_for_part(self) -> Optional[bytes]:
+        """Search buffer to try to return a part between two boundaries.
+        Shifts data between frash and scanned buffer to reduce search time
 
         Returns
         -------
-        Tuple[bytes, bytes]
-            Tuple[The content found between first two boundaries, Rest]. Rest will
-            start with a boundary, content found will not, discarding the boundary
-            there.
-            If no second boundary is found or bytes_in is empty,
-            will return Tuple[b'', bytes_in]
+        Bytes
+           All bytes before the next boundary. Removes bytes and boundary from
+           buffer. If no boundary is found, return empty bytes
+        None
+            If no part could be found
 
-        Raises
-        ------
-        MultipartContentError
-            If bytes_in does not start with a boundary
+        Notes
+        -----
+        Boundary bytes themselves are never returned. If incoming bytes start with
+        a boundary bytestring this is discarded. The alternative, returning an empty
+        bytestring does not seem useful in this case.
         """
-        if not bytes_in:
-            return b"", bytes_in  # Avoid exception for valid empty input
-        elif len(bytes_in) < len(boundary):
-            return b"", bytes_in  # Not enough bytes to find boundary yet
-        elif bytes_in.find(boundary) != 0:
-            raise MultipartContentError(
-                f"Expected http multipart bytestream to start with "
-                f"boundary {boundary.decode()}, but found "
-                f"{bytes_in[:len(boundary)].decode()}"
-            )
 
-        bytes_to_scan = bytes_in[
-            len(boundary) :
-        ]  # first boundary not needed anymore
+        if not self._buffer_fresh:
+            return None  # Avoid exception for valid empty input
+        elif len(self._buffer_fresh) < len(self.boundary):
+            return None  # Not enough bytes to find boundary yet
 
         #  find the next boundary
-        next_boundary_idx = bytes_to_scan.find(boundary)
-        if next_boundary_idx == -1:
-            # not found. There is no part here(yet)
-            return b"", bytes_in
-        else:
-            part_bytes = bytes_to_scan[:next_boundary_idx]
-            rest = bytes_to_scan[next_boundary_idx:]
-            return part_bytes, rest
+        boundary_index = self._buffer_fresh.find(self.boundary)
+        if boundary_index == -1:  # no boundary found
+            # a part of the boundary might be clipped at the end of the buffer
+            boundary_size = len(self.boundary)
+            scanned = self._buffer_fresh[:-boundary_size]
+            might_contain_boundary = self._buffer_fresh[-boundary_size:]
+            self._buffer_scanned += scanned
+            self._buffer_fresh = might_contain_boundary
+            return None
+        if boundary_index == 0:  # boundary is at the start of buffer.
+            # discard boundary and scan again (see notes)
+            self._buffer_fresh = self._buffer_fresh[len(self.boundary) :]
+            return self.scan_for_part()
+        else:  # boundary found
+            up_to_boundary = self._buffer_fresh[:boundary_index]
+            rest = self._buffer_fresh[(boundary_index + len(self.boundary)) :]
+            self._buffer_fresh = rest
+            part = self._buffer_scanned + up_to_boundary
+            self._buffer_scanned = bytearray()
+            return part
 
 
 class MultipartContentError(DICOMTrolleyError):
