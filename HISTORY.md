@@ -1,4 +1,7 @@
 # History
+## v2.1.5 (2022-09-22)
+* Improves rad69 download stream handling
+* Fixes small chunk performance issue (#28)
 
 ## v2.1.4 (2022-08-31)
 * Splits rad69 requests by series by default. This reduces server load
