@@ -19,9 +19,10 @@ from dicomtrolley.xml_templates import (
     A_RAD69_RESPONSE_SOAP_HEADER_TEMPLATE,
     RAD69_SOAP_REQUEST_TEMPLATE,
 )
-from tests.conftest import set_mock_response
+from tests.conftest import set_mock_response, set_mock_response_list
 from tests.factories import InstanceReferenceFactory, quick_dataset
 from tests.mock_responses import (
+    MockResponseList,
     MockUrls,
     RAD69_RESPONSE_INVALID_DICOM,
     RAD69_RESPONSE_INVALID_NON_DICOM,
@@ -29,6 +30,7 @@ from tests.mock_responses import (
     RAD69_RESPONSE_OBJECT_NOT_FOUND,
     create_rad69_response_from_dataset,
     create_rad69_response_from_datasets,
+    quick_rad69_response,
 )
 
 
@@ -348,3 +350,26 @@ def test_huge_xml_part(requests_mock, a_rad69):
         a_rad69.datasets(instances=[InstanceReferenceFactory()])
     )  # mock call does not care about instances
     assert len(sets) == 1
+
+
+def test_xds_missing_document(requests_mock, a_rad69):
+    """Recreates issue 32, errors that should be skipable"""
+
+    # Set up: calling rad69 endpoint will yield response, error, response
+    resp1 = quick_rad69_response(PatientName="Jim")
+    resp2 = RAD69_RESPONSE_OBJECT_NOT_FOUND
+    resp3 = resp1 = quick_rad69_response(PatientName="Jen")
+    set_mock_response_list(
+        requests_mock,
+        MockResponseList(
+            url=resp1.url, method=resp1.method, responses=[resp1, resp2, resp3]
+        ),
+    )
+
+    # call rad69 with dummy 3 references to trigger 3 calls
+    studies = list(
+        a_rad69.datasets(
+            instances=[InstanceReferenceFactory() for x in range(3)]
+        )
+    )
+    assert studies

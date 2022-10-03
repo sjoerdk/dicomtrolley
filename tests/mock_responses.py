@@ -5,7 +5,7 @@ Based on live responses from a server running Vitrea Connection 8.2.0.1
 import re
 import urllib
 from dataclasses import dataclass, field
-from typing import Any, Dict, Pattern, Union
+from typing import Any, Dict, List, Pattern, Union
 
 from requests_mock.adapter import ANY
 from requests_toolbelt.multipart.encoder import MultipartEncoder
@@ -42,6 +42,23 @@ class MockResponse:
         some_method(**MockResponse().as_dict())
         """
         return {x: y for x, y in self.__dict__.items() if y}
+
+
+@dataclass
+class MockResponseList:
+    """Holds multiple MockResponses mapped to the same URL and Method.
+
+    See https://requests-mock.readthedocs.io/en/latest/response.html#response-lists
+
+    Notes
+    -----
+    MockResponse instances url and method parameters are overwritten by the
+    responselists' fields when setting these responses
+    """
+
+    url: Union[str, Pattern[str]]
+    method: str
+    responses: List[MockResponse]
 
 
 class MockUrls:
@@ -306,6 +323,17 @@ MINT_SEARCH_STUDY_LEVEL_ERROR_500 = MockResponse(
 )
 
 
+def quick_rad69_response(**kwargs):
+    """A rad69 response containing a dataset with kwargs values. Kwargs should
+    be valid DICOM fields and values
+
+    Examples
+    --------
+    quick_rad69_response(PatientName="Jim")
+    """
+    return create_rad69_response_from_dataset(quick_dataset(**kwargs))
+
+
 def create_rad69_response_from_dataset(dataset):
     """Create a multi-part rad69 response, with a soap part and a dicom byte stream"""
     return create_rad69_response_from_datasets([dataset])
@@ -366,12 +394,24 @@ RAD69_RESPONSE_OBJECT_NOT_FOUND = MockResponse(
     method="POST",
     status_code=200,
     headers={
-        "Date": "Thu, 14 Apr 2022 08:22:54 GMT",
         "Accept": "application/soap+xml, text/html, image/gif,"
         " image/jpeg, *; q=.2, */*; q=.2",
         "Content-Type": "application/soap+xml; charset=utf-8",
-        "Content-Length": "1181",
-        "Server": "Jetty(9.4.12.v20180830)",
     },
     text=RAD69_SOAP_RESPONSE_NOT_FOUND,
+)
+
+# like object not found, but different error code
+RAD69_RESPONSE_UNKNOWN = MockResponse(
+    url=MockUrls.RAD69_URL,
+    method="POST",
+    status_code=200,
+    headers={
+        "Accept": "application/soap+xml, text/html, image/gif,"
+        " image/jpeg, *; q=.2, */*; q=.2",
+        "Content-Type": "application/soap+xml; charset=utf-8",
+    },
+    text=RAD69_SOAP_RESPONSE_NOT_FOUND.replace(
+        "XDSMissingDocument", "UnknownError"
+    ),
 )

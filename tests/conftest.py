@@ -18,6 +18,7 @@ from tests.mock_responses import (
     MINT_SEARCH_INSTANCE_LEVEL,
     MINT_SEARCH_SERIES_LEVEL,
     MINT_SEARCH_STUDY_LEVEL,
+    MockResponseList,
     MockUrls,
 )
 
@@ -87,6 +88,23 @@ def set_mock_response(requests_mock, response):
     """Register the given MockResponse with requests_mock"""
     requests_mock.register_uri(**response.as_dict())
     return response
+
+
+def set_mock_response_list(requests_mock, response_list: MockResponseList):
+    """Register the given MockResponses with requests_mock
+
+    Notes
+    -----
+    All responses in list are mapped to one url and method. This means indiviual
+    response url and method fields are ignored
+    """
+    responses_as_dicts = [x.as_dict() for x in response_list.responses]
+    for x in responses_as_dicts:
+        del x["url"]
+        del x["method"]
+    requests_mock.register_uri(
+        response_list.method, response_list.url, responses_as_dicts
+    )
 
 
 @pytest.fixture

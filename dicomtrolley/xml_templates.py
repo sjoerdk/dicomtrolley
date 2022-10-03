@@ -141,5 +141,6 @@ RAD69_SOAP_RESPONSE_NOT_FOUND = """<?xml version="1.0" encoding="utf-8" ?>
                                         </env:Envelope>
 """
 
+
 # Xpath query to retrieve errors from a rad69 soap response. Nice and readable.
 RAD69_SOAP_RESPONSE_ERROR_XPATH = "./{http://www.w3.org/2003/05/soap-envelope}Body/{urn:ihe:iti:xds-b:2007}RetrieveDocumentSetResponse/{urn:oasis:names:tc:ebxml-regrep:xsd:rs:3.0}RegistryResponse/{urn:oasis:names:tc:ebxml-regrep:xsd:rs:3.0}RegistryErrorList/*"
