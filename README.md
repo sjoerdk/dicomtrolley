@@ -141,6 +141,23 @@ trolley.download(studies[1], path,
                  use_async=True)    # multi-threaded download is supported
 
 ```
+#### Ignoring errors
+By default, any error returned by a rad69 server will raise an exception. To ignore certain errors  and keep trying to download, pass the
+exception class to the Rad69 constructor:
+
+```python
+
+from dicomtrolley.rad69 import XDSMissingDocumentError
+trolley = Trolley(searcher=dicom_qr, 
+                  downloader=Rad69(session=session,
+                                   url="https://server/rad69",
+                                   errors_to_ignore = [XDSMissingDocumentError]))
+
+study = trolley.find_study(Query(PatientName="AB*"))
+trolley.download(study, path) # will skip series raising XDSMissingDocumentError
+```
+
+
 ### Download format
 By default, trolley writes downloads to disk as `StudyID/SeriesID/InstanceID`, sorting files into separate
 study and series folders. You can change this by passing a `DICOMDiskStorage` instance to trolley:

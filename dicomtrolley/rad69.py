@@ -35,7 +35,12 @@ class Rad69(Downloader):
     """A connection to a Rad69 server"""
 
     def __init__(
-        self, session, url, http_chunk_size=5242880, request_per_series=True
+        self,
+        session,
+        url,
+        http_chunk_size=5242880,
+        request_per_series=True,
+        errors_to_ignore=None,
     ):
         """
         Parameters
@@ -51,17 +56,26 @@ class Rad69(Downloader):
             If true, split rad69 requests per series when downloading. If false,
             request all instances at once. Splitting reduces load on server.
             defaults to True.
+        errors_to_ignore: List[Type], optional
+            Errors of this type encountered during download are caught and skipped.
+            Defaults to empty list, meaning any error is propagated
         """
 
         self.session = session
         self.url = url
         self.http_chunk_size = http_chunk_size
+        if errors_to_ignore is None:
+            errors_to_ignore = []
+        self.errors_to_ignore = errors_to_ignore
         self.template = RAD69_SOAP_REQUEST_TEMPLATE
         self.post_headers = {"Content-Type": "application/soap+xml"}
         self.request_per_series = request_per_series
 
     def datasets(self, instances: Sequence[InstanceReference]):
-        """Retrieve all instances by querying rad69 for all in one request
+        """Retrieve all instances via rad69
+
+        A Rad69 request typically contains multiple instances. The data for all
+        instances is then streamed back as one multipart http response
 
         Returns
         -------
@@ -76,14 +90,14 @@ class Rad69(Downloader):
                 f"Splitting per series. Found {len(per_series)} series"
             )
             return chain.from_iterable(
-                self.create_series_download_iterator(x, index)
+                self.series_download_iterator(x, index)
                 for index, x in enumerate(per_series.values())
             )
 
         else:
-            return self.create_download_iterator(instances)
+            return self.download_iterator(instances)
 
-    def create_series_download_iterator(
+    def series_download_iterator(
         self, instances: Sequence[InstanceReference], index=0
     ):
         """Identical to create_download_iterator, except adds a debug log call"""
@@ -92,10 +106,16 @@ class Rad69(Downloader):
                 f"Downloading series {index}: "
                 f"{instances[0].series_instance_uid}"
             )
-        return self.create_download_iterator(instances)
+        return self.download_iterator(instances)
 
-    def create_download_iterator(self, instances: Sequence[InstanceReference]):
-        """Perform a rad69 reqeust and iterate over the returned datasets"""
+    def download_iterator(self, instances: Sequence[InstanceReference]):
+        """Perform a rad69 request and iterate over the returned datasets
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+            All datasets included in the response
+        """
         response = self.session.post(
             url=self.url,
             headers=self.post_headers,
@@ -160,9 +180,17 @@ class Rad69(Downloader):
         )
         return list(self.parse_rad69_response(response))[0]
 
+    def verify_response(self, response):
+        """Check for errors in rad69 response and handle them"""
+
     @staticmethod
-    def verify_rad69_response(response):
+    def check_for_response_errors(response):
         """Raise exceptions if this response is not a multi-part rad69 soap response.
+
+        Parameters
+        ----------
+        response: response
+            response as returned from a rad69 call
 
         Raises
         ------
@@ -193,8 +221,17 @@ class Rad69(Downloader):
 
         Raises
         ------
+        XDSMissingDocumentError:
+            If data for any requested id could not be found
+        Rad69ServerError
+            For any unspecified but valid rad69 error response
         DICOMTrolleyError
-            if this is a valid rad69 error response. Raise nothing otherwise
+            if this is not a valid rad69 error response.
+
+        Notes
+        -----
+        This just pragmatically interprets the first error returned and assumes the
+        rest are the same. Not quite right but let's not overdo it.
         """
 
         tree = ElementTree.fromstring(response.text)
@@ -204,11 +241,16 @@ class Rad69(Downloader):
                 f"Could not find any rad69 soap errors in "
                 f"response: {response.content[:900]}"
             )
+
+        error_code = errors[0].attrib.get("errorCode")
+        error_text = (
+            f"Server returns {len(errors)} errors. "
+            f"First error: {str(errors[0].attrib)}"
+        )
+        if error_code == "XDSMissingDocument":
+            raise XDSMissingDocumentError(error_text)
         else:
-            raise DICOMTrolleyError(
-                f"Rad69 server returns {len(errors)} errors:"
-                f" {[str(error.attrib) for error in errors]}"
-            )
+            raise Rad69ServerError(error_text)
 
     def parse_rad69_response(self, response):
         """Extract datasets out of http response from a rad69 server
@@ -224,7 +266,12 @@ class Rad69(Downloader):
             All datasets included in this response
         """
         logger.debug("Parsing rad69 response")
-        self.verify_rad69_response(response)
+        try:
+            self.check_for_response_errors(response)
+        except DICOMTrolleyError as e:
+            self.handle_response_error(e)  # might re-raise
+            return None  # error not re-raised. Skip this response # noqa
+
         part_stream = HTTPMultiPartStream(
             response, stream_chunk_size=self.http_chunk_size
         )
@@ -244,6 +291,14 @@ class Rad69(Downloader):
                     f" Response content (first 300 elements) was"
                     f" {str(response.content[:300])}"
                 ) from e
+
+    def handle_response_error(self, error):
+        """Handle exceptions raised during rad69 request or download"""
+        if any(issubclass(type(error), x) for x in self.errors_to_ignore):
+            logger.warning(f"Ignoring error on ignore list: {str(error)}")
+            return None
+        else:
+            raise error
 
     @staticmethod
     def split_instances(instances: Sequence[InstanceReference], num_bins):
@@ -305,3 +360,15 @@ class Rad69(Downloader):
 
             for future in as_completed(futures):
                 yield from self.parse_rad69_response(future.result())
+
+
+class Rad69ServerError(DICOMTrolleyError):
+    """Represents a valid error response from a rad69 server"""
+
+    pass
+
+
+class XDSMissingDocumentError(Rad69ServerError):
+    """Some requested ID could not be found on the server"""
+
+    pass

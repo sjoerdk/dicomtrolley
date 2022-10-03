@@ -14,6 +14,7 @@ from dicomtrolley.http import HTTPMultiPartStream, PartIterator
 from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.rad69 import (
     Rad69,
+    XDSMissingDocumentError,
 )
 from dicomtrolley.xml_templates import (
     A_RAD69_RESPONSE_SOAP_HEADER_TEMPLATE,
@@ -70,7 +71,7 @@ def test_rad69_get_dataset(a_rad69, requests_mock):
             RAD69_RESPONSE_INVALID_NON_MULTIPART,
             ".*Expected multipart response",
         ),
-        (RAD69_RESPONSE_OBJECT_NOT_FOUND, ".*server returns 2 errors"),
+        (RAD69_RESPONSE_OBJECT_NOT_FOUND, ".*Server returns 2 errors"),
     ],
 )
 def test_rad69_error_from_server(
@@ -352,13 +353,13 @@ def test_huge_xml_part(requests_mock, a_rad69):
     assert len(sets) == 1
 
 
-def test_xds_missing_document(requests_mock, a_rad69):
-    """Recreates issue 32, errors that should be skipable"""
-
+@pytest.fixture
+def rad69_2nd_response_is_error(requests_mock):
+    """Calling rad69 endpoint will yield response, error, response"""
     # Set up: calling rad69 endpoint will yield response, error, response
     resp1 = quick_rad69_response(PatientName="Jim")
     resp2 = RAD69_RESPONSE_OBJECT_NOT_FOUND
-    resp3 = resp1 = quick_rad69_response(PatientName="Jen")
+    resp3 = quick_rad69_response(PatientName="Jen")
     set_mock_response_list(
         requests_mock,
         MockResponseList(
@@ -366,10 +367,23 @@ def test_xds_missing_document(requests_mock, a_rad69):
         ),
     )
 
+
+def test_xds_missing_document(rad69_2nd_response_is_error, a_rad69, caplog):
+    """Recreates issue 32, errors that should be ignored"""
+    a_rad69.errors_to_ignore = [XDSMissingDocumentError]
     # call rad69 with dummy 3 references to trigger 3 calls
     studies = list(
-        a_rad69.datasets(
-            instances=[InstanceReferenceFactory() for x in range(3)]
-        )
+        a_rad69.datasets([InstanceReferenceFactory() for x in range(3)])
     )
-    assert studies
+    # response 2 caused an error, should have been ignored
+    assert len(studies) == 2
+    assert any(
+        "Ignoring error" in x for x in caplog.messages
+    )  # but warning issued
+
+
+def test_xds_missing_document_default(rad69_2nd_response_is_error, a_rad69):
+    """By default no errors are ignored. All are propagated"""
+    some_instances = [InstanceReferenceFactory() for x in range(3)]
+    with pytest.raises(XDSMissingDocumentError):
+        list(a_rad69.datasets(some_instances))
