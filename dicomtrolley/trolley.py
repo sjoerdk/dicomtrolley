@@ -8,6 +8,7 @@ WADO, RAD69, MINT and DICOM-QR modules should be stand-alone. They are not allow
 use each other's classes. Trolley has knowledge of all and converts between them if
 needed
 """
+import logging
 import tempfile
 from typing import List, Optional, Sequence, Tuple, Union
 
@@ -24,6 +25,8 @@ from dicomtrolley.storage import DICOMDiskStorage, StorageDir
 
 # Anything that can be downloaded by trolley
 DICOMDownloadable = Union[DICOMObject, InstanceReference]
+
+logger = logging.getLogger("trolley")
 
 
 class Trolley:
@@ -102,6 +105,7 @@ class Trolley:
         """Download the given objects to output dir."""
         if not isinstance(objects, Sequence):
             objects = [objects]  # if just a single item to download is passed
+        logger.info(f"Downloading {len(objects)} object(s)")
         if use_async:
             datasets = self.fetch_all_datasets_async(
                 objects=objects, max_workers=max_workers
@@ -202,6 +206,7 @@ class Trolley:
                 if has_instances(retrieved):  # yes we have. Add that
                     ensured.append(retrieved)
                 else:  # No instances, we'll have to query for them
+                    logger.debug(f"No instances cached for {item}. Querying")
                     study = self.searcher.find_full_study_by_id(
                         item.root().uid
                     )

@@ -26,6 +26,9 @@ from dicomtrolley.fields import (
     SeriesLevelPromotable,
     StudyLevel,
 )
+from dicomtrolley.logging import get_module_logger
+
+logger = get_module_logger("mint")
 
 
 class MintQueryLevels:
@@ -258,7 +261,7 @@ class Mint(Searcher):
         Parameters
         ----------
         session: requests.session
-            A logged in session over which MINT calls can be made
+            A logged-in session over which MINT calls can be made
         url: str
             MINT endpoint, including protocol and port. Like https://server:8080/mint
         """
@@ -282,6 +285,7 @@ class Mint(Searcher):
             contain MintSeries and MintInstance instances.
         """
 
+        logger.info(f"Running query {query}")
         search_url = self.url + "/studies"
         response = self.session.get(
             search_url, params=MintQuery.from_query(query).as_parameters()
@@ -316,6 +320,7 @@ def parse_mint_studies_response(response) -> List[MintStudy]:
             f"({response.status_code}:{response.reason}) as MINT "
             f"studies. Response text was: {xml_raw}"
         ) from e
+    logger.info(f"parsed {len(studies)} studies from mint response")
     return [MintStudy.init_from_element(x) for x in studies]
 
 

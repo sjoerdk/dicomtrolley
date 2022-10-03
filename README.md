@@ -168,6 +168,16 @@ class MyStorage(DICOMDiskStorage):
 trolley = Trolley(searcher=mint, downloader=wado,
                   storage=MyStorage())
 ```
+### Logging
+Dicomtrolley uses the standard [logging](https://docs.python.org/3/howto/logging.html) module. The root logger is called "trolley". To print log messages, add the following to your code
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+# get the root logger to set specific properties
+root_logger = logging.getLogger('trolley')
+```
 
 ### DICOM Query types
 For most DICOM queries you can use a [Query](dicomtrolley/core.py#L322) instance:

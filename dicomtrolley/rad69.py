@@ -21,11 +21,14 @@ from requests_futures.sessions import FuturesSession
 from dicomtrolley.core import Downloader, InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
+from dicomtrolley.logging import get_module_logger
 from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.xml_templates import (
     RAD69_SOAP_REQUEST_TEMPLATE,
     RAD69_SOAP_RESPONSE_ERROR_XPATH,
 )
+
+logger = get_module_logger("rad69")
 
 
 class Rad69(Downloader):
@@ -64,16 +67,32 @@ class Rad69(Downloader):
         -------
         Iterator[Dataset, None, None]
         """
+        logger.info(f"Downloading {len(instances)} instances")
         if self.request_per_series:
             per_series: Dict[str, List[InstanceReference]] = defaultdict(list)
             for x in instances:
                 per_series[x.series_instance_uid].append(x)
+            logger.info(
+                f"Splitting per series. Found {len(per_series)} series"
+            )
             return chain.from_iterable(
-                self.create_download_iterator(x) for x in per_series.values()
+                self.create_series_download_iterator(x, index)
+                for index, x in enumerate(per_series.values())
             )
 
         else:
             return self.create_download_iterator(instances)
+
+    def create_series_download_iterator(
+        self, instances: Sequence[InstanceReference], index=0
+    ):
+        """Identical to create_download_iterator, except adds a debug log call"""
+        if instances:
+            logger.debug(
+                f"Downloading series {index}: "
+                f"{instances[0].series_instance_uid}"
+            )
+        return self.create_download_iterator(instances)
 
     def create_download_iterator(self, instances: Sequence[InstanceReference]):
         """Perform a rad69 reqeust and iterate over the returned datasets"""
@@ -204,6 +223,7 @@ class Rad69(Downloader):
         Iterator[Dataset, None, None]
             All datasets included in this response
         """
+        logger.debug("Parsing rad69 response")
         self.verify_rad69_response(response)
         part_stream = HTTPMultiPartStream(
             response, stream_chunk_size=self.http_chunk_size
@@ -211,6 +231,7 @@ class Rad69(Downloader):
         soap_part = None
         for part in part_stream:
             if not soap_part:
+                logger.debug("Discarding initial rad69 soap part")
                 soap_part = part  # skip soap part of the response
                 continue
             dicom_bytes = part.content
