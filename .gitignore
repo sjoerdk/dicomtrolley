@@ -130,3 +130,6 @@ dmypy.json
 
 # Pycharm
 .idea/
+
+# This is a library, should just use newest always. Don't retrict
+.poetry.lock
