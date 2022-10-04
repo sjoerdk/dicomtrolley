@@ -10,6 +10,7 @@ from dicomtrolley.core import (
     Series,
     Study,
 )
+from dicomtrolley.mint import MintQuery
 
 
 @pytest.fixture
@@ -84,6 +85,24 @@ def test_query():
     all_parameters = {**dicom_parameters, **meta_parameters}
     # this should just not raise any validation error
     Query(**all_parameters)
+
+
+def test_query_to_string(a_basic_query):
+    """Test printing query as human-readable"""
+    query = Query(PatientName="TestPatient")
+    short_string = query.to_short_string()
+    assert (
+        "ModalitiesInStudy" not in short_string
+    )  # empty values should be omitted
+    assert (
+        "'query_level': 'STUDY'" in short_string
+    )  # query level should be string
+    assert "TestPatient" in short_string
+
+    # class name should reflect child class
+    assert (
+        "MintQuery" in MintQuery(AccessionNumber="a_number").to_short_string()
+    )
 
 
 @pytest.mark.parametrize(

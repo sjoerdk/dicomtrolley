@@ -329,6 +329,12 @@ class Query(BaseModel):
 
         return include_fields
 
+    def to_short_string(self):
+        """A more information-dense str repr. For human reading"""
+        filled_fields = {key: val for key, val in self.dict().items() if val}
+        filled_fields["query_level"] = filled_fields["query_level"].value
+        return f"{type(self).__name__}: {filled_fields}"
+
 
 class Searcher:
     """Something that can search for DICOM studies. Base class."""

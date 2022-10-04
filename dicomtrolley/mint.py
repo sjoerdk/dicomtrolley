@@ -285,7 +285,7 @@ class Mint(Searcher):
             contain MintSeries and MintInstance instances.
         """
 
-        logger.info(f"Running query {query}")
+        logger.info(f"Running query {query.to_short_string()}")
         search_url = self.url + "/studies"
         response = self.session.get(
             search_url, params=MintQuery.from_query(query).as_parameters()
