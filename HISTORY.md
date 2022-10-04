@@ -1,4 +1,8 @@
 # History
+## v2.1.7 (2022-10-04)
+* Add option to ignore certain download errors for robust download (#32)
+* Adds logging
+
 ## v2.1.6 (2022-09-22)
 * Fixes small-chunk performance issue(#28)
 * Improves rad69 download stream processing
