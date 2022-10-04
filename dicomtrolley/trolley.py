@@ -105,7 +105,7 @@ class Trolley:
         """Download the given objects to output dir."""
         if not isinstance(objects, Sequence):
             objects = [objects]  # if just a single item to download is passed
-        logger.info(f"Downloading {len(objects)} object(s)")
+        logger.info(f"Downloading {len(objects)} object(s) to '{output_dir}'")
         if use_async:
             datasets = self.fetch_all_datasets_async(
                 objects=objects, max_workers=max_workers
