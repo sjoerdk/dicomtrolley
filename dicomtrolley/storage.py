@@ -3,6 +3,10 @@
 from pathlib import Path
 from typing import Optional
 
+from dicomtrolley.logging import get_module_logger
+
+logger = get_module_logger("storage")
+
 
 class DICOMDiskStorage:
     """A place on disk that you can write datasets to."""
@@ -37,6 +41,8 @@ class StorageDir(DICOMDiskStorage):
 
         slice_path = Path(path) / self.generate_path(dataset)
         slice_path.parent.mkdir(parents=True, exist_ok=True)
+
+        logger.debug(f'Saving to "{slice_path}"')
         dataset.save_as(slice_path)
 
     def generate_path(self, dataset):
