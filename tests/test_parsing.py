@@ -129,6 +129,11 @@ def test_object_tree_retrieve(a_tree):
 def test_object_tree_retrieve_reference(a_tree):
     """You can use DICOMObject.reference() to search for object with
     identical ids
+    For pydantic < 1.8.2 this causes a recursion depth exceeded bug
+    https://github.com/pydantic/pydantic/issues/4509
+
+    Which is the cause of dicomtrolley pinning pydantic to 1.8.2
+    TODO: Once the issue above has been solved, remove the pydantic version pin
     """
     study = a_tree.studies[0]
     series = a_tree.studies[0].series[0]
