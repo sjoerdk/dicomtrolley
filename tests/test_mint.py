@@ -205,8 +205,8 @@ def test_study_dump(a_mint_study_with_instances):
 
 
 def test_parse_raw_xml():
-    """With certain versions of pydantic, this command takes exponential
-    memory and time. Make sure that this is not the case
+    """Recreates memory and time swell bug in pydantic 1.9.1 This bug has been
+    taken up by pydantic. See https://github.com/pydantic/pydantic/issues/3829
     """
 
     with open(RESOURCE_PATH / "mint_response.xml") as f:
