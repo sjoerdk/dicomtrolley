@@ -237,7 +237,7 @@ the exact list of DICOM elements that can be returned from a query might be diff
 You can contribute in different ways
 
 ## Report bugs
-Report bugs at https://github.com/sjoerdk/clockify_api_client/issues.
+Report bugs at https://github.com/sjoerdk/dicomtrolley/issues.
 
 ## Contribute code
 ### Get the code
