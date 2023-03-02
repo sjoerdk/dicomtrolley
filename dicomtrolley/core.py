@@ -296,6 +296,7 @@ class Query(BaseModel):
     PatientSex: str = ""
     StudyDescription: str = ""
     SeriesDescription: str = ""
+    SeriesInstanceUID: str = ""
     InstitutionalDepartmentName: str = ""
     PatientBirthDate: Optional[date]
 
