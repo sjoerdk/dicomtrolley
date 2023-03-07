@@ -1,4 +1,8 @@
 # History
+## v2.1.8 (2023-03-07)
+* Improves logging for queries and storage
+* Adds SeriesInstanceUID to Query object
+
 ## v2.1.7 (2022-10-04)
 * Add option to ignore certain download errors for robust download (#32)
 * Adds logging
