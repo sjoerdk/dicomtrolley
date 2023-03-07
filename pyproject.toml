@@ -40,7 +40,7 @@ python =
     3.8: py38
     3.9: py39
 [testenv]
-whitelist_externals = poetry
+allowlist_externals = poetry
 commands =
     poetry install -v
     poetry run pytest --cov=tests/ --cov=dicomtrolley/
