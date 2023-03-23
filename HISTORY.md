@@ -1,4 +1,7 @@
 # History
+## v2.2.0 (2023-03-23)
+* DICOM-QR queries now use Study Root (QR class 1.2.840.10008.5.1.4.1.2.2.1) instead of Patient Root to simplify study-level queries. (#38)
+
 ## v2.1.8 (2023-03-07)
 * Improves logging for queries and storage
 * Adds SeriesInstanceUID to Query object
