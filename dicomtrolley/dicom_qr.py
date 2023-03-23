@@ -8,7 +8,7 @@ from typing import Dict, List
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
-from pynetdicom.sop_class import PatientRootQueryRetrieveInformationModelFind
+from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
 
 from dicomtrolley.core import Query, QueryLevels, Searcher, Study
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -216,7 +216,7 @@ class DICOMQR(Searcher):
         if self.debug:
             debug_logger()
         ae = AE(ae_title=bytes(self.aet, encoding="utf-8"))
-        ae.add_requested_context(PatientRootQueryRetrieveInformationModelFind)
+        ae.add_requested_context(StudyRootQueryRetrieveInformationModelFind)
 
         assoc = ae.associate(
             self.host, self.port, ae_title=bytes(self.aec, encoding="utf-8")
@@ -226,11 +226,11 @@ class DICOMQR(Searcher):
             # Send the C-FIND request
             c_find_response = assoc.send_c_find(
                 query.as_dataset(),
-                PatientRootQueryRetrieveInformationModelFind,
+                StudyRootQueryRetrieveInformationModelFind,
             )
             for (status, identifier) in c_find_response:
                 if status:
-                    # I don't understand this status.. For now just collect non-None
+                    # I don't understand this status. For now just collect non-None
                     if identifier:
                         responses.append(identifier)
 
