@@ -7,7 +7,7 @@ import requests
 from dicomtrolley.core import Query, Series, Study
 from dicomtrolley.dicom_qr import DICOMQR
 from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
-from dicomtrolley.wado import Wado
+from dicomtrolley.wado_uri import WadoURI
 from tests.factories import (
     create_c_find_image_response,
     create_c_find_study_response,
@@ -60,7 +60,7 @@ def a_mint(a_session):
 
 @pytest.fixture
 def a_wado(a_session):
-    return Wado(session=a_session, url=MockUrls.WADO_URL)
+    return WadoURI(session=a_session, url=MockUrls.WADO_URL)
 
 
 @pytest.fixture

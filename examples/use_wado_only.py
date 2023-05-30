@@ -13,7 +13,7 @@ from os import environ
 
 from dicomtrolley.auth import create_session
 from dicomtrolley.core import InstanceReference
-from dicomtrolley.wado import Wado
+from dicomtrolley.wado_uri import WadoURI
 
 # Create auto-login session
 session = create_session(
@@ -23,7 +23,7 @@ session = create_session(
     environ["REALM"],
 )
 
-wado = Wado(session, environ["WADO_URL"])
+wado = WadoURI(session, environ["WADO_URL"])
 
 # Study, Series and Instance UIDs are already known. dicomtrolley uses
 # InstanceReference to represent a WADO-downloadable slice

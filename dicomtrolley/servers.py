@@ -6,7 +6,7 @@ from dicomtrolley.dicom_qr import DICOMQR
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import Mint
 from dicomtrolley.trolley import Trolley
-from dicomtrolley.wado import Wado
+from dicomtrolley.wado_uri import WadoURI
 
 
 class VitreaConnection:
@@ -90,7 +90,7 @@ class VitreaConnection:
         """
         session = self.log_in(user=user, password=password, realm=realm)
         return Trolley(
-            downloader=Wado(session=session, url=wado_url),
+            downloader=WadoURI(session=session, url=wado_url),
             searcher=Mint(session=session, url=mint_url),
         )
 
@@ -196,6 +196,6 @@ class IMPAXDataCenter:
         """
         session = self.log_in(wado_user, wado_pass)
         return Trolley(
-            downloader=Wado(session, self.wado_url),
+            downloader=WadoURI(session, self.wado_url),
             searcher=DICOMQR(host=host, port=port, aet=aet, aec=aec),
         )

@@ -103,12 +103,12 @@ trolley.download(studies, path,
 Using WADO only, without search
 
 ```python
-from dicomtrolley.wado import Wado
+from dicomtrolley.wado_uri import WadoURI
 from dicomtrolley.core import InstanceReference
 
 instance = InstanceReference(series_instance_uid='1.2.1', study_instance_uid='1.2.2', sop_instance_uid='1.2.3')
 
-wado = Wado(session, wado_url)
+wado = WadoURI(session, wado_url)
 for ds in wado.datasets([instance]):
   ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
 ```

@@ -1,6 +1,6 @@
-"""Models the WADO protocol
+"""Models the WADO-uri protocol
 
-https://www.dicomstandard.org/dicomweb/retrieve-wado-rs-and-wado-uri/
+https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_9.html
 """
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -17,8 +17,8 @@ from dicomtrolley.core import Downloader, InstanceReference
 from dicomtrolley.exceptions import DICOMTrolleyError
 
 
-class Wado(Downloader):
-    """A connection to a WADO server"""
+class WadoURI(Downloader):
+    """A connection to a WADO-URI server"""
 
     def __init__(self, session, url):
         """
@@ -27,7 +27,8 @@ class Wado(Downloader):
         session: requests.session
             A logged in session over which WADO calls can be made
         url: str
-            WADO endpoint, including protocol and port. Like https://server:8080/wado
+            WADO-URI endpoint, including protocol and port. Like
+            https://server:8080/wado
         """
 
         self.session = session

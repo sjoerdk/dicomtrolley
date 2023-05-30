@@ -17,7 +17,7 @@ from dicomtrolley.auth import create_session
 from dicomtrolley.core import Query
 from dicomtrolley.mint import Mint, QueryLevels
 from dicomtrolley.trolley import Trolley
-from dicomtrolley.wado import Wado
+from dicomtrolley.wado_uri import WadoURI
 
 print("Creating session")
 session = create_session(
@@ -29,7 +29,7 @@ session = create_session(
 
 trolley = Trolley(
     searcher=Mint(session, environ["MINT_URL"]),
-    downloader=Wado(session, environ["WADO_URL"]),
+    downloader=WadoURI(session, environ["WADO_URL"]),
 )
 
 print("Quick search for studies")
