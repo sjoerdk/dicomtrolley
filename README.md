@@ -7,7 +7,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
 
-Retrieve medical images via WADO, MINT, RAD69 and DICOM-QR
+Retrieve medical images via WADO-URI, WADO-RS, MINT, RAD69 and DICOM-QR
 
 * Requires python 3.7, 3.8 or 3.9
 * Uses `pydicom` and `pynetdicom`. Images and query results are `pydicom.Dataset` instances
@@ -18,7 +18,7 @@ Retrieve medical images via WADO, MINT, RAD69 and DICOM-QR
 ## Installation
 ```
 pip install dicomtrolley
-``` 
+```
 
 ## Usage
 
@@ -203,7 +203,7 @@ For most DICOM queries you can use a [Query](dicomtrolley/core.py#L322) instance
 ```python
 from dicomtrolley.core import QueryLevels 
 trolley.find_studies(Query(PatientID='1234', 
-                           query_level=QueryLevels.INSTANCE)
+                           query_level=QueryLevels.INSTANCE))
 ```
 
 If you want to have more control over backend-specific options you can use a backend-specific

@@ -6,7 +6,7 @@ PASSWORD       # user password
 REALM          # Needed for Vitrea login
 LOGIN_URL      # full url to login page, including https:// and port
 MINT_URL       # full url to mint endpoint, without trailing slash
-WADO_URL       # full url to mint endpoint, without trailing slash
+WADO_URL       # full url to WADO-URI endpoint, without trailing slash
 DOWNLOAD_PATH  # Path to download to
 
 Please set these before running this example

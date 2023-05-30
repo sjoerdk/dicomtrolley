@@ -76,7 +76,7 @@ class SeriesLevelPromotable:
 
     These attributes are promotable from the Image-level to the Series-level metadata
     if the attribute value for all SOP instances in that series contain the same
-    value. Therefore these attributes may be returned in a query_level=SERIES query,
+    value. Therefore, these attributes may be returned in a query_level=SERIES query,
     but only when this condition is satisfied.
 
     Notes
