@@ -13,18 +13,18 @@ import tempfile
 from typing import List, Optional, Sequence, Tuple, Union
 
 from dicomtrolley.core import (
+    DICOMDownloadable,
     DICOMObject,
     Downloader,
     Instance,
     InstanceReference,
+    NonInstanceParameterError,
     Searcher,
     Study,
 )
 from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.storage import DICOMDiskStorage, StorageDir
 
-# Anything that can be downloaded by trolley
-DICOMDownloadable = Union[DICOMObject, InstanceReference]
 
 logger = logging.getLogger("trolley")
 
@@ -124,10 +124,13 @@ class Trolley:
         Iterator[Dataset]
             The downloaded dataset and the context that was used to download it
         """
-
-        yield from self.downloader.datasets(
-            self.objects_to_references(objects)
-        )
+        try:
+            yield from self.downloader.datasets(objects)
+        except NonInstanceParameterError:
+            # downloader wants only instance input. Do extra work.
+            yield from self.downloader.datasets(
+                self.objects_to_references(objects)
+            )
 
     def objects_to_references(
         self, objects: Sequence[DICOMDownloadable]
@@ -237,11 +240,16 @@ class Trolley:
         Iterator[Dataset, None, None]
             The downloaded dataset and the context that was used to download it
         """
-
-        yield from self.downloader.datasets_async(
-            instances=self.objects_to_references(objects),
-            max_workers=max_workers,
-        )
+        try:
+            yield from self.downloader.datasets_async(
+                instances=objects,
+                max_workers=max_workers,
+            )
+        except NonInstanceParameterError:
+            yield from self.downloader.datasets_async(
+                instances=self.objects_to_references(objects),
+                max_workers=max_workers,
+            )
 
 
 def to_instance_reference(

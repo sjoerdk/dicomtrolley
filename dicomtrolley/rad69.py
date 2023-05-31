@@ -18,7 +18,12 @@ from pydicom.filebase import DicomBytesIO
 from pydicom.filereader import dcmread
 from requests_futures.sessions import FuturesSession
 
-from dicomtrolley.core import Downloader, InstanceReference
+from dicomtrolley.core import (
+    DICOMDownloadable,
+    Downloader,
+    InstanceReference,
+    assert_instances,
+)
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
 from dicomtrolley.logging import get_module_logger
@@ -71,16 +76,23 @@ class Rad69(Downloader):
         self.post_headers = {"Content-Type": "application/soap+xml"}
         self.request_per_series = request_per_series
 
-    def datasets(self, instances: Sequence[InstanceReference]):
+    def datasets(self, objects: Sequence[DICOMDownloadable]):
         """Retrieve all instances via rad69
 
         A Rad69 request typically contains multiple instances. The data for all
         instances is then streamed back as one multipart http response
 
+        Raises
+        ------
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID.
+            Rad69 can only download instances
+
         Returns
         -------
         Iterator[Dataset, None, None]
         """
+        instances = assert_instances(objects)  # raise exception if needed
         logger.info(f"Downloading {len(instances)} instances")
         if self.request_per_series:
             per_series: Dict[str, List[InstanceReference]] = defaultdict(list)

@@ -13,7 +13,12 @@ from pydicom.filereader import dcmread
 from requests.models import Response
 from requests_futures.sessions import FuturesSession
 
-from dicomtrolley.core import Downloader, InstanceReference
+from dicomtrolley.core import (
+    DICOMDownloadable,
+    Downloader,
+    InstanceReference,
+    assert_instances,
+)
 from dicomtrolley.exceptions import DICOMTrolleyError
 
 
@@ -100,14 +105,32 @@ class WadoURI(Downloader):
             )
         )
 
+    def datasets(self, objects: Sequence[DICOMDownloadable]):
+        """Retrieve each instance in objects
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+
+        Raises
+        ------
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID.
+            wado_uri can only download instances
+
+        """
+        instances = assert_instances(objects)  # raise exception if needed
+        for instance in instances:
+            yield self.get_dataset(instance)
+
     def datasets_async(
-        self, instances: Sequence[InstanceReference], max_workers=None
+        self, objects: Sequence[DICOMDownloadable], max_workers=None
     ):
         """Retrieve each instance via WADO
 
         Parameters
         ----------
-        instances: Sequence[InstanceReference]
+        objects: Sequence[DICOMDownloadable]
             Retrieve dataset for each of these instances
         max_workers: int, optional
             Use this number of workers in ThreadPoolExecutor. Defaults to
@@ -117,6 +140,10 @@ class WadoURI(Downloader):
         ------
         DICOMTrolleyError
             When a server response cannot be parsed as DICOM
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID and
+            download can only process Instance targets. See Exception docstring
+            for rationale
 
         Returns
         -------
@@ -128,7 +155,7 @@ class WadoURI(Downloader):
             executor=ThreadPoolExecutor(max_workers=max_workers),
         ) as futures_session:
             futures = []
-            for instance in instances:
+            for instance in objects:
                 futures.append(
                     futures_session.get(
                         self.url, params=self.to_wado_parameters(instance)

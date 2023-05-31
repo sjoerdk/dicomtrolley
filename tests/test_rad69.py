@@ -348,8 +348,8 @@ def test_huge_xml_part(requests_mock, a_rad69):
     )
 
     sets = list(
-        a_rad69.datasets(instances=[InstanceReferenceFactory()])
-    )  # mock call does not care about instances
+        a_rad69.datasets(objects=[InstanceReferenceFactory()])
+    )  # mock call does not care about which objects are passed
     assert len(sets) == 1
 
 

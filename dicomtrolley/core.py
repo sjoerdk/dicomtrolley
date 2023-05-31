@@ -1,9 +1,9 @@
-"""Provides common base classes that allow different modules to talk to each other."""
+"""Provides common base classes that allow modules to talk to each other."""
 from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from itertools import chain
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 from pydantic.class_validators import validator
 from pydantic.main import BaseModel
@@ -212,6 +212,59 @@ class InstanceReference:
         return f"InstanceReference {self.sop_instance_uid}"
 
 
+# Anything that can be downloaded by trolley
+DICOMDownloadable = Union[DICOMObject, InstanceReference]
+
+
+class NonInstanceParameterError(DICOMTrolleyError):
+    """A parameter of Sequence[DICOMDownloadable] contained objects other than
+    InstanceReference.
+
+    Trolley allows the downloading of higher-level DICOM objects like
+    download(StudyInstanceUID='1234'). Some Downloader implementations can handle
+    this out of the box. Others, like WADO-URI, cannot, and instead require the
+    download target to be split into separate instances. This splitting requires
+    additional queries, which can only be performed outside the Downloader instance
+    itself.
+    By raising this error a Downloader method can signal that it cannot process
+    the non-instance components of an input parameter. The caller then has an
+    opportunity to split the input parameters into instances and try again.
+
+    """
+
+
+def assert_instances(
+    objects: Sequence[DICOMDownloadable],
+) -> Sequence[InstanceReference]:
+    """Assert that all objects are instances. If not, raise informative error
+
+    Parameters
+    ----------
+    objects:
+        Check these objects
+
+    Returns
+    -------
+    Sequence[InstanceReference]
+        The input unaltered, provided no exception was raised
+
+
+    Raises
+    ------
+    NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID and
+            download can only process Instance targets. See Exception docstring
+            for rationale
+    """
+    for obj in objects:
+        if not isinstance(obj, InstanceReference):
+            raise NonInstanceParameterError(
+                f"{obj} is not a direct instance " f"reference"
+            )
+
+    return objects  # type: ignore
+
+
 class Downloader:
     """Something that can fetch DICOM instances. Base class"""
 
@@ -230,15 +283,21 @@ class Downloader:
         """
         raise NotImplementedError
 
-    def datasets(self, instances: Sequence[InstanceReference]):
+    def datasets(self, objects: Sequence[DICOMDownloadable]):
         """Retrieve each instance
 
         Returns
         -------
         Iterator[Dataset, None, None]
+
+        Raises
+        ------
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID and
+            download can only process Instance targets. See Exception docstring
+            for rationale
         """
-        for instance in instances:
-            yield self.get_dataset(instance)
+        raise NotImplementedError
 
     def datasets_async(
         self, instances: Sequence[InstanceReference], max_workers=None
