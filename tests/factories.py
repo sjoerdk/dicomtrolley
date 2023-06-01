@@ -2,7 +2,7 @@ from io import BytesIO
 from typing import List
 
 import factory
-from pydicom.dataset import Dataset
+from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.tag import Tag
 
 from dicomtrolley.core import InstanceReference
@@ -13,9 +13,9 @@ class InstanceReferenceFactory(factory.Factory):
     class Meta:
         model = InstanceReference
 
-    study_instance_uid = factory.Sequence(lambda n: f"study_{n}")
-    series_instance_uid = factory.Sequence(lambda n: f"series_{n}")
-    sop_instance_uid = factory.Sequence(lambda n: f"instance_{n}")
+    study_uid = factory.Sequence(lambda n: f"study_{n}")
+    series_uid = factory.Sequence(lambda n: f"series_{n}")
+    instance_uid = factory.Sequence(lambda n: f"instance_{n}")
 
 
 def quick_dataset(*_, **kwargs) -> Dataset:
@@ -45,10 +45,25 @@ def quick_dataset(*_, **kwargs) -> Dataset:
 
 
 def create_dicom_bytestream(dataset):
-    """Bytes constituting a valid dicom dataset"""
+    """Bytes constituting a valid dicom dataset
+
+    Disclaimer
+    ---------
+    Sets a bunch of options and file_meta elements in the hope that things will
+    not crash. I just need a bytestream. What was a MediaStorageSOPClassUID again?
+    So sorry.
+    """
     content = BytesIO()
     dataset.is_little_endian = True
     dataset.is_implicit_VR = False
+
+    dataset.file_meta = FileMetaDataset()
+    dataset.file_meta.TransferSyntaxUID = "1.2.840.10008.1.2.1"
+    dataset.file_meta.MediaStorageSOPClassUID = (
+        "1.2.840.10008.5.1.4.1.1.2"  # CT
+    )
+    dataset.file_meta.MediaStorageSOPInstanceUID = "123"
+
     dataset.save_as(content, write_like_original=False)
     content.seek(0)
     return content.read()

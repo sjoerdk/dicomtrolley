@@ -4,6 +4,7 @@ Based on live responses from a server running Vitrea Connection 8.2.0.1
 """
 import re
 import urllib
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Pattern, Union
 
@@ -96,9 +97,9 @@ class MockWadoParameters:
     @classmethod
     def as_instance_reference(cls):
         return InstanceReference(
-            study_instance_uid=cls.study_instance_uid,
-            series_instance_uid=cls.series_instance_uid,
-            sop_instance_uid=cls.sop_instance_uid,
+            study_uid=cls.study_instance_uid,
+            series_uid=cls.series_instance_uid,
+            instance_uid=cls.sop_instance_uid,
         )
 
 
@@ -262,6 +263,18 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     "/studySearchResults>",
 )
 
+# The IDS in the MINT response. To not have to copy-paste these in tests
+MINT_SEARCH_INSTANCE_LEVEL_IDS = {
+    "study_uid": "1.2.840.114350.2.357.2.798268.2.125886546.1",
+    "series_uids": (
+        "1.2.40.0.13.1.202066129828111990737107018349786560571",
+        "1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348",
+    ),
+}
+
+MINT_SEARCH_INSTANCE_LEVEL_ANY = deepcopy(MINT_SEARCH_INSTANCE_LEVEL)
+MINT_SEARCH_INSTANCE_LEVEL_ANY.url = ANY
+
 # Will return mint study response to any mint server query
 MINT_SEARCH_ANY = MockResponse(
     url=ANY,
@@ -289,7 +302,13 @@ MINT_SEARCH_ANY = MockResponse(
 WADO_RESPONSE_DICOM = MockResponse(
     url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
     content=create_dicom_bytestream(
-        quick_dataset(PatientName="Jane", StudyDescription="Test")
+        quick_dataset(
+            PatientName="Jane",
+            StudyDescription="Test",
+            StudyInstanceUID=MockWadoParameters.study_instance_uid,
+            SeriesInstanceUID=MockWadoParameters.series_instance_uid,
+            SOPInstanceUID=MockWadoParameters.sop_instance_uid,
+        )
     ),
 )
 

@@ -28,15 +28,15 @@ wado = WadoURI(session, environ["WADO_URL"])
 # Study, Series and Instance UIDs are already known. dicomtrolley uses
 # InstanceReference to represent a WADO-downloadable slice
 instance1 = InstanceReference(
-    series_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.105",
-    study_instance_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
-    sop_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.113",
+    series_uid="1.2.840.113619.2.239.1783.1568025913.0.105",
+    study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
+    instance_uid="1.2.840.113619.2.239.1783.1568025913.0.113",
 )
 
 instance2 = InstanceReference(
-    series_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.76",
-    sop_instance_uid="1.2.840.113619.2.239.1783.1568025913.0.77.64",
-    study_instance_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
+    series_uid="1.2.840.113619.2.239.1783.1568025913.0.76",
+    instance_uid="1.2.840.113619.2.239.1783.1568025913.0.77.64",
+    study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
 )
 
 # InstanceReference can be fed to wado download methods

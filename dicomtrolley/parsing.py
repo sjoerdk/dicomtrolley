@@ -5,11 +5,13 @@ from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
     DICOMObject,
-    DICOMObjectLevels,
     DICOMObjectReference,
     Instance,
+    InstanceReference,
     Series,
+    SeriesReference,
     Study,
+    StudyReference,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 
@@ -263,11 +265,11 @@ class DICOMObjectTree:
         """
 
         try:
-            if reference.level == DICOMObjectLevels.STUDY:
+            if isinstance(reference, StudyReference):
                 return self[reference.study_uid]
-            elif reference.level == DICOMObjectLevels.SERIES:
+            elif isinstance(reference, SeriesReference):
                 return self[reference.study_uid].get(reference.series_uid)
-            elif reference.level == DICOMObjectLevels.INSTANCE:
+            elif isinstance(reference, InstanceReference):
                 return (
                     self[reference.study_uid]
                     .get(reference.series_uid)
@@ -275,7 +277,7 @@ class DICOMObjectTree:
                 )
             else:
                 raise DICOMTrolleyError(
-                    f"Unknown object level {reference.level}"
+                    f"Unknown reference type {type(reference)}"
                 )
         except KeyError as e:
             raise DICOMObjectNotFound(

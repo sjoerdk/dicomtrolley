@@ -52,9 +52,9 @@ def test_rad69_get_dataset(a_rad69, requests_mock):
 
     ds = a_rad69.get_dataset(
         InstanceReference(
-            study_instance_uid="1",
-            series_instance_uid="2",
-            sop_instance_uid="3",
+            study_uid="1",
+            series_uid="2",
+            instance_uid="3",
         )
     )
 
@@ -85,9 +85,9 @@ def test_rad69_error_from_server(
     with pytest.raises(DICOMTrolleyError) as e:
         a_rad69.get_dataset(
             InstanceReference(
-                study_instance_uid=1,
-                series_instance_uid=2,
-                sop_instance_uid=3,
+                study_uid=1,
+                series_uid=2,
+                instance_uid=3,
             )
         )
     assert re.match(error_contains, str(e))
@@ -182,19 +182,19 @@ def some_instances():
     """Some instances that can be used in trolley search and download commands"""
     return [
         InstanceReference(
-            study_instance_uid="study1",
-            series_instance_uid="series1",
-            sop_instance_uid="s1_instance1",
+            study_uid="study1",
+            series_uid="series1",
+            instance_uid="s1_instance1",
         ),
         InstanceReference(
-            study_instance_uid="study1",
-            series_instance_uid="series1",
-            sop_instance_uid="s1_instance2",
+            study_uid="study1",
+            series_uid="series1",
+            instance_uid="s1_instance2",
         ),
         InstanceReference(
-            study_instance_uid="study1",
-            series_instance_uid="series2",
-            sop_instance_uid="s2_instance1",
+            study_uid="study1",
+            series_uid="series2",
+            instance_uid="s2_instance1",
         ),
     ]
 
@@ -244,12 +244,8 @@ def test_wado_datasets_async(a_rad69, requests_mock):
     )
 
     instances = [
-        InstanceReference(
-            study_instance_uid=1, series_instance_uid=2, sop_instance_uid=3
-        ),
-        InstanceReference(
-            study_instance_uid=4, series_instance_uid=5, sop_instance_uid=6
-        ),
+        InstanceReference(study_uid=1, series_uid=2, instance_uid=3),
+        InstanceReference(study_uid=4, series_uid=5, instance_uid=6),
     ]
 
     datasets = [x for x in a_rad69.datasets_async(instances)]

@@ -1,6 +1,9 @@
 import pytest
 
-from dicomtrolley.core import DICOMObjectReference
+from dicomtrolley.core import (
+    SeriesReference,
+    StudyReference,
+)
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMObjectTree, DICOMParseTree, TreeNode
 from tests.factories import (
@@ -114,16 +117,16 @@ def test_object_tree(a_tree):
 def test_object_tree_retrieve(a_tree):
     # retrieving a series should work
     series = a_tree.retrieve(
-        DICOMObjectReference(study_uid="Study1", series_uid="Series1")
+        SeriesReference(study_uid="Study1", series_uid="Series1")
     )
     assert series.uid == "Series1"
 
     # retrieving a study should work
-    study = a_tree.retrieve(DICOMObjectReference(study_uid="Study2"))
+    study = a_tree.retrieve(StudyReference(study_uid="Study2"))
     assert study.uid == "Study2"
 
     with pytest.raises(DICOMTrolleyError):
-        a_tree.retrieve(DICOMObjectReference(study_uid="unknown study"))
+        a_tree.retrieve(StudyReference(study_uid="unknown study"))
 
 
 def test_object_tree_retrieve_reference(a_tree):

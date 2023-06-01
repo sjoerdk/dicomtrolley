@@ -17,7 +17,7 @@ from dicomtrolley.core import (
     DICOMDownloadable,
     Downloader,
     InstanceReference,
-    assert_instances,
+    extract_instances,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 
@@ -50,9 +50,9 @@ class WadoURI(Downloader):
         """
         return {
             "requestType": "WADO",
-            "studyUID": instance.study_instance_uid,
-            "seriesUID": instance.series_instance_uid,
-            "objectUID": instance.sop_instance_uid,
+            "studyUID": instance.study_uid,
+            "seriesUID": instance.series_uid,
+            "objectUID": instance.instance_uid,
             "contentType": "application/dicom",
         }
 
@@ -119,7 +119,7 @@ class WadoURI(Downloader):
             wado_uri can only download instances
 
         """
-        instances = assert_instances(objects)  # raise exception if needed
+        instances = extract_instances(objects)  # raise exception if needed
         for instance in instances:
             yield self.get_dataset(instance)
 

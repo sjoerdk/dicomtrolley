@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from itertools import chain
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence
 
 from pydantic.class_validators import validator
 from pydantic.main import BaseModel
@@ -20,56 +20,98 @@ class DICOMObjectLevels:
     SERIES = "Series"
     INSTANCE = "Instance"
 
+    all = [STUDY, SERIES, INSTANCE]
 
-class DICOMObjectReference:
-    def __init__(self, study_uid, series_uid=None, instance_uid=None):
-        """Designates a study, series or instance uid by uids
 
-        Made this to remove all
+class DICOMDownloadable:
+    """An object that can be downloaded by a Downloader"""
 
-        Parameters
-        ----------
-        study_uid: str
-        series_uid: str
-        instance_uid: str
+    def reference(self) -> "DICOMObjectReference":
+        raise NotImplementedError
 
-        Raises
-        ------
-        ValueError
-            If data for the given parameters does not exist in tree
-        """
-        if instance_uid and not series_uid:
-            raise ValueError(
-                f"Instance was given ({instance_uid}) but series was not. I can "
-                f"not insert this into a study/series/instance tree"
-            )
 
-        self.study_uid = study_uid
-        self.series_uid = series_uid
-        self.instance_uid = instance_uid
+class DICOMObjectReference(DICOMDownloadable):
+    """Points to a study, series, or instance by uid
+
+    Contrary to DICOMObjects, DICOMObjectReferences are shallow. They do
+    not have parents or children and do not contain any additional information.
+
+    They were created to use in object-level downloads (download study X)
+    """
+
+    study_uid: str
 
     @property
-    def level(self):
-        """Does this reference point to Study, Series or Instance?"""
-        if self.instance_uid:
-            return DICOMObjectLevels.INSTANCE
-        elif self.series_uid:
-            return DICOMObjectLevels.SERIES
-        else:
-            return DICOMObjectLevels.STUDY
+    def level(self) -> str:
+        """Does this reference point to Study, Series or Instance?
+        Returns
+        -------
+        str
+            One of the values in DICOMObjectLevels.all
+        """
+        return ""
+
+    def reference(self):
+        return self
+
+
+@dataclass
+class InstanceReference(DICOMObjectReference):
+    """All information needed to download a single slice (SOPInstance)"""
+
+    study_uid: str
+    series_uid: str
+    instance_uid: str
 
     def __str__(self):
         return (
-            f"{self.level} reference {self.study_uid} -> {self.series_uid} "
+            f"InstanceReference {self.study_uid} -> {self.series_uid} "
             f"-> {self.instance_uid}"
         )
 
+    @property
+    def level(self):
+        return DICOMObjectLevels.INSTANCE
 
-class DICOMObject(BaseModel):
+
+@dataclass
+class SeriesReference(DICOMObjectReference):
+    """Reference to a single Series, part of a study"""
+
+    study_uid: str
+    series_uid: str
+
+    def __str__(self):
+        return f"SeriesReference {self.study_uid} -> {self.series_uid} "
+
+    @property
+    def level(self):
+        return DICOMObjectLevels.SERIES
+
+
+@dataclass
+class StudyReference(DICOMObjectReference):
+    """Reference to a single study"""
+
+    study_uid: str
+
+    def __str__(self):
+        return f"StudyReference {self.study_uid}"
+
+    @property
+    def level(self):
+        return DICOMObjectLevels.STUDY
+
+
+class DICOMObject(BaseModel, DICOMDownloadable):
     """An object in the DICOM world. Base for Study, Series, Instance.
 
     dicomtrolley search methods always return instances based on DICOMObject
     dicomtrolley download methods take instances based on DICOMObject as input
+
+    DICOMObjects know where they are in the DICOM tree; what their parents and
+    children are. They can also contain additional information in the form of
+    a DICOM dataset
     """
 
     class Config:
@@ -100,7 +142,7 @@ class DICOMObject(BaseModel):
         """
         raise NotImplementedError()
 
-    def all_instances(self):
+    def all_instances(self) -> List["Instance"]:
         """
 
         Returns
@@ -108,10 +150,6 @@ class DICOMObject(BaseModel):
         List[Instance]
             All instances contained in this object
         """
-        raise NotImplementedError()
-
-    def reference(self) -> DICOMObjectReference:
-        """Return a Reference to this object using uids"""
         raise NotImplementedError()
 
 
@@ -128,9 +166,9 @@ class Instance(DICOMObject):
     def root(self):
         return self.parent.parent
 
-    def reference(self) -> DICOMObjectReference:
+    def reference(self) -> InstanceReference:
         """Return a Reference to this object using uids"""
-        return DICOMObjectReference(
+        return InstanceReference(
             study_uid=self.parent.parent.uid,
             series_uid=self.parent.uid,
             instance_uid=self.uid,
@@ -163,11 +201,9 @@ class Series(DICOMObject):
                 f'instance with uid "{instance_uid}" not found in series'
             ) from e
 
-    def reference(self) -> DICOMObjectReference:
+    def reference(self) -> SeriesReference:
         """Return a Reference to this object using uids"""
-        return DICOMObjectReference(
-            study_uid=self.parent.uid, series_uid=self.uid
-        )
+        return SeriesReference(study_uid=self.parent.uid, series_uid=self.uid)
 
 
 class Study(DICOMObject):
@@ -195,30 +231,13 @@ class Study(DICOMObject):
                 f'series with uid "{series_uid}" not found in study'
             ) from e
 
-    def reference(self) -> DICOMObjectReference:
+    def reference(self) -> StudyReference:
         """Return a Reference to this object using uids"""
-        return DICOMObjectReference(study_uid=self.uid)
-
-
-@dataclass
-class InstanceReference:
-    """All information needed to download a single slice (SOPInstance)"""
-
-    study_instance_uid: str
-    series_instance_uid: str
-    sop_instance_uid: str
-
-    def __str__(self):
-        return f"InstanceReference {self.sop_instance_uid}"
-
-
-# Anything that can be downloaded by trolley
-DICOMDownloadable = Union[DICOMObject, InstanceReference]
+        return StudyReference(study_uid=self.uid)
 
 
 class NonInstanceParameterError(DICOMTrolleyError):
-    """A parameter of Sequence[DICOMDownloadable] contained objects other than
-    InstanceReference.
+    """A DICOMDownloadable could not be converted into its constituent instances.
 
     Trolley allows the downloading of higher-level DICOM objects like
     download(StudyInstanceUID='1234'). Some Downloader implementations can handle
@@ -233,36 +252,54 @@ class NonInstanceParameterError(DICOMTrolleyError):
     """
 
 
-def assert_instances(
+def extract_instances(
     objects: Sequence[DICOMDownloadable],
-) -> Sequence[InstanceReference]:
-    """Assert that all objects are instances. If not, raise informative error
+) -> List[InstanceReference]:
+    """Convert all input to instance references. Raise informative errors.
+
+    This is a common pre-processing step used by Downloader classes. Many cannot
+    download higher-level objects like 'study 123' directly, but instead require
+    you to query all instances contained in 'study 123' first and then download
+    these.
 
     Parameters
     ----------
     objects:
-        Check these objects
+        Convert these objects
 
     Returns
     -------
-    Sequence[InstanceReference]
-        The input unaltered, provided no exception was raised
-
+    List[InstanceReference]
+        References to all instances contained in objects
 
     Raises
     ------
     NonInstanceParameterError
-            If objects contain non-instance targets like a StudyInstanceUID and
-            download can only process Instance targets. See Exception docstring
-            for rationale
-    """
-    for obj in objects:
-        if not isinstance(obj, InstanceReference):
-            raise NonInstanceParameterError(
-                f"{obj} is not a direct instance " f"reference"
-            )
+        If any input object could not be converted into instances. This is the
+        case for higher-level references like StudyReference, or for DICOMObjects
+        that do not contain any deeper-level information, such as a Study that
+        contains no Series (which is the correct result of Study-level queries).
 
-    return objects  # type: ignore
+    """
+    output: List[InstanceReference] = []
+    for obj in objects:
+        if isinstance(obj, InstanceReference):
+            output.append(obj)  # Already an instance reference. Just add
+        elif isinstance(obj, DICOMObjectReference):
+            raise NonInstanceParameterError(
+                f"Cannot extract instances from " f"reference '{obj}' "
+            )
+        elif isinstance(obj, DICOMObject):
+            instances = obj.all_instances()  # Extract instances
+            if instances:
+                output = output + [x.reference() for x in instances]
+            else:
+                raise NonInstanceParameterError(
+                    f"{obj} contains no instances. "
+                    f"Was this information queried for?"
+                )
+
+    return output
 
 
 class Downloader:

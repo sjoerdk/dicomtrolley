@@ -3,13 +3,15 @@ from unittest.mock import Mock
 
 import pytest
 
-from dicomtrolley.core import Series
+from dicomtrolley.core import SeriesReference
 from dicomtrolley.mint import MintQuery
 from dicomtrolley.storage import FlatStorageDir
-from dicomtrolley.trolley import Trolley
-from tests.factories import (
-    quick_dataset,
-    quick_image_level_study,
+from dicomtrolley.trolley import CachedSearcher, Trolley
+from tests.conftest import create_mint_study, set_mock_response
+from tests.factories import quick_dataset
+from tests.mock_responses import (
+    MINT_SEARCH_INSTANCE_LEVEL_ANY,
+    MINT_SEARCH_INSTANCE_LEVEL_IDS,
 )
 
 
@@ -42,8 +44,19 @@ def test_trolley_download_study(a_trolley, some_mint_studies, tmpdir):
     assert expected_path.exists()
 
 
-def test_trolley_get_dataset(a_trolley, some_mint_studies, tmpdir):
-    a_trolley.searcher.find_studies = Mock(return_value=some_mint_studies)
+def test_trolley_get_dataset(a_trolley, some_mint_studies):
+    """Downloading two studies (some_mint_studies). First one has
+    complete instance info, second one has not, so requires extra query before
+    download
+    """
+    # Search will yield full info for the missing study
+    a_trolley.searcher.find_full_study_by_id = Mock(
+        return_value=create_mint_study(
+            uid="1.2.340.114850.2.857.2.793263.2.125336546.1"
+        )
+    )
+
+    # Download just returns a single mock dataset
     a_trolley.downloader.get_dataset = Mock(
         return_value=quick_dataset(
             StudyInstanceUID="foo",
@@ -53,7 +66,7 @@ def test_trolley_get_dataset(a_trolley, some_mint_studies, tmpdir):
     )
 
     datasets = list(a_trolley.fetch_all_datasets(some_mint_studies))
-    assert len(datasets) == 14
+    assert len(datasets) == 28
     assert datasets[0].SOPInstanceUID == "bimini"
 
 
@@ -136,63 +149,33 @@ def test_trolley_alternate_storage_download(
         assert path.exists()
 
 
-def test_trolley_ensure_instances(a_trolley, some_studies):
-    """When downloading a study object that has been retrieved at study or series
-    querylevel, information about instanceqs, required for download, is missing.
-    This should be queried separately by qTrolley on download.
-    """
-    # searching for more info will return mock study 'Study2'
-    a_trolley.searcher.find_studies = Mock(
-        return_value=[quick_image_level_study("Study2")]
+def test_cached_searcher(a_mint, requests_mock):
+    # set a single-study response for any mint call
+    set_mock_response(requests_mock, MINT_SEARCH_INSTANCE_LEVEL_ANY)
+
+    # a reference to the two series contained in response
+    series_reference_1 = SeriesReference(
+        study_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["study_uid"],
+        series_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["series_uids"][0],
     )
 
-    enriched = a_trolley.ensure_instances(some_studies)
-    assert not some_studies[1].series  # there were none
-    assert enriched[1].series  # now they have been added
-
-
-def test_trolley_ensure_instances_series(
-    a_trolley, an_image_level_study, an_image_level_series
-):
-    """If a series is passed, due to querying constraints, the whole study has to
-    be queried. In the return value however we want to have the same series, not a
-    study
-    """
-    # searching for more info will return mock study
-    a_trolley.searcher.find_studies = Mock(
-        return_value=[quick_image_level_study("Study1")]
+    # a reference to a series contained in response
+    series_reference_2 = SeriesReference(
+        study_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["study_uid"],
+        series_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["series_uids"][1],
     )
 
-    # we query for a single series without instances
-    series = an_image_level_series
-    series.instances = ()
+    searcher = CachedSearcher(searcher=a_mint)
 
-    enriched = a_trolley.ensure_instances([series])[0]
-    assert isinstance(enriched, Series)
-    assert isinstance(series, Series)
-    assert enriched.instances
-    assert not series.instances
+    assert requests_mock.request_history == []  # no requests have been made
 
+    # now ask for a series that is not in cached searcher
+    instances = searcher.retrieve_instance_references(series_reference_1)
+    assert len(instances) == 1  # this series has only one instance
+    assert len(requests_mock.request_history) == 1  # a request has been made
 
-def test_trolley_ensure_instances_query(
-    a_trolley,
-    an_image_level_study,
-    an_image_level_series,
-    another_image_level_series,
-):
-    """When ensuring instances for a series, the entire study is renewed. Make sure
-    no unneeded queries are done if two series from the same study are ensured
-    """
-    # searching for more info will return mock study
-    a_trolley.searcher.find_studies = Mock(return_value=an_image_level_study)
-
-    series1 = an_image_level_series
-    series1.instances = ()
-    series2 = another_image_level_series
-    series2.instances = ()
-
-    assert not a_trolley.searcher.find_studies.called
-    _ = a_trolley.ensure_instances([series1, series2])
-    # both series are from Study1. The study-level query for series1 should also yield
-    # the results for series2. Therefore there should only be one call made, not two
-    assert a_trolley.searcher.find_studies.call_count == 1
+    # ask for the other series
+    instances = searcher.retrieve_instance_references(series_reference_2)
+    assert len(instances) == 13
+    # No extra requests as the whole study was retrieved
+    assert len(requests_mock.request_history) == 1

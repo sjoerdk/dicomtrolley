@@ -4,13 +4,16 @@ import pytest
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
-    DICOMObjectReference,
     Instance,
+    NonInstanceParameterError,
     Query,
     Series,
     Study,
+    StudyReference,
+    extract_instances,
 )
 from dicomtrolley.mint import MintQuery
+from tests.factories import InstanceReferenceFactory, quick_image_level_study
 
 
 @pytest.fixture
@@ -53,12 +56,6 @@ def test_object_exceptions(a_study):
 
     with pytest.raises(KeyError):
         _ = a_study["ser2"]["unknown"]
-
-
-def test_reference():
-    """Incomplete references should yield an error"""
-    with pytest.raises(ValueError):
-        DICOMObjectReference(study_uid="foo", instance_uid="baz")
 
 
 def test_query():
@@ -118,3 +115,28 @@ def test_query_validation_error(query_params):
     """These queries should fail validation"""
     with pytest.raises(ValueError):
         Query(**query_params)
+
+
+def test_extract_instances():
+    """These extractions should work"""
+    assert len(extract_instances([InstanceReferenceFactory()])) == 1
+    a_study = quick_image_level_study("123")
+    assert len(extract_instances([a_study])) == 18
+
+
+def test_extract_instances_exceptions(a_study_level_study):
+    """These extractions should not work"""
+    # cannot use parametrize as I also want to use fixtures
+    with pytest.raises(NonInstanceParameterError):
+        # A study reference never contains instances
+        extract_instances([StudyReference(study_uid="123")])
+
+    with pytest.raises(NonInstanceParameterError):
+        # Should raise on any part of input
+        extract_instances(
+            [InstanceReferenceFactory(), StudyReference(study_uid="123")]
+        )
+
+    with pytest.raises(NonInstanceParameterError):
+        # A DICOMObject that does not contain full-depth information
+        extract_instances(a_study_level_study)

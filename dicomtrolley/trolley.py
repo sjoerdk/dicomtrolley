@@ -8,13 +8,15 @@ WADO, RAD69, MINT and DICOM-QR modules should be stand-alone. They are not allow
 use each other's classes. Trolley has knowledge of all and converts between them if
 needed
 """
+import itertools
 import logging
 import tempfile
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Sequence, Union
 
 from dicomtrolley.core import (
     DICOMDownloadable,
     DICOMObject,
+    DICOMObjectReference,
     Downloader,
     Instance,
     InstanceReference,
@@ -22,7 +24,8 @@ from dicomtrolley.core import (
     Searcher,
     Study,
 )
-from dicomtrolley.parsing import DICOMObjectTree
+from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.parsing import DICOMObjectNotFound, DICOMObjectTree
 from dicomtrolley.storage import DICOMDiskStorage, StorageDir
 
 
@@ -58,7 +61,7 @@ class Trolley:
         """
         self.downloader = downloader
         self.searcher = searcher
-        self._searcher_cache = DICOMObjectTree([])
+        self._searcher_cache = CachedSearcher(searcher)
         self.query_missing = query_missing
         if storage:
             self.storage = storage
@@ -129,95 +132,29 @@ class Trolley:
         except NonInstanceParameterError:
             # downloader wants only instance input. Do extra work.
             yield from self.downloader.datasets(
-                self.objects_to_references(objects)
+                self.convert_to_instances(objects)
             )
 
-    def objects_to_references(
-        self, objects: Sequence[DICOMDownloadable]
-    ) -> Sequence[InstanceReference]:
-        """Find all instances contained in the given objects. Query for missing"""
-        references, dicom_objects = self.split_references(objects)
-        if self.query_missing:
-            dicom_objects = self.ensure_instances(dicom_objects)
-        return references + self.extract_references(dicom_objects)
-
-    @staticmethod
-    def split_references(
-        objects,
-    ) -> Tuple[List[InstanceReference], List[DICOMObject]]:
-        references, dicom_objects = [], []
-        for item in objects:
-            references.append(item) if isinstance(
-                item, InstanceReference
-            ) else dicom_objects.append(item)
-        return references, dicom_objects
-
-    @staticmethod
-    def extract_references(
-        objects: Sequence[DICOMDownloadable],
+    def convert_to_instances(
+        self, objects_in: Sequence[DICOMDownloadable]
     ) -> List[InstanceReference]:
-        """Get all individual instances from input.
-
-        A pre-processing step for getting datasets.
-
-        Parameters
-        ----------
-        objects: list[DICOMDownloadable]
-            Any combination of Study, Series and Instance objects
-
-        Returns
-        -------
-        List[InstanceReference]
-            A reference to each instance (slice)
-        """
-        instances: List[InstanceReference]
-        instances = []
-        for item in objects:
-            if isinstance(item, InstanceReference):
-                instances.append(item)
-            else:
-                instances = instances + [
-                    to_instance_reference(x) for x in item.all_instances()
-                ]
-        return instances
-
-    def ensure_instances(self, objects: Sequence[DICOMObject]):
-        """Ensure that all objects contain instances. Perform additional image-level
+        """Find all instances contained in objects, running additional image-level
         queries with searcher if needed.
+
+        Holds DICOMObjects in an internal cache, avoiding queries as much as
+        possible.
 
         Note
         ----
-        This method fires additional search queries and might take a long time to
+        This method can fire additional search queries and might take a long time to
         return depending on the number of objects and missing instances
         """
-
-        def has_instances(item_in):
-            return bool(item_in.all_instances())
-
-        # all information on studies, series and instances we have
-        self._searcher_cache = DICOMObjectTree(objects)
-        cache = self._searcher_cache
-
-        ensured = []
-        for item in objects:
-            if has_instances(item):
-                ensured.append(item)  # No work needed
-            else:
-                retrieved = cache.retrieve(
-                    item.reference()
-                )  # have we cached before?
-                if has_instances(retrieved):  # yes we have. Add that
-                    ensured.append(retrieved)
-                else:  # No instances, we'll have to query for them
-                    logger.debug(f"No instances cached for {item}. Querying")
-                    study = self.searcher.find_full_study_by_id(
-                        item.root().uid
-                    )
-                    cache.add_study(study)
-                    ensured.append(cache.retrieve(item.reference()))
-
-        self._searcher_cache = DICOMObjectTree([])
-        return ensured
+        return list(
+            itertools.chain.from_iterable(
+                self._searcher_cache.retrieve_instance_references(x)
+                for x in objects_in
+            )
+        )
 
     def fetch_all_datasets_async(self, objects, max_workers=None):
         """Get DICOM dataset for each instance given objects using multiple threads.
@@ -247,9 +184,84 @@ class Trolley:
             )
         except NonInstanceParameterError:
             yield from self.downloader.datasets_async(
-                instances=self.objects_to_references(objects),
+                instances=self.convert_to_instances(objects),
                 max_workers=max_workers,
             )
+
+
+class NoInstancesFoundError(DICOMTrolleyError):
+    pass
+
+
+class CachedSearcher:
+    def __init__(
+        self, searcher: Searcher, cache: Optional[DICOMObjectTree] = None
+    ):
+        """A DICOMObject tree (study/series/instances) that will launch
+        queries to expand itself if needed. Tries to query as little as
+        possible.
+
+        Created this to efficiently get all instances for download based on a
+        variable collection of DICOMDownloadable objects.
+
+        Parameters
+        ----------
+        searcher: Searcher
+            Use this searcher to search for missing elements in cache
+        cache: DICOMObjectTree, Optional
+            Use this tree as cache. Defaults to an empty tree
+
+        """
+        self.searcher = searcher
+        if not cache:
+            cache = DICOMObjectTree([])
+        self.cache = cache
+
+    def retrieve_instance_references(
+        self, downloadable: DICOMDownloadable
+    ) -> List[InstanceReference]:
+        """Get references for all instances contained in downloadable, performing
+        additional queries if needed
+        """
+        # DICOMObject might already contain all required info
+        if isinstance(downloadable, DICOMObject):
+            instances = downloadable.all_instances()
+            if instances:
+                return [x.reference() for x in instances]
+
+        # No instances in downloadable. Do we have instances in cache for this?
+        reference = downloadable.reference()
+        try:
+            return [
+                x.reference() for x in self.get_instances_from_cache(reference)
+            ]
+        except NoInstancesFoundError:  # not found, we'll have to query
+            logger.debug(f"No instances cached for {reference}. Querying")
+            self.query_for_study(reference)
+            return [
+                x.reference() for x in self.get_instances_from_cache(reference)
+            ]
+
+    def get_instances_from_cache(
+        self, reference: DICOMObjectReference
+    ) -> List[Instance]:
+        """Retrieve all instances for this reference. Raise exception if not found
+
+        Raises
+        ------
+        NoInstancesFoundError
+            If no instances are found in cache
+        """
+        try:
+            return self.cache.retrieve(reference).all_instances()
+        except DICOMObjectNotFound as e:
+            raise NoInstancesFoundError(
+                f"No instances found for {reference}"
+            ) from e
+
+    def query_for_study(self, reference: DICOMObjectReference):
+        study = self.searcher.find_full_study_by_id(reference.study_uid)
+        self.cache.add_study(study)
 
 
 def to_instance_reference(
@@ -265,7 +277,7 @@ def to_instance_reference(
         return item
     else:
         return InstanceReference(
-            study_instance_uid=item.parent.parent.uid,
-            series_instance_uid=item.parent.uid,
-            sop_instance_uid=item.uid,
+            study_uid=item.parent.parent.uid,
+            series_uid=item.parent.uid,
+            instance_uid=item.uid,
         )

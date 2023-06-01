@@ -70,6 +70,12 @@ def a_mint_study_with_instances() -> MintStudy:
     return studies[0]
 
 
+def create_mint_study(uid) -> MintStudy:
+    study = parse_mint_studies_response(MINT_SEARCH_INSTANCE_LEVEL)[0]
+    study.uid = uid
+    return study
+
+
 @pytest.fixture
 def a_mint_study_without_instances() -> MintStudy:
     """An example MintStudy object"""

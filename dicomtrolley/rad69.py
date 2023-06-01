@@ -22,7 +22,7 @@ from dicomtrolley.core import (
     DICOMDownloadable,
     Downloader,
     InstanceReference,
-    assert_instances,
+    extract_instances,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
@@ -92,12 +92,12 @@ class Rad69(Downloader):
         -------
         Iterator[Dataset, None, None]
         """
-        instances = assert_instances(objects)  # raise exception if needed
+        instances = extract_instances(objects)  # raise exception if needed
         logger.info(f"Downloading {len(instances)} instances")
         if self.request_per_series:
             per_series: Dict[str, List[InstanceReference]] = defaultdict(list)
             for x in instances:
-                per_series[x.series_instance_uid].append(x)
+                per_series[x.series_uid].append(x)
             logger.info(
                 f"Splitting per series. Found {len(per_series)} series"
             )
@@ -115,8 +115,7 @@ class Rad69(Downloader):
         """Identical to create_download_iterator, except adds a debug log call"""
         if instances:
             logger.debug(
-                f"Downloading series {index}: "
-                f"{instances[0].series_instance_uid}"
+                f"Downloading series {index}: " f"{instances[0].series_uid}"
             )
         return self.download_iterator(instances)
 
@@ -150,9 +149,9 @@ class Rad69(Downloader):
         for instance in instances:
             tree.insert(
                 data=[],
-                study_uid=instance.study_instance_uid,
-                series_uid=instance.series_instance_uid,
-                instance_uid=instance.sop_instance_uid,
+                study_uid=instance.study_uid,
+                series_uid=instance.series_uid,
+                instance_uid=instance.instance_uid,
             )
         studies = tree.as_studies()
 
