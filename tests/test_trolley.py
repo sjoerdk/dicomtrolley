@@ -5,8 +5,9 @@ import pytest
 
 from dicomtrolley.core import SeriesReference
 from dicomtrolley.mint import MintQuery
+from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.storage import FlatStorageDir
-from dicomtrolley.trolley import CachedSearcher, Trolley
+from dicomtrolley.trolley import CachedSearcher, NoInstancesFoundError, Trolley
 from tests.conftest import create_mint_study, set_mock_response
 from tests.factories import quick_dataset
 from tests.mock_responses import (
@@ -18,7 +19,7 @@ from tests.mock_responses import (
 @pytest.fixture
 def a_trolley(a_mint, a_wado) -> Trolley:
     """Trolley instance that will not hit any server"""
-    return Trolley(searcher=a_mint, downloader=a_wado, query_missing=False)
+    return Trolley(searcher=a_mint, downloader=a_wado, query_missing=True)
 
 
 def test_trolley_find(a_trolley, some_mint_studies):
@@ -179,3 +180,25 @@ def test_cached_searcher(a_mint, requests_mock):
     assert len(instances) == 13
     # No extra requests as the whole study was retrieved
     assert len(requests_mock.request_history) == 1
+
+
+def test_cached_searcher_no_download(a_mint):
+    """You can disable auto-querying for missing info to limit requests"""
+    study1 = create_mint_study(uid="1")
+    study2 = create_mint_study(uid="2")
+    for series in study2.series:  # study2 will have no instance info
+        series.instances = []
+
+    # search starts out with some info
+    searcher = CachedSearcher(
+        searcher=a_mint,
+        cache=DICOMObjectTree([study1, study2]),
+        query_missing=False,
+    )
+
+    # requesting study which has instance info should work
+    assert len(searcher.retrieve_instance_references(study1)) == 14
+
+    # however, this will raise errors
+    with pytest.raises(NoInstancesFoundError):
+        searcher.retrieve_instance_references(study2)

@@ -1,4 +1,4 @@
-"""Combines WADO, RAD69, MINT and DICOM-QR to make make getting DICOM studies easy.
+"""Combines WADO, RAD69, MINT and DICOM-QR to make getting DICOM studies easy.
 
 Notes
 -----
@@ -54,15 +54,16 @@ class Trolley:
             if True, Trolley.download() will query for missing DICOM instances. For
             example when passing a Study obtained from a study-level query, which does
             not contain any information on instances
-            if False, missing instances will not be downloaded
+            if False, missing instances will raise NoInstancesFoundError
         storage: DICOMDiskStorage instance, optional
             All downloads are saved to disk by calling this objects' save() method.
             Defaults to basic StorageDir (saves as /studyid/seriesid/instanceid)
         """
         self.downloader = downloader
         self.searcher = searcher
-        self._searcher_cache = CachedSearcher(searcher)
-        self.query_missing = query_missing
+        self._searcher_cache = CachedSearcher(
+            searcher, query_missing=query_missing
+        )
         if storage:
             self.storage = storage
         else:
@@ -195,7 +196,10 @@ class NoInstancesFoundError(DICOMTrolleyError):
 
 class CachedSearcher:
     def __init__(
-        self, searcher: Searcher, cache: Optional[DICOMObjectTree] = None
+        self,
+        searcher: Searcher,
+        cache: Optional[DICOMObjectTree] = None,
+        query_missing: Optional[bool] = True,
     ):
         """A DICOMObject tree (study/series/instances) that will launch
         queries to expand itself if needed. Tries to query as little as
@@ -210,18 +214,28 @@ class CachedSearcher:
             Use this searcher to search for missing elements in cache
         cache: DICOMObjectTree, Optional
             Use this tree as cache. Defaults to an empty tree
-
+        query_missing: Bool, optional
+            Launch queries to find missing information. If False, will raise
+            NoInstancesFoundError. Defaults to True
         """
         self.searcher = searcher
         if not cache:
             cache = DICOMObjectTree([])
         self.cache = cache
+        self.query_missing = query_missing
 
     def retrieve_instance_references(
         self, downloadable: DICOMDownloadable
     ) -> List[InstanceReference]:
         """Get references for all instances contained in downloadable, performing
         additional queries if needed
+
+        Raises
+        ------
+        NoInstancesFoundError
+            If Trolley.query_missing is False and queries would be required to
+            retrieve all instances.
+
         """
         # DICOMObject might already contain all required info
         if isinstance(downloadable, DICOMObject):
@@ -235,7 +249,13 @@ class CachedSearcher:
             return [
                 x.reference() for x in self.get_instances_from_cache(reference)
             ]
-        except NoInstancesFoundError:  # not found, we'll have to query
+        except NoInstancesFoundError as e:  # not found, we'll have to query
+            if not self.query_missing:
+                raise NoInstancesFoundError(
+                    f"No instances cached for {reference} "
+                    f"and query_missing was False"
+                ) from e
+
             logger.debug(f"No instances cached for {reference}. Querying")
             self.query_for_study(reference)
             return [
@@ -253,8 +273,16 @@ class CachedSearcher:
             If no instances are found in cache
         """
         try:
-            return self.cache.retrieve(reference).all_instances()
+            instances = self.cache.retrieve(reference).all_instances()
+            if instances:
+                return instances
+            else:
+                # reference was in cache, but there are no instances
+                raise NoInstancesFoundError(
+                    f"No instances found for {reference}"
+                )
         except DICOMObjectNotFound as e:
+            # reference was not in cache
             raise NoInstancesFoundError(
                 f"No instances found for {reference}"
             ) from e
