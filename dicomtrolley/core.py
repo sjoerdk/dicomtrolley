@@ -377,7 +377,7 @@ class Query(BaseModel):
     *  Different backends use slightly different query parameters. This class
        implements all common parameters.
     *  DICOM queries consist of a number of DICOM tags followed by a search
-       criterium. The naming format for these parameters follows DICOM conventions
+       criterion. The naming format for these parameters follows DICOM conventions
        (CamelCase). In addition, a query has non-DICOM meta-parameters. Here regular
        python (lower_case_underscore) naming is used
     """
@@ -388,13 +388,7 @@ class Query(BaseModel):
     PatientName: str = ""
     PatientID: str = ""
     ModalitiesInStudy: str = ""
-    InstitutionName: str = ""
-    PatientSex: str = ""
-    StudyDescription: str = ""
-    SeriesDescription: str = ""
     SeriesInstanceUID: str = ""
-    InstitutionalDepartmentName: str = ""
-    PatientBirthDate: Optional[date]
 
     # non-DICOM parameters. Translated into derived parameters when querying
     query_level: QueryLevels = (
@@ -433,13 +427,27 @@ class Query(BaseModel):
         return f"{type(self).__name__}: {filled_fields}"
 
 
+class ExtendedQuery(Query):
+    """Query with additional parameters. Base for Mint and DICOM-QR.
+
+    Made this to avoid duplicate extra fields in Mint and DICOM-QR searchers
+    """
+
+    InstitutionName: str = ""
+    PatientSex: str = ""
+    StudyDescription: str = ""
+    SeriesDescription: str = ""
+    InstitutionalDepartmentName: str = ""
+    PatientBirthDate: Optional[date]
+
+
 class Searcher:
     """Something that can search for DICOM studies. Base class."""
 
     def find_studies(self, query) -> Sequence[Study]:
         raise NotImplementedError()
 
-    def find_study(self, query) -> Study:
+    def find_study(self, query: Query) -> Study:
         """Like find_studies, but guarantees exactly one result. Exception if not.
 
         This method is meant for searches that contain unique identifiers like

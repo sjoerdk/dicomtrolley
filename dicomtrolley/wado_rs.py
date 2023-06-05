@@ -1,6 +1,9 @@
 """Models WADO-RS
-
+For download, uses
 https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.4.html
+
+For qeueries, uses
+https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.6.html#sect_10.6.1.2
 
 Notes
 -----
@@ -32,8 +35,10 @@ from dicomtrolley.core import (
     DICOMObjectReference,
     Downloader,
     InstanceReference,
+    Query,
     Searcher,
     SeriesReference,
+    Study,
     StudyReference,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -183,3 +188,29 @@ class WadoRS(Searcher, Downloader):
                 f"{uri}/studies/{reference.study_uid}/series"
                 f"/{reference.series_uid}/instances/{reference.instance_uid}"
             )
+
+    def find_studies(self, query: Query) -> Sequence[Study]:
+
+        raise NotImplementedError()
+
+    def find_full_study_by_id(self, study_uid: str) -> Study:
+        """Find a single study at image level
+
+        Useful for automatically finding all instances for a study. Meant to be
+        implemented in child classes
+
+        Parameters
+        ----------
+        study_uid: str
+            Study to search for
+
+        Returns
+        -------
+        Study
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If no results or more than one result is returned by query
+        """
+        raise NotImplementedError()

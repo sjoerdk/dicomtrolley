@@ -4,6 +4,7 @@ import pytest
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
+    ExtendedQuery,
     Instance,
     NonInstanceParameterError,
     Query,
@@ -60,6 +61,7 @@ def test_object_exceptions(a_study):
 
 def test_query():
     """Make sure all parameters of a query are checked"""
+
     dicom_parameters = {
         "AccessionNumber": "123",
         "InstitutionName": "Hospital",
@@ -81,10 +83,10 @@ def test_query():
 
     all_parameters = {**dicom_parameters, **meta_parameters}
     # this should just not raise any validation error
-    Query(**all_parameters)
+    ExtendedQuery(**all_parameters)
 
 
-def test_query_to_string(a_basic_query):
+def test_query_to_string(an_extended_query):
     """Test printing query as human-readable"""
     query = Query(PatientName="TestPatient")
     short_string = query.to_short_string()

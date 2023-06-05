@@ -10,7 +10,13 @@ from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
 
-from dicomtrolley.core import Query, QueryLevels, Searcher, Study
+from dicomtrolley.core import (
+    ExtendedQuery,
+    Query,
+    QueryLevels,
+    Searcher,
+    Study,
+)
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
 
@@ -35,7 +41,7 @@ class QueryRetrieveLevels:
         return translation[value]
 
 
-class DICOMQuery(Query):
+class DICOMQuery(ExtendedQuery):
     """Things you can search for with DICOM QR.
 
     Notes

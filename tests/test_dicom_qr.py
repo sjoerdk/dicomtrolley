@@ -113,7 +113,7 @@ def test_qr_query_exceptions(parameters):
         DICOMQuery(**parameters)
 
 
-def test_query_as_parameters(a_basic_query):
+def test_query_as_parameters(an_extended_query):
     """Check conversion from general fields into QR-specific parameters"""
 
     query_ds = DICOMQuery(

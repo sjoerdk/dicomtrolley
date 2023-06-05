@@ -12,6 +12,7 @@ from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
     DICOMObject,
+    ExtendedQuery,
     Instance,
     Query,
     QueryLevels,
@@ -148,7 +149,7 @@ class MintAttribute:
     xml_element = "{http://medical.nema.org/mint}attr"
 
 
-class MintQuery(Query):
+class MintQuery(ExtendedQuery):
     """Things you can search for with the MINT find DICOM studies function
 
     Notes
