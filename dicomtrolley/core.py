@@ -372,6 +372,9 @@ class QueryLevels(str, Enum):
 class Query(BaseModel):
     """All information required to perform a DICOM query
 
+    Base for all Queries. Limited functionality, but you should be able to use
+    a Query() instance in any Searcher implementation
+
     Notes
     -----
     *  Different backends use slightly different query parameters. This class
