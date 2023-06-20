@@ -2,6 +2,7 @@
 
 Based on live responses from a server running Vitrea Connection 8.2.0.1
 """
+import json
 import re
 import urllib
 from copy import deepcopy
@@ -69,6 +70,7 @@ class MockUrls:
     MINT_URL = "https://testserver/mint"
     WADO_URL = "https://testserver/wado"
     RAD69_URL = "https://testserver/rids"
+    QIDO_RS_URL = "https://testserver/qido"
 
 
 class MockWadoParameters:
@@ -432,5 +434,115 @@ RAD69_RESPONSE_UNKNOWN = MockResponse(
     },
     text=RAD69_SOAP_RESPONSE_NOT_FOUND.replace(
         "XDSMissingDocument", "UnknownError"
+    ),
+)
+
+# Three studies at study level
+QIDO_RS_STUDY_LEVEL = MockResponse(
+    url=re.compile(MockUrls.QIDO_RS_URL + ".*"),
+    method="GET",
+    status_code=200,
+    text=json.dumps(
+        [
+            {
+                "00080020": {"vr": "DA", "Value": ["13495156"]},
+                "00080030": {"vr": "TM", "Value": ["298451.540"]},
+                "00080050": {"vr": "SH", "Value": ["6928536.88731372"]},
+                "00080056": {"vr": "CS", "Value": ["DCEWMJ"]},
+                "00080061": {"vr": "CS", "Value": ["JR"]},
+                "00080090": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "087195^TZIPB^B.F.^TZ"}],
+                },
+                "00081190": {
+                    "vr": "UR",
+                    "Value": [
+                        "https://testserver/qido/dicomweb/studies/1.2.392.200036.9116.2.6.1.3229.2462354167.1685325303.929533"
+                    ],
+                },
+                "00100010": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "EMWDJXDCJPFA^S"}],
+                },
+                "00100020": {"vr": "LO", "Value": ["3102219"]},
+                "00100030": {"vr": "DA", "Value": ["43835405"]},
+                "00100040": {"vr": "CS", "Value": ["Z"]},
+                "0020000D": {
+                    "vr": "UI",
+                    "Value": [
+                        "7.7.832.734150.2814.5.0.4.6559.8696629511.6805009058.073242"
+                    ],
+                },
+                "00200010": {"vr": "SH", "Value": ["5722324.12608235"]},
+                "00201206": {"vr": "IS", "Value": [11]},
+                "00201208": {"vr": "IS", "Value": [7972]},
+            },
+            {
+                "00080020": {"vr": "DA", "Value": ["01500700"]},
+                "00080030": {"vr": "TM", "Value": ["092705.911"]},
+                "00080050": {"vr": "SH", "Value": ["3667278.11004347"]},
+                "00080056": {"vr": "CS", "Value": ["PQFURO"]},
+                "00080061": {"vr": "CS", "Value": ["BE"]},
+                "00080090": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "043693^DZIGOGPM^A.D.F."}],
+                },
+                "00081190": {
+                    "vr": "UR",
+                    "Value": [
+                        "https://testserver/qido/dicomweb/studies/1.2.392.200036.9116.6.20.18523571.1467.20230529175134676.3.2"
+                    ],
+                },
+                "00100010": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "HYBAGZLA^R"}],
+                },
+                "00100020": {"vr": "LO", "Value": ["1411762"]},
+                "00100030": {"vr": "DA", "Value": ["49186581"]},
+                "00100040": {"vr": "CS", "Value": ["H"]},
+                "0020000D": {
+                    "vr": "UI",
+                    "Value": [
+                        "2.5.241.458109.5292.3.03.66517245.6439.64814793504015160.1.0"
+                    ],
+                },
+                "00200010": {"vr": "SH", "Value": ["47393807A1232"]},
+                "00201206": {"vr": "IS", "Value": [7]},
+                "00201208": {"vr": "IS", "Value": [98]},
+            },
+            {
+                "00080020": {"vr": "DA", "Value": ["07613949"]},
+                "00080030": {"vr": "TM", "Value": ["733440"]},
+                "00080050": {"vr": "SH", "Value": ["EDB51975356.0644"]},
+                "00080056": {"vr": "CS", "Value": ["FESRTJ"]},
+                "00080061": {"vr": "CS", "Value": ["MP"]},
+                "00080090": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "385960^GYUNZH^Y.S.I.I."}],
+                },
+                "00081190": {
+                    "vr": "UR",
+                    "Value": [
+                        "https://testserver/qido/dicomweb/studies/1.2.40.0.13.1.20824033173342836000295543233473981868"
+                    ],
+                },
+                "00100010": {
+                    "vr": "PN",
+                    "Value": [{"Alphabetic": "WZSHWZDRM^S^BSI"}],
+                },
+                "00100020": {"vr": "LO", "Value": ["8379268"]},
+                "00100030": {"vr": "DA", "Value": ["69725200"]},
+                "00100040": {"vr": "CS", "Value": ["V"]},
+                "0020000D": {
+                    "vr": "UI",
+                    "Value": [
+                        "2.4.05.6.17.1.11063029529943328216399526680942319832"
+                    ],
+                },
+                "00200010": {"vr": "SH", "Value": ["TFE44654152.7002"]},
+                "00201206": {"vr": "IS", "Value": [71]},
+                "00201208": {"vr": "IS", "Value": [69]},
+            },
+        ]
     ),
 )

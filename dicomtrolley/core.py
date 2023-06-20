@@ -370,10 +370,10 @@ class QueryLevels(str, Enum):
 
 
 class Query(BaseModel):
-    """All information required to perform a DICOM query
+    """Common functionality for all DICOM query implementations.
 
-    Base for all Queries. Limited functionality, but you should be able to use
-    a Query() instance in any Searcher implementation
+    Not intended to be instantiated directly. For a simple query accepted by all
+    searchers, use BasicQuery()
 
     Notes
     -----
@@ -405,9 +405,29 @@ class Query(BaseModel):
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
 
     @classmethod
-    def from_query(cls, query: "Query"):
-        """Create a Query from given query. For casting to child types"""
-        return cls(**query.dict())
+    def init_from_query(cls, query: "BasicQuery"):
+        """Create this class based on a basic query
+        Should be implemented in all child classes
+
+        This function enables BasicQuery to be used in all backends
+
+        Parameters
+        ----------
+        query: BasicQuery or any other acceptable Query subclass
+            BasicQuery should always be supported. Other query types might be
+            supported.
+
+        Returns
+        -------
+        An instance of this class based on input query
+
+        Raises
+        ------
+        InvalidQueryType
+            If query does not have an acceptable type
+
+        """
+        raise NotImplementedError
 
     @staticmethod
     def validate_keyword(keyword):
@@ -430,6 +450,15 @@ class Query(BaseModel):
         return f"{type(self).__name__}: {filled_fields}"
 
 
+class BasicQuery(Query):
+    """A DICOM query that is acceptable for all Searcher classes
+
+    Limited options but allows easy switching of Searcher backends
+    """
+
+    pass
+
+
 class ExtendedQuery(Query):
     """Query with additional parameters. Base for Mint and DICOM-QR.
 
@@ -447,7 +476,7 @@ class ExtendedQuery(Query):
 class Searcher:
     """Something that can search for DICOM studies. Base class."""
 
-    def find_studies(self, query) -> Sequence[Study]:
+    def find_studies(self, query: Query) -> Sequence[Study]:
         raise NotImplementedError()
 
     def find_study(self, query: Query) -> Study:

@@ -2,15 +2,17 @@
 See:
 https://code.google.com/archive/p/medical-imaging-network-transport/downloads
 """
-from typing import ClassVar, List, Sequence, Set
+from typing import ClassVar, List, Sequence, Set, Union
 from xml.etree import ElementTree
 from xml.etree.ElementTree import ParseError
 
+from pydantic import ValidationError
 from pydantic.class_validators import root_validator
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
+    BasicQuery,
     DICOMObject,
     ExtendedQuery,
     Instance,
@@ -159,6 +161,16 @@ class MintQuery(ExtendedQuery):
 
     limit: int = 0  # how many results to return. 0 = all
 
+    @classmethod
+    def init_from_query(cls, query: Union[BasicQuery, "MintQuery"]):
+        try:
+            return cls(**query.dict())
+        except ValidationError as e:
+            raise DICOMTrolleyError(
+                f"Could not create MintQuery from {type(query)}. "
+                f"Did you use a BasicQuery or MintQuery?"
+            ) from e
+
     @root_validator()
     def min_max_study_date_xor(cls, values):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
@@ -275,7 +287,7 @@ class Mint(Searcher):
 
         Parameters
         ----------
-        query: Query or MintQuery
+        query: BasicQuery or MintQuery
             Search based on these parameters. See Query object
 
         Returns
@@ -289,7 +301,7 @@ class Mint(Searcher):
         logger.info(f"Running query {query.to_short_string()}")
         search_url = self.url + "/studies"
         response = self.session.get(
-            search_url, params=MintQuery.from_query(query).as_parameters()
+            search_url, params=MintQuery.init_from_query(query).as_parameters()
         )
         return parse_mint_studies_response(response)
 
