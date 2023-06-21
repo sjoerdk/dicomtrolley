@@ -3,17 +3,16 @@
 See http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.3.html
 """
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
-from pydantic import ValidationError
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
 from pynetdicom.sop_class import StudyRootQueryRetrieveInformationModelFind
 
 from dicomtrolley.core import (
-    BasicQuery,
     ExtendedQuery,
+    Query,
     QueryLevels,
     Searcher,
     Study,
@@ -61,16 +60,6 @@ class DICOMQuery(ExtendedQuery):
 
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
-
-    @classmethod
-    def init_from_query(cls, query: Union[BasicQuery, "DICOMQuery"]):
-        try:
-            return cls(**query.dict())
-        except ValidationError as e:
-            raise DICOMTrolleyError(
-                f"Could not create MintQuery from {type(query)}. Did you use a "
-                f"BasicQuery or DICOMQuery?"
-            ) from e
 
     @staticmethod
     def get_default_include_fields(query_level):
@@ -175,7 +164,7 @@ class DICOMQR(Searcher):
         self.aec = aec
         self.debug = debug
 
-    def find_studies(self, query: Union[BasicQuery, DICOMQuery]):
+    def find_studies(self, query: Query):
         """
 
         Parameters

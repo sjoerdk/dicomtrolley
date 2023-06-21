@@ -3,14 +3,18 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from itertools import chain
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Type, TypeVar
 
+from pydantic import ValidationError
 from pydantic.class_validators import validator
 from pydantic.main import BaseModel
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 
-from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.exceptions import (
+    DICOMTrolleyError,
+    UnSupportedParameterError,
+)
 
 
 class DICOMObjectLevels:
@@ -369,11 +373,14 @@ class QueryLevels(str, Enum):
     INSTANCE = "INSTANCE"
 
 
-class Query(BaseModel):
-    """Common functionality for all DICOM query implementations.
+# Used in Query.init_from_query() type annotation
+QuerySubType = TypeVar("QuerySubType", bound="Query")
 
-    Not intended to be instantiated directly. For a simple query accepted by all
-    searchers, use BasicQuery()
+
+class Query(BaseModel):
+    """A simple DICOM query that is acceptable to all Searcher classes
+
+    Limited parameters but can be used in all Searcher backends
 
     Notes
     -----
@@ -383,6 +390,38 @@ class Query(BaseModel):
        criterion. The naming format for these parameters follows DICOM conventions
        (CamelCase). In addition, a query has non-DICOM meta-parameters. Here regular
        python (lower_case_underscore) naming is used
+
+    General notes on subclassing Query
+
+    A Searcher class often has its own associated Query subclass. For instance,
+    the Mint searcher function Mint.find_study(query) can take a MintQuery instance
+    which uniquely allows the setting of the MINT-specific parameter `limit`.
+    Any Searcher can however also take a generic Query instance as input. This
+    makes it possible to use a simple Query in your code and be independent
+    of searcher backend.
+    An issue with the scheme is that it is in principle allowed to use the Query
+    baseclass as input, it should also be allowed to use any Query subclass in
+    any searcher. This, for example, would be legal:
+
+    ```python
+    query = QidoRelationalQuery(qido_specific_setting=1)
+    studies = Mint().find_study(query)
+    ```
+    This is weird but not unthinkable. The problem is that the Mint searcher
+    cannot do anything with the `qido_specific_setting` set for the query. If
+    Mint just uses the basic Query parameters for its query, information would
+    be ignored or lost. On the other hand, if we enforce that Mint().find_study()
+    only takes MintQuery objects, we lose the ability to use a Query as a
+    backend-agnostic general query.
+
+    The tradeoff in structure is between the convenience of having a
+    backend-agnostic query on the one hand, and having tight type definitions
+    for input arguments on the other.
+
+    In the end, decided that the backend-agnostic query is too useful to lose.
+    However, there should be no silent ignoring of parameters. So we will have
+    Searcher methods raise UnSupportedParameterError if using an input query would
+    result in information being lost.
     """
 
     # Dicom parameters
@@ -405,17 +444,18 @@ class Query(BaseModel):
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
 
     @classmethod
-    def init_from_query(cls, query: "BasicQuery"):
-        """Create this class based on a basic query
-        Should be implemented in all child classes
+    def init_from_query(
+        cls: Type[QuerySubType], query: "Query"
+    ) -> QuerySubType:
+        """Create an instance of this class based on any Query instance
 
-        This function enables BasicQuery to be used in all backends
+        This function enables Query to be used in all backends. See Query
+        notes for rationale
 
         Parameters
         ----------
-        query: BasicQuery or any other acceptable Query subclass
-            BasicQuery should always be supported. Other query types might be
-            supported.
+        query: Query
+            Use all non-falsy parameters from this to create new instance
 
         Returns
         -------
@@ -423,11 +463,21 @@ class Query(BaseModel):
 
         Raises
         ------
-        InvalidQueryType
-            If query does not have an acceptable type
-
+        UnSupportedParameterError
+            If query contains non-default parameters that are not supported in
+            this class
         """
-        raise NotImplementedError
+        # remove empty, None and 0 values
+        params = {key: val for key, val in query.dict().items() if val}
+        try:
+            return cls(**params)
+        except ValidationError as e:
+            raise UnSupportedParameterError(
+                f"Conversion from {query} would ignore one more parameters. You "
+                f"are probably converting between incompatible query subtypes."
+                f"Use a basic Query instance to avoid this error. See ValidationError"
+                f"for details on which parameter is causing the problem"
+            ) from e
 
     @staticmethod
     def validate_keyword(keyword):
@@ -448,15 +498,6 @@ class Query(BaseModel):
         filled_fields = {key: val for key, val in self.dict().items() if val}
         filled_fields["query_level"] = filled_fields["query_level"].value
         return f"{type(self).__name__}: {filled_fields}"
-
-
-class BasicQuery(Query):
-    """A DICOM query that is acceptable for all Searcher classes
-
-    Limited options but allows easy switching of Searcher backends
-    """
-
-    pass
 
 
 class ExtendedQuery(Query):

@@ -8,11 +8,11 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence, Union
 
-from pydantic import ValidationError, root_validator
+from pydantic import root_validator
 from pydicom import Dataset
+from requests import Response
 
 from dicomtrolley.core import (
-    BasicQuery,
     Query,
     QueryLevels,
     Searcher,
@@ -145,16 +145,6 @@ class HierarchicalQuery(QidoRSQueryBase):
     Faster, but requires more information and always constrains search
     """
 
-    @classmethod
-    def init_from_query(cls, query: Union[BasicQuery, QidoRSQueryBase]):
-        try:
-            return cls(**query.dict())
-        except ValidationError as e:
-            raise DICOMTrolleyError(
-                f"Could not create MintQuery from {type(query)}. Did you use a "
-                f"BasicQuery or QidoRSQueryBase?"
-            ) from e
-
     @root_validator()
     def uids_should_be_hierarchical(cls, values):  # noqa: B902, N805
         """Any object uids passed should conform to study->series->instance"""
@@ -269,9 +259,7 @@ class QidoRS(Searcher):
             )
 
     @classmethod
-    def ensure_query_type(
-        cls, query: Query
-    ) -> Union[BasicQuery, QidoRSQueryBase]:  # type: ignore
+    def ensure_query_type(cls, query: Query) -> QidoRSQueryBase:
         """Make sure query is of a type usable in this searcher. Cast if needed
 
         Separate casting method needed in addition to Query.init_from_query()
@@ -279,7 +267,7 @@ class QidoRS(Searcher):
         """
         if isinstance(query, QidoRSQueryBase):
             return query  # no conversion, just us whatever it was
-        elif isinstance(query, BasicQuery):
+        elif isinstance(query, Query):
             # Choosing hierarchical over relational here, as the former is
             # more similar to wado-uri/dicom-qr queries and faster as well
             return HierarchicalQuery.init_from_query(query)
@@ -288,9 +276,7 @@ class QidoRS(Searcher):
                 f'Invalid query. Expecting Query, got "{type(query)}")'
             )
 
-    def find_studies(
-        self, query: Union[BasicQuery, QidoRSQueryBase]
-    ) -> Sequence[Study]:
+    def find_studies(self, query: Query) -> Sequence[Study]:
 
         query = self.ensure_query_type(query)
         url = self.url.rstrip("/") + query.uri_base()
@@ -300,7 +286,7 @@ class QidoRS(Searcher):
         return self.parse_qido_response(json.loads(response.text))
 
     @staticmethod
-    def parse_qido_response(response: list):
+    def parse_qido_response(response: Response) -> List[Study]:
         """Assumes response has been json-decoded
 
         response could contain instances, series or studies

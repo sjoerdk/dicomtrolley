@@ -2,17 +2,15 @@
 See:
 https://code.google.com/archive/p/medical-imaging-network-transport/downloads
 """
-from typing import ClassVar, List, Sequence, Set, Union
+from typing import ClassVar, List, Sequence, Set
 from xml.etree import ElementTree
 from xml.etree.ElementTree import ParseError
 
-from pydantic import ValidationError
 from pydantic.class_validators import root_validator
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
-    BasicQuery,
     DICOMObject,
     ExtendedQuery,
     Instance,
@@ -161,16 +159,6 @@ class MintQuery(ExtendedQuery):
 
     limit: int = 0  # how many results to return. 0 = all
 
-    @classmethod
-    def init_from_query(cls, query: Union[BasicQuery, "MintQuery"]):
-        try:
-            return cls(**query.dict())
-        except ValidationError as e:
-            raise DICOMTrolleyError(
-                f"Could not create MintQuery from {type(query)}. "
-                f"Did you use a BasicQuery or MintQuery?"
-            ) from e
-
     @root_validator()
     def min_max_study_date_xor(cls, values):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
@@ -287,7 +275,7 @@ class Mint(Searcher):
 
         Parameters
         ----------
-        query: BasicQuery or MintQuery
+        query: Query
             Search based on these parameters. See Query object
 
         Returns
