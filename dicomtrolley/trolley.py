@@ -21,7 +21,10 @@ from dicomtrolley.core import (
     Instance,
     InstanceReference,
     NonInstanceParameterError,
+    NonSeriesParameterError,
     Searcher,
+    Series,
+    SeriesReference,
     Study,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
@@ -54,7 +57,7 @@ class Trolley:
             if True, Trolley.download() will query for missing DICOM instances. For
             example when passing a Study obtained from a study-level query, which does
             not contain any information on instances
-            if False, missing instances will raise NoInstancesFoundError
+            if False, missing instances will raise MissingObjectInformationError
         storage: DICOMDiskStorage instance, optional
             All downloads are saved to disk by calling this objects' save() method.
             Defaults to basic StorageDir (saves as /studyid/seriesid/instanceid)
@@ -130,6 +133,11 @@ class Trolley:
         """
         try:
             yield from self.downloader.datasets(objects)
+        except NonSeriesParameterError:
+            # downloader wants at least series level information. Do extra work.
+            yield from self.downloader.datasets(
+                self.ensure_to_series_level(objects)
+            )
         except NonInstanceParameterError:
             # downloader wants only instance input. Do extra work.
             yield from self.downloader.datasets(
@@ -153,6 +161,22 @@ class Trolley:
         return list(
             itertools.chain.from_iterable(
                 self._searcher_cache.retrieve_instance_references(x)
+                for x in objects_in
+            )
+        )
+
+    def ensure_to_series_level(
+        self, objects_in: Sequence[DICOMDownloadable]
+    ) -> Sequence[Union[InstanceReference, SeriesReference]]:
+        """Make sure all input is converted to instance or series
+
+        ----
+        This method can fire additional search queries and might take a long time to
+        return depending on the number of objects and missing instances or series
+        """
+        return list(
+            itertools.chain.from_iterable(
+                self._searcher_cache.ensure_series_level_references(x)
                 for x in objects_in
             )
         )
@@ -190,7 +214,12 @@ class Trolley:
             )
 
 
-class NoInstancesFoundError(DICOMTrolleyError):
+class MissingObjectInformationError(DICOMTrolleyError):
+    """An operation on a DICOM object cannot complete because the required information
+    is not available. For example, trying to extract all instances from a Study that
+    was retrieved without instance information
+    """
+
     pass
 
 
@@ -216,7 +245,7 @@ class CachedSearcher:
             Use this tree as cache. Defaults to an empty tree
         query_missing: Bool, optional
             Launch queries to find missing information. If False, will raise
-            NoInstancesFoundError. Defaults to True
+            MissingObjectInformationError. Defaults to True
         """
         self.searcher = searcher
         if not cache:
@@ -232,7 +261,7 @@ class CachedSearcher:
 
         Raises
         ------
-        NoInstancesFoundError
+        MissingObjectInformationError
             If Trolley.query_missing is False and queries would be required to
             retrieve all instances.
 
@@ -249,17 +278,76 @@ class CachedSearcher:
             return [
                 x.reference() for x in self.get_instances_from_cache(reference)
             ]
-        except NoInstancesFoundError as e:  # not found, we'll have to query
+        except MissingObjectInformationError as e:  # not found, we'll have to query
             if not self.query_missing:
-                raise NoInstancesFoundError(
+                raise MissingObjectInformationError(
                     f"No instances cached for {reference} "
                     f"and query_missing was False"
                 ) from e
 
             logger.debug(f"No instances cached for {reference}. Querying")
-            self.query_for_study(reference)
+            self.query_study_instances(reference)
             return [
                 x.reference() for x in self.get_instances_from_cache(reference)
+            ]
+
+    def ensure_series_level_references(
+        self, downloadable: DICOMDownloadable
+    ) -> List[Union[InstanceReference, SeriesReference]]:
+        """Extract references of at least series level. Query if not found
+
+        Raises
+        ------
+        MissingObjectInformationError
+            If Trolley.query_missing is False and queries would be required to
+            retrieve Series.
+
+
+        TODO: Strong whiffs of code smell here. This method should not be this
+        long. Some pointers for refactoring: Get rid of explicit type checking.
+        possibly move logic to DICOMDownloadable classes. Why does this method
+        take a DICOMDownloadable and not just a reference? It seems conversion logic
+        is shoehorned into CachedSearcher and Trolley classes. CachedSearcher should
+        govern a cache of DICOM information, Trolley should handle high level
+        requests. Neither are quite right for conversion. Possibly create separate
+        class for this.
+        """
+        # Instance and Series should just be left as is
+        if isinstance(
+            downloadable,
+            (Instance, Series, InstanceReference, SeriesReference),
+        ):
+            return [downloadable.reference()]
+        # If its a study, it might need work
+
+        elif isinstance(downloadable, Study):
+            series: Sequence[
+                Union[Instance, Series]
+            ] = downloadable.all_series()
+            if series:  # there were series inside Study already
+                return [x.reference() for x in series]
+
+        # no studies. Maybe they are in cache?
+        reference = downloadable.reference()
+        try:
+            series = self.get_series_level_from_cache(reference)
+            if series:
+                return [x.reference() for x in series]
+            else:
+                raise MissingObjectInformationError()  # not expected. Being careful.
+
+        except MissingObjectInformationError as e:  # not found, we'll have to query
+            if not self.query_missing:
+                raise MissingObjectInformationError(
+                    f"No series cached for {reference} "
+                    f"and query_missing was False"
+                ) from e
+
+            logger.debug(f"No series cached for {reference}. Querying")
+            self.query_study_series(reference)
+            return [
+                x.reference()
+                for x in self.get_series_level_from_cache(reference)
             ]
 
     def get_instances_from_cache(
@@ -269,7 +357,7 @@ class CachedSearcher:
 
         Raises
         ------
-        NoInstancesFoundError
+        MissingObjectInformationError
             If no instances are found in cache
         """
         try:
@@ -278,17 +366,49 @@ class CachedSearcher:
                 return instances
             else:
                 # reference was in cache, but there are no instances
-                raise NoInstancesFoundError(
+                raise MissingObjectInformationError(
                     f"No instances found for {reference}"
                 )
         except DICOMObjectNotFound as e:
             # reference was not in cache
-            raise NoInstancesFoundError(
+            raise MissingObjectInformationError(
                 f"No instances found for {reference}"
             ) from e
 
-    def query_for_study(self, reference: DICOMObjectReference):
-        study = self.searcher.find_full_study_by_id(reference.study_uid)
+    def get_series_level_from_cache(
+        self, reference: DICOMObjectReference
+    ) -> Sequence[Union[Instance, Series]]:
+        """Retrieve series this reference, or instance if required.
+        Raise exception if not found
+
+        Raises
+        ------
+        MissingObjectInformationError
+            If no series or instance can be found for this reference
+        """
+        try:
+            series: Sequence[Union[Instance, Series]] = self.cache.retrieve(
+                reference
+            ).all_series()
+            if series:
+                return series
+            else:
+                # reference was in cache, but there are no instances
+                raise MissingObjectInformationError(
+                    f"No series found for {reference}"
+                )
+        except DICOMObjectNotFound as e:
+            # reference was not in cache
+            raise MissingObjectInformationError(
+                f"No series found for {reference}"
+            ) from e
+
+    def query_study_instances(self, reference: DICOMObjectReference):
+        study = self.searcher.find_study_at_instance_level(reference.study_uid)
+        self.cache.add_study(study)
+
+    def query_study_series(self, reference: DICOMObjectReference):
+        study = self.searcher.find_study_at_series_level(reference.study_uid)
         self.cache.add_study(study)
 
 

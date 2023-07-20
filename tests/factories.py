@@ -5,7 +5,11 @@ import factory
 from pydicom.dataset import Dataset, FileMetaDataset
 from pydicom.tag import Tag
 
-from dicomtrolley.core import InstanceReference
+from dicomtrolley.core import (
+    InstanceReference,
+    SeriesReference,
+    StudyReference,
+)
 from dicomtrolley.dicom_qr import DICOMQR
 
 
@@ -16,6 +20,21 @@ class InstanceReferenceFactory(factory.Factory):
     study_uid = factory.Sequence(lambda n: f"study_{n}")
     series_uid = factory.Sequence(lambda n: f"series_{n}")
     instance_uid = factory.Sequence(lambda n: f"instance_{n}")
+
+
+class SeriesReferenceFactory(factory.Factory):
+    class Meta:
+        model = SeriesReference
+
+    study_uid = factory.Sequence(lambda n: f"study_{n}")
+    series_uid = factory.Sequence(lambda n: f"series_{n}")
+
+
+class StudyReferenceFactory(factory.Factory):
+    class Meta:
+        model = StudyReference
+
+    study_uid = factory.Sequence(lambda n: f"study_{n}")
 
 
 def quick_dataset(*_, **kwargs) -> Dataset:

@@ -7,14 +7,21 @@ from dicomtrolley.core import (
     ExtendedQuery,
     Instance,
     NonInstanceParameterError,
+    NonSeriesParameterError,
     Query,
     Series,
     Study,
     StudyReference,
-    extract_instances,
+    to_instance_refs,
+    to_series_level_refs,
 )
 from dicomtrolley.mint import MintQuery
-from tests.factories import InstanceReferenceFactory, quick_image_level_study
+from tests.factories import (
+    InstanceReferenceFactory,
+    SeriesReferenceFactory,
+    StudyReferenceFactory,
+    quick_image_level_study,
+)
 
 
 @pytest.fixture
@@ -121,24 +128,54 @@ def test_query_validation_error(query_params):
 
 def test_extract_instances():
     """These extractions should work"""
-    assert len(extract_instances([InstanceReferenceFactory()])) == 1
+    assert len(to_instance_refs([InstanceReferenceFactory()])) == 1
     a_study = quick_image_level_study("123")
-    assert len(extract_instances([a_study])) == 18
+    assert len(to_instance_refs([a_study])) == 18
 
 
-def test_extract_instances_exceptions(a_study_level_study):
+def test_to_instance_refs_exceptions(a_study_level_study):
     """These extractions should not work"""
     # cannot use parametrize as I also want to use fixtures
     with pytest.raises(NonInstanceParameterError):
         # A study reference never contains instances
-        extract_instances([StudyReference(study_uid="123")])
+        to_instance_refs([StudyReference(study_uid="123")])
 
     with pytest.raises(NonInstanceParameterError):
         # Should raise on any part of input
-        extract_instances(
+        to_instance_refs(
             [InstanceReferenceFactory(), StudyReference(study_uid="123")]
         )
 
     with pytest.raises(NonInstanceParameterError):
         # A DICOMObject that does not contain full-depth information
-        extract_instances(a_study_level_study)
+        to_instance_refs(a_study_level_study)
+
+
+def test_to_series_level_refs(a_study_level_study):
+    """Test extracting series level references from DICOMObjects
+
+    Notes
+    -----
+    Cannot use parametrize as I want to use factory boy objects which should be
+    initialised during this test function execution and not (like parameterize)
+    at module loading.
+    """
+
+    with pytest.raises(NonSeriesParameterError):
+        # A study reference does not contain series level info
+        to_series_level_refs([StudyReferenceFactory()])
+
+    with pytest.raises(NonSeriesParameterError):
+        # A study reference does not contain series level info
+        to_series_level_refs(
+            [SeriesReferenceFactory(), StudyReferenceFactory()]
+        )
+
+    with pytest.raises(NonSeriesParameterError):
+        # A study reference does not contain series level info
+        to_series_level_refs(a_study_level_study)
+
+    # this should just work
+    to_series_level_refs(
+        [SeriesReferenceFactory(), InstanceReferenceFactory()]
+    )

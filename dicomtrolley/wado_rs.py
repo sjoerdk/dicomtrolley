@@ -38,6 +38,7 @@ from dicomtrolley.core import (
     InstanceReference,
     SeriesReference,
     StudyReference,
+    to_series_level_refs,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
@@ -49,7 +50,9 @@ logger = get_module_logger("wado_rs")
 class WadoRS(Downloader):
     """A connection to a WADO-RS server"""
 
-    def __init__(self, session, url, http_chunk_size=5242880):
+    def __init__(
+        self, session, url, http_chunk_size=5242880, request_per_series=True
+    ):
         """
         Parameters
         ----------
@@ -61,11 +64,16 @@ class WadoRS(Downloader):
         http_chunk_size: int, optional
             Number of bytes to read each time when streaming chunked rad69 responses.
             Defaults to 5MB (5242880 bytes)
+        request_per_series: bool, optional
+            If true, split requests per series when downloading. If false,
+            request all instances at once. Splitting reduces load on server.
+            defaults to True.
         """
 
         self.session = session
         self.url = url
         self.http_chunk_size = http_chunk_size
+        self.request_per_series = request_per_series
 
     def datasets(self, objects: Sequence[DICOMDownloadable]):
         """Retrieve each instance
@@ -76,15 +84,27 @@ class WadoRS(Downloader):
 
         Raises
         ------
-        NonInstanceParameterError
-            If objects contain non-instance targets like a StudyInstanceUID and
-            download can only process Instance targets. See Exception docstring
-            for rationale
+        NonSeriesParameterError
+            If request_per_series is True and objects contains study references
+            without series information.
         """
+        logger.debug("Getting datasets")
         if isinstance(objects, DICOMDownloadable):
             objects = [objects]  # handle passing single object instead of list
+
+        if self.request_per_series:
+            references: Sequence[DICOMDownloadable] = to_series_level_refs(
+                objects
+            )
+            logger.debug(
+                f"Splitting {len(objects)} objects into series. After split,"
+                f" getting {len(references)} downloadables"
+            )
+        else:
+            references = objects
+
         return chain.from_iterable(
-            self.download_iterator(obj) for obj in objects
+            self.download_iterator(obj) for obj in references
         )
 
     def download_iterator(self, downloadable: DICOMDownloadable):

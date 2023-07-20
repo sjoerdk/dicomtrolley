@@ -253,11 +253,3 @@ class DICOMQR(Searcher):
             )
 
         return responses
-
-    def find_full_study_by_id(self, study_uid: str) -> Study:
-        return self.find_study(
-            DICOMQuery(
-                StudyInstanceUID=study_uid,
-                query_level=QueryLevels.INSTANCE,
-            )
-        )

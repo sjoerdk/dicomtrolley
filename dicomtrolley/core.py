@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from enum import Enum
 from itertools import chain
-from typing import List, Optional, Sequence, Type, TypeVar
+from typing import List, Optional, Sequence, Type, TypeVar, Union
 
 from pydantic import ValidationError
 from pydantic.class_validators import validator
@@ -156,6 +156,16 @@ class DICOMObject(BaseModel, DICOMDownloadable):
         """
         raise NotImplementedError()
 
+    def all_series(self) -> List["Series"]:
+        """
+
+        Returns
+        -------
+        List[Series]
+            All Series contained in this object
+        """
+        raise NotImplementedError()
+
 
 class Instance(DICOMObject):
     parent: "Series"
@@ -163,6 +173,9 @@ class Instance(DICOMObject):
     def all_instances(self):
         """A list containing this instance itself. To match other signatures"""
         return [self]
+
+    def all_series(self) -> List["Series"]:
+        return [self.parent]
 
     def children(self):
         return []
@@ -189,6 +202,9 @@ class Series(DICOMObject):
     def all_instances(self):
         """Each instance contained in this series"""
         return self.instances
+
+    def all_series(self) -> List["Series"]:
+        return [self]
 
     def children(self):
         return self.instances
@@ -219,6 +235,9 @@ class Study(DICOMObject):
     def all_instances(self):
         """Return each instance contained in this study"""
         return list(chain(*(x.instances for x in self.series)))
+
+    def all_series(self) -> List["Series"]:
+        return list(self.children())
 
     def children(self):
         return self.series
@@ -256,15 +275,21 @@ class NonInstanceParameterError(DICOMTrolleyError):
     """
 
 
-def extract_instances(
+class NonSeriesParameterError(DICOMTrolleyError):
+    """A DICOMDownloadable could not be converted into Series or Instance reference.
+    Weaker version of NonInstanceParameterError
+    """
+
+
+def to_instance_refs(
     objects: Sequence[DICOMDownloadable],
 ) -> List[InstanceReference]:
     """Convert all input to instance references. Raise informative errors.
 
     This is a common pre-processing step used by Downloader classes. Many cannot
     download higher-level objects like 'study 123' directly, but instead require
-    you to query all instances contained in 'study 123' first and then download
-    these.
+    you to query all instances contained in 'study 123' first and pass those to
+    the downloader.
 
     Parameters
     ----------
@@ -291,7 +316,7 @@ def extract_instances(
             output.append(obj)  # Already an instance reference. Just add
         elif isinstance(obj, DICOMObjectReference):
             raise NonInstanceParameterError(
-                f"Cannot extract instances from " f"reference '{obj}' "
+                f"Cannot extract instances from '{obj}' "
             )
         elif isinstance(obj, DICOMObject):
             instances = obj.all_instances()  # Extract instances
@@ -303,6 +328,58 @@ def extract_instances(
                     f"Was this information queried for?"
                 )
 
+    return output
+
+
+def to_series_level_refs(
+    objects: Sequence[DICOMDownloadable],
+) -> List[Union[SeriesReference, InstanceReference]]:
+    """Make sure all input objects are Series or Instance references.
+    Convert if possible, raise exceptions if not.
+
+    Weaker version of to_instance_refs(). Weaker because series references without
+    instance info are also allowed here. See that function for more info
+
+    Parameters
+    ----------
+    objects:
+        Convert these objects
+
+    Returns
+    -------
+    List[Union[SeriesReference, InstanceReference]]
+        References to series and instances contained in input objects
+
+    Raises
+    ------
+    NonSeriesParameterError
+        If any input object could not be converted into instances. This is the
+        case for higher-level references like StudyReference, or for DICOMObjects
+        that do not contain any deeper-level information, such as a Study that
+        contains no Series (which is the correct result of Study-level queries).
+
+    """
+    output: List[Union[InstanceReference, SeriesReference]] = []
+    for obj in objects:
+        if isinstance(
+            obj, (InstanceReference, SeriesReference, Instance, Series)
+        ):
+            # already OK, just add
+            output.append(obj.reference())
+        elif isinstance(obj, StudyReference):
+            # no series in here, I don't have enough info
+            raise NonSeriesParameterError(
+                f"Cannot extract series from '{obj}' "
+            )
+        elif isinstance(obj, Study):
+            if obj.series:
+                for series in obj.series:
+                    output.append(series.reference())
+            else:
+                raise NonSeriesParameterError(
+                    f"Cannot extract series from '{obj}'"
+                    f". It contains no series "
+                )
     return output
 
 
@@ -560,6 +637,55 @@ class Searcher:
             If no results or more than one result is returned by query
         """
         raise NotImplementedError()
+
+    def find_study_at_instance_level(self, study_uid: str) -> Study:
+        """Find a single study at image level
+
+        Useful for automatically finding all instances for a study.
+
+        Parameters
+        ----------
+        study_uid: str
+            Study to search for
+
+        Returns
+        -------
+        Study
+            Containing full DICOM object information, series and instances
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If no results or more than one result is returned by query
+        """
+        return self.find_study(
+            Query(StudyInstanceUID=study_uid, query_level=QueryLevels.INSTANCE)
+        )
+
+    def find_study_at_series_level(self, study_uid: str) -> Study:
+        """Find a single study at series level
+
+        Meant to be
+        implemented in child classes
+
+        Parameters
+        ----------
+        study_uid: str
+            Study to search for
+
+        Returns
+        -------
+        Study
+            Containing series, but not instances
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If no results or more than one result is returned by query
+        """
+        return self.find_study(
+            Query(StudyInstanceUID=study_uid, query_level=QueryLevels.SERIES)
+        )
 
 
 Instance.update_forward_refs()  # enables pydantic validation

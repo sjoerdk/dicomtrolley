@@ -22,7 +22,7 @@ from dicomtrolley.core import (
     DICOMDownloadable,
     Downloader,
     InstanceReference,
-    extract_instances,
+    to_instance_refs,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
@@ -92,7 +92,7 @@ class Rad69(Downloader):
         -------
         Iterator[Dataset, None, None]
         """
-        instances = extract_instances(objects)  # raise exception if needed
+        instances = to_instance_refs(objects)  # raise exception if needed
         logger.info(f"Downloading {len(instances)} instances")
         if self.request_per_series:
             per_series: Dict[str, List[InstanceReference]] = defaultdict(list)

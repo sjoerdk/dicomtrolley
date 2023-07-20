@@ -293,14 +293,6 @@ class Mint(Searcher):
         )
         return parse_mint_studies_response(response)
 
-    def find_full_study_by_id(self, study_uid: str) -> Study:
-        return self.find_study(
-            MintQuery(
-                StudyInstanceUID=study_uid,
-                query_level=QueryLevels.INSTANCE,
-            )
-        )
-
 
 def parse_mint_studies_response(response) -> List[MintStudy]:
     """Parse the xml response to a MINT find DICOM studies call

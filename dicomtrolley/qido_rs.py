@@ -277,6 +277,7 @@ class QidoRS(Searcher):
             )
 
     def find_studies(self, query: Query) -> Sequence[Study]:
+        logger.debug(f"Firing query {query}")
 
         query = self.ensure_query_type(query)
         url = self.url.rstrip("/") + query.uri_base()
@@ -296,25 +297,3 @@ class QidoRS(Searcher):
             tree.insert_dataset(Dataset.from_json(item))
 
         return tree.as_studies()
-
-    def find_full_study_by_id(self, study_uid: str) -> Study:
-        """Find a single study at image level
-
-        Useful for automatically finding all instances for a study. Meant to be
-        implemented in child classes
-
-        Parameters
-        ----------
-        study_uid: str
-            Study to search for
-
-        Returns
-        -------
-        Study
-
-        Raises
-        ------
-        DICOMTrolleyError
-            If no results or more than one result is returned by query
-        """
-        raise NotImplementedError()

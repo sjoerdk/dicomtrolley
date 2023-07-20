@@ -17,7 +17,7 @@ from dicomtrolley.core import (
     DICOMDownloadable,
     Downloader,
     InstanceReference,
-    extract_instances,
+    to_instance_refs,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 
@@ -119,7 +119,7 @@ class WadoURI(Downloader):
             wado_uri can only download instances
 
         """
-        instances = extract_instances(objects)  # raise exception if needed
+        instances = to_instance_refs(objects)  # raise exception if needed
         for instance in instances:
             yield self.get_dataset(instance)
 
