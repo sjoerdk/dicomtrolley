@@ -34,6 +34,7 @@ class DICOMDownloadable:
         raise NotImplementedError
 
 
+@dataclass
 class DICOMObjectReference(DICOMDownloadable):
     """Points to a study, series, or instance by uid
 
@@ -550,10 +551,11 @@ class Query(BaseModel):
             return cls(**params)
         except ValidationError as e:
             raise UnSupportedParameterError(
-                f"Conversion from {query} would ignore one more parameters. You "
-                f"are probably converting between incompatible query subtypes."
-                f"Use a basic Query instance to avoid this error. See ValidationError"
-                f"for details on which parameter is causing the problem"
+                f"Conversion from {query.to_short_string()} would ignore one more "
+                f"parameters. You are probably converting between incompatible "
+                f"query subtypes. Use a basic Query instance to avoid this error. "
+                f"See ValidationError for details on which parameter is causing "
+                f"the problem"
             ) from e
 
     @staticmethod
@@ -611,8 +613,8 @@ class Searcher:
         results = self.find_studies(query)
         if len(results) == 0 or len(results) > 1:
             raise DICOMTrolleyError(
-                f"Expected exactly one study for query '{query}', but"
-                f" found {len(results)}"
+                f"Expected exactly one study for query '{query.to_short_string()}',"
+                f" but found {len(results)}"
             )
         return results[0]
 

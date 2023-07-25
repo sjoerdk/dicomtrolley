@@ -26,7 +26,7 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.http import HTTPMultiPartStream
-from dicomtrolley.logging import get_module_logger
+from dicomtrolley.logs import get_module_logger
 from dicomtrolley.parsing import DICOMParseTree
 from dicomtrolley.xml_templates import (
     RAD69_SOAP_REQUEST_TEMPLATE,

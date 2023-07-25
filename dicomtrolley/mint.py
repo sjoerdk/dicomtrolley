@@ -27,7 +27,7 @@ from dicomtrolley.fields import (
     SeriesLevelPromotable,
     StudyLevel,
 )
-from dicomtrolley.logging import get_module_logger
+from dicomtrolley.logs import get_module_logger
 
 logger = get_module_logger("mint")
 

@@ -9,7 +9,6 @@ use each other's classes. Trolley has knowledge of all and converts between them
 needed
 """
 import itertools
-import logging
 import tempfile
 from typing import List, Optional, Sequence, Union
 
@@ -28,15 +27,23 @@ from dicomtrolley.core import (
     Study,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.logs import get_module_logger
 from dicomtrolley.parsing import DICOMObjectNotFound, DICOMObjectTree
 from dicomtrolley.storage import DICOMDiskStorage, StorageDir
 
 
-logger = logging.getLogger("trolley")
+logger = get_module_logger("trolley")
 
 
 class Trolley:
-    """Combines a search and download method to get DICOM studies easily"""
+    """Combines a search and download method to get DICOM studies easily
+
+    Features:
+    * Searching for DICOM using a Query instance is backend-agnostic.
+    * If a download method requires additional information such as all instance UIDs,
+      trolley can query for these in the background.
+    * Saves to disk in reasonable (uid based) folder structure.
+    """
 
     def __init__(
         self,
@@ -135,14 +142,12 @@ class Trolley:
             yield from self.downloader.datasets(objects)
         except NonSeriesParameterError:
             # downloader wants at least series level information. Do extra work.
-            yield from self.downloader.datasets(
-                self.ensure_to_series_level(objects)
-            )
+            series_lvl_objects = self.ensure_to_series_level(objects)
+            yield from self.downloader.datasets(series_lvl_objects)
         except NonInstanceParameterError:
             # downloader wants only instance input. Do extra work.
-            yield from self.downloader.datasets(
-                self.convert_to_instances(objects)
-            )
+            instances = self.convert_to_instances(objects)
+            yield from self.downloader.datasets(instances)
 
     def convert_to_instances(
         self, objects_in: Sequence[DICOMDownloadable]
@@ -212,15 +217,6 @@ class Trolley:
                 instances=self.convert_to_instances(objects),
                 max_workers=max_workers,
             )
-
-
-class MissingObjectInformationError(DICOMTrolleyError):
-    """An operation on a DICOM object cannot complete because the required information
-    is not available. For example, trying to extract all instances from a Study that
-    was retrieved without instance information
-    """
-
-    pass
 
 
 class CachedSearcher:
@@ -412,20 +408,10 @@ class CachedSearcher:
         self.cache.add_study(study)
 
 
-def to_instance_reference(
-    item: Union[Instance, InstanceReference]
-) -> InstanceReference:
-    """Simplify a more extensive instance to an InstanceReference.
-
-    needed for calls to WADO functions.
-
-    Opted to check for type here as I don't want put this functionality in core.
+class MissingObjectInformationError(DICOMTrolleyError):
+    """An operation on a DICOM object cannot complete because the required information
+    is not available. For example, trying to extract all instances from a Study that
+    was retrieved without instance information
     """
-    if isinstance(item, InstanceReference):
-        return item
-    else:
-        return InstanceReference(
-            study_uid=item.parent.parent.uid,
-            series_uid=item.parent.uid,
-            instance_uid=item.uid,
-        )
+
+    pass

@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-from dicomtrolley.logging import get_module_logger
+from dicomtrolley.logs import get_module_logger
 
 logger = get_module_logger("storage")
 

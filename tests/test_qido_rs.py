@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from dicomtrolley.core import QueryLevels
-from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS
+from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS, RelationalQuery
 from tests.conftest import set_mock_response
 from tests.mock_responses import MockUrls, QIDO_RS_STUDY_LEVEL
 
@@ -54,6 +54,44 @@ def test_hierarchical_query_uris():
 
     assert len(parameters) == 3
     assert url == "/studies/123/series"
+
+
+@pytest.mark.parametrize(
+    "query_params",
+    [
+        {"query_level": QueryLevels.INSTANCE},
+        {"query_level": QueryLevels.INSTANCE, "PatientName": "a name"},
+        {"query_level": QueryLevels.SERIES, "PatientName": "a name"},
+        {"StudyInstanceUID": "123", "query_level": QueryLevels.INSTANCE},
+        {
+            "StudyInstanceUID": "123",
+            "SeriesInstanceUID": "456",
+            "query_level": QueryLevels.SERIES,
+        },
+        {
+            "min_study_date": datetime(year=2023, month=5, day=29),
+            "max_study_date": datetime(year=2023, month=5, day=29),
+            "query_level": QueryLevels.SERIES,
+        },
+    ],
+)
+def test_valid_relational_query(query_params):
+    """These queries should not raise any exceptions"""
+    assert RelationalQuery(**query_params)  # check for no init exceptions
+
+
+@pytest.mark.parametrize(
+    "query_params",
+    [
+        {"SeriesInstanceUID": "123"},
+        {"SOPClassInstanceUID": "789"},
+        {"min_study_date": datetime(year=2023, month=5, day=29)},
+    ],
+)
+def test_invalid_relational_query(query_params):
+    """These queries are invalid, should not pass init validation"""
+    with pytest.raises(ValueError):
+        HierarchicalQuery(**query_params)
 
 
 @pytest.fixture

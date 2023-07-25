@@ -18,8 +18,11 @@ from dicomtrolley.core import (
     Searcher,
     Study,
 )
-from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.logging import get_module_logger
+from dicomtrolley.exceptions import (
+    DICOMTrolleyError,
+    UnSupportedParameterError,
+)
+from dicomtrolley.logs import get_module_logger
 from dicomtrolley.parsing import DICOMParseTree
 
 logger = get_module_logger("qido_rs")
@@ -142,7 +145,13 @@ class QidoRSQueryBase(Query):
 class HierarchicalQuery(QidoRSQueryBase):
     """QIDO-RS Query that uses that traditional study->series->instance structure
 
-    Faster, but requires more information and always constrains search
+    Allows the following queries:
+    * All Studies
+    * Study's Series
+    * Study's Series' Instances
+    See https://dicom.nema.org/medical/dicom/current/output/html/part18.html#sect_10.6
+
+    Faster than relationalQuery, but requires more information
     """
 
     @root_validator()
@@ -220,6 +229,70 @@ class HierarchicalQuery(QidoRSQueryBase):
             )
 
 
+# used in RelationalQuery
+STUDY_VALUE_ERROR_TEXT: str = (
+    "Query level STUDY makes no sense for a QIDO-RS "
+    "relational query. Perhaps use a hierarchical query?"
+)
+
+
+class RelationalQuery(QidoRSQueryBase):
+    """QIDO-RS query that allows querying for series and instances directly
+
+    Allows the following queries
+    * Study's Instances
+    * All Series
+    * All Instances
+
+    See https://dicom.nema.org/medical/dicom/current/output/html/part18.html#sect_10.6
+
+    Allows broader searches than HierarchicalQuery, but can be slower
+    """
+
+    @root_validator()
+    def query_level_should_be_series_or_instance(
+        cls, values  # noqa: B902, N805
+    ):
+        """A relational query only makes sense for the instance and series levels.
+        If you want to look for studies, us a hierarchical query
+        """
+        if values["query_level"] == QueryLevels.STUDY:
+            raise ValueError(STUDY_VALUE_ERROR_TEXT)
+
+        return values
+
+    def uri_base(self) -> str:
+        """WADO-RS url to call when performing this query. Full URI also needs
+        uri_search_params()
+
+        The non-query part of the URI as defined in
+        DICOM PS3.18 section 10.6 table 10.6.1-2
+
+        Raises
+        ------
+        ValueError
+            if query_level is STUDY. This makes no sense for a relational query
+        """
+
+        if self.query_level == QueryLevels.STUDY:
+            raise ValueError(STUDY_VALUE_ERROR_TEXT)
+        elif self.query_level == QueryLevels.SERIES:
+            return "/studies"
+        elif self.query_level == QueryLevels.INSTANCE:
+            if self.StudyInstanceUID:
+                # all instances for this study
+                return f"/studies/{self.StudyInstanceUID}/instances"
+            else:
+                # all instances on the intire server (might be slow)
+                return "/instances"
+
+        else:
+            raise ValueError(
+                f'Unknown querylevel "{self.query_level}". '
+                f'Should be one of "{QueryLevels}"'
+            )
+
+
 class QidoRS(Searcher):
     """A connection to a QIDO-RS server"""
 
@@ -268,16 +341,26 @@ class QidoRS(Searcher):
         if isinstance(query, QidoRSQueryBase):
             return query  # no conversion, just us whatever it was
         elif isinstance(query, Query):
-            # Choosing hierarchical over relational here, as the former is
-            # more similar to wado-uri/dicom-qr queries and faster as well
-            return HierarchicalQuery.init_from_query(query)
+            # We need to convert. Hierarchical is faster and more straightforward
+            try:
+                logger.debug(
+                    "qido-rs searcher got plain Query object. Converting "
+                    "to HierarchicalQuery"
+                )
+                return HierarchicalQuery.init_from_query(query)
+            except UnSupportedParameterError:
+                logger.debug(
+                    "Converting to HierarchicalQuery did not work. "
+                    "Trying slower but less stringent RelationalQuery"
+                )
+                return RelationalQuery.init_from_query(query)
         else:
             raise ValueError(
-                f'Invalid query. Expecting Query, got "{type(query)}")'
+                f'Invalid query. Expecting Query, but got "{type(query)}")'
             )
 
     def find_studies(self, query: Query) -> Sequence[Study]:
-        logger.debug(f"Firing query {query}")
+        logger.debug(f"Firing query {query.to_short_string()}")
 
         query = self.ensure_query_type(query)
         url = self.url.rstrip("/") + query.uri_base()
