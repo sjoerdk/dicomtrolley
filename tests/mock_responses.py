@@ -68,7 +68,8 @@ class MockUrls:
 
     LOGIN = "https://testserver/login"
     MINT_URL = "https://testserver/mint"
-    WADO_URL = "https://testserver/wado"
+    WADO_URI_URL = "https://testserver/wado_uri"
+    WADO_RS_URL = "https://testserver/wado_rs"
     RAD69_URL = "https://testserver/rids"
     QIDO_RS_URL = "https://testserver/qido"
 
@@ -302,7 +303,7 @@ MINT_SEARCH_ANY = MockResponse(
 
 # a Response that contains a valid DICOM bytes
 WADO_RESPONSE_DICOM = MockResponse(
-    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
     content=create_dicom_bytestream(
         quick_dataset(
             PatientName="Jane",
@@ -315,12 +316,12 @@ WADO_RESPONSE_DICOM = MockResponse(
 )
 
 WADO_RESPONSE_INVALID_DICOM = MockResponse(
-    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
     content=bytes(1234),
 )
 
 WADO_RESPONSE_INVALID_NON_DICOM = MockResponse(
-    url=MockUrls.WADO_URL + MockWadoParameters.as_wado_query_string(),
+    url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
     status_code=502,
     text="Error, server really does not know anymore",
 )

@@ -60,7 +60,7 @@ def a_mint(a_session):
 
 @pytest.fixture
 def a_wado(a_session):
-    return WadoURI(session=a_session, url=MockUrls.WADO_URL)
+    return WadoURI(session=a_session, url=MockUrls.WADO_URI_URL)
 
 
 @pytest.fixture
