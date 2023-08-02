@@ -19,34 +19,41 @@ from dicomtrolley.mint import Mint, QueryLevels
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado_uri import WadoURI
 
-print("Creating session")
-session = create_session(
-    environ["LOGIN_URL"],
-    environ["USER"],
-    environ["PASSWORD"],
-    environ["REALM"],
-)
 
-trolley = Trolley(
-    searcher=Mint(session, environ["MINT_URL"]),
-    downloader=WadoURI(session, environ["WADO_URL"]),
-)
+def go_shopping():
+    print("Creating session")
+    session = create_session(
+        environ["LOGIN_URL"],
+        environ["USER"],
+        environ["PASSWORD"],
+        environ["REALM"],
+    )
 
-print("Quick search for studies")
-studies = trolley.find_studies(
-    Query(PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"])
-)
+    trolley = Trolley(
+        searcher=Mint(session, environ["MINT_URL"]),
+        downloader=WadoURI(session, environ["WADO_URL"]),
+    )
 
-print(f"Found {len(studies)} studies. Taking one with least instances")
-studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
-study = studies[1]
+    print("Quick search for studies")
+    studies = trolley.find_studies(
+        Query(
+            PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
+        )
+    )
 
-print(f"Getting slice info for {study}")
-studies_full = trolley.find_studies(
-    Query(StudyInstanceUID=study.uid, query_level=QueryLevels.INSTANCE)
-)  # query_level=INSTANCE will return all instances inside each study
+    print(f"Found {len(studies)} studies. Taking one with least instances")
+    studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
+    study = studies[1]
+
+    print(f"Getting slice info for {study}")
+    studies_full = trolley.find_studies(
+        Query(StudyInstanceUID=study.uid, query_level=QueryLevels.INSTANCE)
+    )  # query_level=INSTANCE will return all instances inside each study
+
+    print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
+    trolley.download(studies_full, environ["DOWNLOAD_PATH"], use_async=False)
+    print("Done")
 
 
-print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
-trolley.download(studies_full, environ["DOWNLOAD_PATH"], use_async=False)
-print("Done")
+if __name__ == "__main__":
+    go_shopping()

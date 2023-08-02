@@ -22,12 +22,13 @@ requests-toolbelt = "^0.9.1"
 pydantic = "1.8.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
+pytest = "^7.4.0"
 pytest-randomly = "^3.5.0"
 pytest-cov = "^2.11.1"
 tox = "^3.23.0"
 requests-mock = "^1.8.0"
 factory-boy = "^3.2.1"
+sybil = "^5.0.3"
 
 [tool.tox]
 legacy_tox_ini = """
