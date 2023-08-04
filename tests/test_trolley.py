@@ -19,9 +19,9 @@ from tests.factories import (
     quick_dataset,
 )
 from tests.mock_responses import (
-    MINT_SEARCH_INSTANCE_LEVEL_ANY,
     MINT_SEARCH_INSTANCE_LEVEL_IDS,
 )
+from tests.mock_servers import MINT_SEARCH_INSTANCE_LEVEL_ANY
 
 
 @pytest.fixture

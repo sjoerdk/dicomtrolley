@@ -5,11 +5,10 @@ Based on live responses from a server running Vitrea Connection 8.2.0.1
 import json
 import re
 import urllib
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Pattern, Union
 
-from requests_mock.adapter import ANY
+from requests_mock import ANY
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
 from dicomtrolley.core import InstanceReference
@@ -66,12 +65,12 @@ class MockResponseList:
 class MockUrls:
     """For re-using across the code"""
 
-    LOGIN = "https://testserver/login"
-    MINT_URL = "https://testserver/mint"
-    WADO_URI_URL = "https://testserver/wado_uri"
-    WADO_RS_URL = "https://testserver/wado_rs"
-    RAD69_URL = "https://testserver/rids"
-    QIDO_RS_URL = "https://testserver/qido"
+    LOGIN = "https://server/login"
+    MINT_URL = "https://server/mint"
+    WADO_URI_URL = "https://server/wado_uri"
+    WADO_RS_URL = "https://server/wado_rs"
+    RAD69_URL = "https://server/rids"
+    QIDO_RS_URL = "https://server/qido"
 
 
 class MockWadoParameters:
@@ -266,8 +265,6 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     "/studySearchResults>",
 )
 
-MINT_SEARCH_INSTANCE_LEVEL_ANY = deepcopy(MINT_SEARCH_INSTANCE_LEVEL)
-MINT_SEARCH_INSTANCE_LEVEL_ANY.url = re.compile("https://.*/mint/.*")
 
 # The IDS in the MINT response. To not have to copy-paste these in tests
 MINT_SEARCH_INSTANCE_LEVEL_IDS = {
@@ -280,27 +277,6 @@ MINT_SEARCH_INSTANCE_LEVEL_IDS = {
 
 
 # Will return mint study response to any mint server query
-MINT_SEARCH_ANY = MockResponse(
-    url=ANY,
-    method=ANY,
-    text="<?xml version='1.0' encoding='UTF-3'?><studySearchResults "
-    'xmlns="http://medical.nema.org/mint" queryfields="PatientName=B*" '
-    'includefields="StudyInstanceUID,PatientName,PatientID"><study '
-    'studyUUID="35997945-c535-4570-3c1f-3514f27695e9" version="1" '
-    'lastModified="2021-08-09T06:42:04.325Z"><attr tag="00100020" vr="LO" '
-    'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." /><attr '
-    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.2.793263.2.125336546.1" />'
-    '</study><study studyUUID="c19a038a-fe0f-4e4b-b690-a895bd8db1e2" version="1"'
-    ' lastModified="2021-08-09T06:42:26.722Z"><attr tag="00100020" vr="LO" '
-    'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." />'
-    '<attr tag="0020000d" vr="UI" '
-    'val="1.2.340.114850.2.857.8.793263.2.126347154.1" /></study><study '
-    'studyUUID="26582e0f-473e-422d-9c24-12ebdbc6dac3" version="1" '
-    'lastModified="2021-08-09T06:42:10.598Z"><attr tag="00100020" vr="LO" '
-    'val="1892052" /><attr tag="00100010" vr="PN" val="BEELDEN^W^I L" /><attr '
-    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.8.793263.2.126347158.1" />'
-    "</study></studySearchResults>",
-)
 
 # a Response that contains a valid DICOM bytes
 WADO_RESPONSE_DICOM = MockResponse(
@@ -315,8 +291,6 @@ WADO_RESPONSE_DICOM = MockResponse(
         )
     ),
 )
-WADO_RESPONSE_DICOM_ANY = WADO_RESPONSE_DICOM
-WADO_RESPONSE_DICOM_ANY.url = re.compile(r"https://.*/wado_uri.*")
 
 WADO_RESPONSE_INVALID_DICOM = MockResponse(
     url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
@@ -549,4 +523,25 @@ QIDO_RS_STUDY_LEVEL = MockResponse(
             },
         ]
     ),
+)
+MINT_SEARCH_ANY = MockResponse(
+    url=ANY,
+    method=ANY,
+    text="<?xml version='1.0' encoding='UTF-3'?><studySearchResults "
+    'xmlns="http://medical.nema.org/mint" queryfields="PatientName=B*" '
+    'includefields="StudyInstanceUID,PatientName,PatientID"><study '
+    'studyUUID="35997945-c535-4570-3c1f-3514f27695e9" version="1" '
+    'lastModified="2021-08-09T06:42:04.325Z"><attr tag="00100020" vr="LO" '
+    'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." /><attr '
+    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.2.793263.2.125336546.1" />'
+    '</study><study studyUUID="c19a038a-fe0f-4e4b-b690-a895bd8db1e2" version="1"'
+    ' lastModified="2021-08-09T06:42:26.722Z"><attr tag="00100020" vr="LO" '
+    'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." />'
+    '<attr tag="0020000d" vr="UI" '
+    'val="1.2.340.114850.2.857.8.793263.2.126347154.1" /></study><study '
+    'studyUUID="26582e0f-473e-422d-9c24-12ebdbc6dac3" version="1" '
+    'lastModified="2021-08-09T06:42:10.598Z"><attr tag="00100020" vr="LO" '
+    'val="1892052" /><attr tag="00100010" vr="PN" val="BEELDEN^W^I L" /><attr '
+    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.8.793263.2.126347158.1" />'
+    "</study></studySearchResults>",
 )

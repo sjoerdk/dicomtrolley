@@ -13,9 +13,9 @@ from dicomtrolley.storage import StorageDir
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado_uri import WadoURI
 from tests.conftest import set_mock_response
-from tests.mock_responses import (
+from tests.mock_servers import (
     MINT_SEARCH_INSTANCE_LEVEL_ANY,
-    WADO_RESPONSE_DICOM_ANY,
+    WADO_URI_RESPONSE_DICOM_ANY,
 )
 
 
@@ -26,7 +26,7 @@ def mock_requests(requests_mock):
     Still needs original import to work apparently
     """
     set_mock_response(requests_mock, MINT_SEARCH_INSTANCE_LEVEL_ANY)
-    set_mock_response(requests_mock, WADO_RESPONSE_DICOM_ANY)
+    set_mock_response(requests_mock, WADO_URI_RESPONSE_DICOM_ANY)
     return requests_mock
 
 

@@ -15,7 +15,7 @@ from dicomtrolley.exceptions import (
 from dicomtrolley.mint import MintQuery
 from dicomtrolley.qido_rs import HierarchicalQuery
 from tests.conftest import set_mock_response
-from tests.mock_responses import MINT_SEARCH_INSTANCE_LEVEL_ANY
+from tests.mock_servers import MINT_SEARCH_INSTANCE_LEVEL_ANY
 
 
 def test_mint_from_query(requests_mock, a_mint):
