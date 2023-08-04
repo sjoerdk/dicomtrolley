@@ -12,7 +12,7 @@ line-length = 79
 target-version = ['py38']
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 requests = "^2.25.1"
 pydicom = "^2.1.2"
 requests-futures = "^1.0.0"
@@ -37,9 +37,9 @@ isolated_build = True
 envlist = py37, py38, py39
 [gh-actions]
 python =
-    3.7: py37
     3.8: py38
     3.9: py39
+    3.10: py310
 [testenv]
 allowlist_externals = poetry
 commands =
