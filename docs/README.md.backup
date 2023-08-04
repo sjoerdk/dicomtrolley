@@ -32,7 +32,7 @@ session = requests.Session()
 
 # Use this session to create a trolley using MINT and WADO
 trolley = Trolley(searcher=Mint(session, "https://server/mint"),
-                  downloader=WadoURI(session, "https://server/wado_uri"))
+                  downloader=WadoURI(session, "https://server/wado_rs"))
 
 # find some studies (using MINT)
 studies = trolley.find_studies(Query(PatientName='B*'))

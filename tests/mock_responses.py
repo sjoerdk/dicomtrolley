@@ -266,6 +266,9 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     "/studySearchResults>",
 )
 
+MINT_SEARCH_INSTANCE_LEVEL_ANY = deepcopy(MINT_SEARCH_INSTANCE_LEVEL)
+MINT_SEARCH_INSTANCE_LEVEL_ANY.url = re.compile("https://.*/mint/.*")
+
 # The IDS in the MINT response. To not have to copy-paste these in tests
 MINT_SEARCH_INSTANCE_LEVEL_IDS = {
     "study_uid": "1.2.840.114350.2.357.2.798268.2.125886546.1",
@@ -275,8 +278,6 @@ MINT_SEARCH_INSTANCE_LEVEL_IDS = {
     ),
 }
 
-MINT_SEARCH_INSTANCE_LEVEL_ANY = deepcopy(MINT_SEARCH_INSTANCE_LEVEL)
-MINT_SEARCH_INSTANCE_LEVEL_ANY.url = ANY
 
 # Will return mint study response to any mint server query
 MINT_SEARCH_ANY = MockResponse(
@@ -314,6 +315,8 @@ WADO_RESPONSE_DICOM = MockResponse(
         )
     ),
 )
+WADO_RESPONSE_DICOM_ANY = WADO_RESPONSE_DICOM
+WADO_RESPONSE_DICOM_ANY.url = re.compile(r"https://.*/wado_uri.*")
 
 WADO_RESPONSE_INVALID_DICOM = MockResponse(
     url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
