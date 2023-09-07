@@ -49,7 +49,9 @@ class MockResponse:
 class MockResponseList:
     """Holds multiple MockResponses mapped to the same URL and Method.
 
-    See https://requests-mock.readthedocs.io/en/latest/response.html#response-lists
+    See [requests-mock reference](https://requests-mock.readthedocs.io/en/
+    latest/response.html#response-lists)
+
 
     Notes
     -----
@@ -201,7 +203,7 @@ MINT_SEARCH_SERIES_LEVEL = MockResponse(
     'val="1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348" />'
     '</series><attr tag="00100020" vr="LO" val="1392052" /><attr tag="00100010"'
     ' vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
-    'vr="UI" val="1.2.840.114350.2.357.2.798268.2.125886546.1" />'
+    'vr="UI" val="111" />'
     "</study></studySearchResults>",
 )
 
@@ -261,14 +263,14 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     'val="1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348" /><'
     '/series><attr tag="00100020" vr="LO" val="1392052" /><attr '
     'tag="00100010" vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
-    'vr="UI" val="1.2.840.114350.2.357.2.798268.2.125886546.1" /></study><'
+    'vr="UI" val="111" /></study><'
     "/studySearchResults>",
 )
 
 
 # The IDS in the MINT response. To not have to copy-paste these in tests
 MINT_SEARCH_INSTANCE_LEVEL_IDS = {
-    "study_uid": "1.2.840.114350.2.357.2.798268.2.125886546.1",
+    "study_uid": "111",
     "series_uids": (
         "1.2.40.0.13.1.202066129828111990737107018349786560571",
         "1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348",

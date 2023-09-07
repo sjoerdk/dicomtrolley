@@ -2,12 +2,10 @@ from datetime import date, datetime
 from typing import List
 
 import pytest
-import requests
 
 from dicomtrolley.core import ExtendedQuery, Series, Study
 from dicomtrolley.dicom_qr import DICOMQR
-from dicomtrolley.mint import Mint, MintStudy, parse_mint_studies_response
-from dicomtrolley.wado_uri import WadoURI
+from dicomtrolley.mint import MintStudy, parse_mint_studies_response
 from tests.factories import (
     create_c_find_image_response,
     create_c_find_study_response,
@@ -19,14 +17,7 @@ from tests.mock_responses import (
     MINT_SEARCH_SERIES_LEVEL,
     MINT_SEARCH_STUDY_LEVEL,
     MockResponseList,
-    MockUrls,
 )
-
-
-@pytest.fixture
-def a_session(requests_mock):
-    """Calling requests_mock fixture here will mock all calls to requests"""
-    return requests.session()
 
 
 @pytest.fixture
@@ -50,17 +41,6 @@ def mock_mint_responses(requests_mock):
         MINT_SEARCH_INSTANCE_LEVEL,
     ):
         set_mock_response(requests_mock, mock)
-
-
-@pytest.fixture
-def a_mint(a_session):
-    """Mint search with faked urls"""
-    return Mint(session=a_session, url=MockUrls.MINT_URL)
-
-
-@pytest.fixture
-def a_wado(a_session):
-    return WadoURI(session=a_session, url=MockUrls.WADO_URI_URL)
 
 
 @pytest.fixture

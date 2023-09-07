@@ -5,7 +5,7 @@ from enum import Enum
 from itertools import chain
 from typing import List, Optional, Sequence, Type, TypeVar, Union
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from pydantic.class_validators import validator
 from pydantic.main import BaseModel
 from pydicom.datadict import tag_for_keyword
@@ -385,7 +385,7 @@ def to_series_level_refs(
 
 
 class Downloader:
-    """Something that can fetch DICOM instances. Base class"""
+    """Something that can download DICOM images. Base class"""
 
     def get_dataset(self, instance: InstanceReference):
         """Get DICOM dataset for the given instance (slice)
@@ -464,6 +464,7 @@ class Query(BaseModel):
     -----
     *  Different backends use slightly different query parameters. This class
        implements all common parameters.
+
     *  DICOM queries consist of a number of DICOM tags followed by a search
        criterion. The naming format for these parameters follows DICOM conventions
        (CamelCase). In addition, a query has non-DICOM meta-parameters. Here regular
@@ -516,7 +517,7 @@ class Query(BaseModel):
     )  # to which depth to return results
     max_study_date: Optional[datetime]
     min_study_date: Optional[datetime]
-    include_fields: List[str] = []  # which dicom fields to return
+    include_fields: List[str] = Field([])  #
 
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init

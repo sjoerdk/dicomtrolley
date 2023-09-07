@@ -12,27 +12,23 @@ Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR
 
 * Uses `pydicom` and `pynetdicom`. Images and query results are `pydicom.Dataset` instances
 * Query and download DICOM Studies, Series and Instances
-* Integrated search and download - download automatically queries for missing series or instance info  
+* Integrated search and download - automatic queries for missing series and instance info
 
-
-![A trolley](docs/resources/trolley.png)
+![A trolley](resources/trolley.png)
 
 ## Installation
 ```
 pip install dicomtrolley
 ```
 
-## Usage
-
-### Basic example
-
+## Basic usage
 ```python
 # Create a http session
 session = requests.Session()
 
 # Use this session to create a trolley using MINT and WADO
 trolley = Trolley(searcher=Mint(session, "https://server/mint"),
-                  downloader=WadoURI(session, "https://server/wado_rs"))
+                  downloader=WadoURI(session, "https://server/wado_uri"))
 
 # find some studies (using MINT)
 studies = trolley.find_studies(Query(PatientName='B*'))
@@ -40,3 +36,22 @@ studies = trolley.find_studies(Query(PatientName='B*'))
 # download the fist one (using WADO)
 trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
+## Documentation
+see [dicomtrolley github docs](https://github.com/sjoerdk/dicomtrolley/tree/master/docs)
+
+## Examples
+Example code can be found [on github](https://github.com/sjoerdk/dicomtrolley/tree/master/examples)
+
+## Alternatives
+* [dicomweb-client](https://github.com/MGHComputationalPathology/dicomweb-client) - Active library supporting QIDO-RS, WADO-RS and STOW-RS. 
+* [pynetdicom](https://github.com/pydicom/pynetdicom) - dicomtrolley's DICOM-QR support is based on pynetdicom. Pynetdicom supports a broad range of DICOM networking interactions and can be used as a stand alone application.
+
+## Caveats
+Dicomtrolley has been developed for and tested on a Vitrea Connection 8.2.0.1 system. This claims to
+be consistent with WADO and MINT 1.2 interfaces, but does not implement all parts of these standards. 
+
+Certain query parameter values and restraints might be specific to Vitrea Connection 8.2.0.1. For example,
+the exact list of DICOM elements that can be returned from a query might be different for different servers.
+
+## Contributing
+See [Contributing](contributing.md)

@@ -1,10 +1,12 @@
 """Models WADO-RS: Web Access to dicom Objects by Restful Services
 
-https://www.dicomstandard.org/using/dicomweb/retrieve-wado-rs-and-wado-uri/
+[Wado RS description]
+(https://www.dicomstandard.org/using/dicomweb/retrieve-wado-rs-and-wado-uri/)
 
 See Also
 --------
-https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.4.html
+[DICOM part18 section 10.4]
+(https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.4.html)
 
 Notes
 -----
@@ -15,14 +17,21 @@ outside the scope of the dicomtrolley project.
 Specifically, from DICOM PS3.18 section 10.4
 
 Download supported by dicomtrolley:
+
 * Instance resources (download all instances)
 
 Download Not Supported by dicomtrolley:
+
 * Metadata resources
+
 * Rendered resources
+
 * Thumbnail resources
+
 * Bulkdata resources
+
 * Pixel Data resources
+
 """
 from itertools import chain
 from typing import Iterator, Sequence
@@ -62,7 +71,7 @@ class WadoRS(Downloader):
             WADO-RS endpoint, including protocol and port. Like
             https://server:8080/wado
         http_chunk_size: int, optional
-            Number of bytes to read each time when streaming chunked rad69 responses.
+            Number of bytes to read each time when streaming chunked responses.
             Defaults to 5MB (5242880 bytes)
         request_per_series: bool, optional
             If true, split requests per series when downloading. If false,

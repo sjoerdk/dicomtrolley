@@ -1,6 +1,7 @@
 """Models the WADO-uri protocol
 
-https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_9.html
+[DICOM part18 chapter 9]
+(https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_9.html)
 """
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor

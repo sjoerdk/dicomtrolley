@@ -1,8 +1,11 @@
-"""Models QIDO-RS: Query based on ID for dicom Objects by Restful Services
-https://www.dicomstandard.org/using/dicomweb/query-qido-rs/
+"""Models QIDO-RS: Query based on ID for dicom Objects by Restful Services.
 
-See
-https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.6.html#sect_10.6.1.2
+
+See: [QIDO-RS reference](https://www.dicomstandard.org/using/dicomweb/query-qido-rs/)
+and [QIDO-RS at NEMA]
+(https://dicom.nema.org/medical/dicom/current/output/chtml/part18/
+sect_10.6.html#sect_10.6.1.2)
+
 """
 import json
 from datetime import datetime
@@ -146,9 +149,13 @@ class HierarchicalQuery(QidoRSQueryBase):
     """QIDO-RS Query that uses that traditional study->series->instance structure
 
     Allows the following queries:
+
     * All Studies
+
     * Study's Series
+
     * Study's Series' Instances
+
     See https://dicom.nema.org/medical/dicom/current/output/html/part18.html#sect_10.6
 
     Faster than relationalQuery, but requires more information
@@ -240,8 +247,11 @@ class RelationalQuery(QidoRSQueryBase):
     """QIDO-RS query that allows querying for series and instances directly
 
     Allows the following queries
+
     * Study's Instances
+
     * All Series
+
     * All Instances
 
     See https://dicom.nema.org/medical/dicom/current/output/html/part18.html#sect_10.6

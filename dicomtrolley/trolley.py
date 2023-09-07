@@ -1,12 +1,11 @@
-"""Combines WADO, RAD69, MINT and DICOM-QR to make getting DICOM studies easy.
+"""Combines Searcher and Downloader to make getting DICOM studies easy.
 
 Notes
 -----
 Design choices:
 
-WADO, RAD69, MINT and DICOM-QR modules should be stand-alone. They are not allowed to
-use each other's classes. Trolley has knowledge of all and converts between them if
-needed
+Searcher and Downloader classes should be stand-alone. They are not allowed to
+communicate directly. Trolley has knowledge of both and is in control.
 """
 import itertools
 import tempfile
@@ -39,9 +38,12 @@ class Trolley:
     """Combines a search and download method to get DICOM studies easily
 
     Features:
+
     * Searching for DICOM using a Query instance is backend-agnostic.
+
     * If a download method requires additional information such as all instance UIDs,
       trolley can query for these in the background.
+
     * Saves to disk in reasonable (uid based) folder structure.
     """
 

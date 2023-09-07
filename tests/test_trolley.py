@@ -24,12 +24,6 @@ from tests.mock_responses import (
 from tests.mock_servers import MINT_SEARCH_INSTANCE_LEVEL_ANY
 
 
-@pytest.fixture
-def a_trolley(a_mint, a_wado) -> Trolley:
-    """Trolley instance that will not hit any server"""
-    return Trolley(searcher=a_mint, downloader=a_wado, query_missing=True)
-
-
 def test_trolley_find(a_trolley, some_mint_studies):
     a_trolley.searcher.find_studies = Mock(return_value=some_mint_studies)
     assert a_trolley.find_studies(query=MintQuery()) == some_mint_studies

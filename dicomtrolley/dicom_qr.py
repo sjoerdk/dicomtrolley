@@ -48,7 +48,9 @@ class DICOMQuery(ExtendedQuery):
     -----
     * Incomplete: this class implements only a minimal core of DICOM QR search.
       It can be extended should the need arise
+
     * All string arguments support (*) as a wildcard
+
     * non-pep8 parameter naming format follows DICOM parameter convention.
       Other parameters match MINTQuery conventions, query parameters are similar.
 
