@@ -45,3 +45,17 @@ To bump dicomtrolley's version, do the following:
 * Manually increment the version number: `pyproject.toml` -> `version = "0.1.2"`
   
 * Add a brief description of your updates new version to `HISTORY.md`
+
+### Updating docs
+Docs are based on [mkdocs](https://www.mkdocs.org/), using the 
+[Materials for mkdocs](https://squidfunk.github.io/mkdocs-material/) skin.
+
+Docs are published on [readthedocs.org](https://about.readthedocs.com/). To edit the docs:
+
+* Install dependencies: 'poetry install'
+
+* Edit content in `/docs`
+
+* Try out your changes using `mkdocs serve`
+
+* Update docs requirements (readthedocs needs this): `pip-compile docs/docs_requirements.in`

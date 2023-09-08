@@ -9,15 +9,31 @@
 
 Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR
 
-* Requires python 3.7, 3.8 or 3.9
 * Uses `pydicom` and `pynetdicom`. Images and query results are `pydicom.Dataset` instances
-* Multi-threaded downloading using `requests-futures`
+* Query and download DICOM Studies, Series and Instances
+* Integrated search and download - automatic queries for missing series and instance info
 
 ![A trolley](resources/trolley.png)
 
 ## Installation
 ```
 pip install dicomtrolley
+```
+
+## Basic usage
+```python
+# Create a http session
+session = requests.Session()
+
+# Use this session to create a trolley using MINT and WADO
+trolley = Trolley(searcher=Mint(session, "https://server/mint"),
+                  downloader=WadoURI(session, "https://server/wado_uri"))
+
+# find some studies (using MINT)
+studies = trolley.find_studies(Query(PatientName='B*'))
+
+# download the fist one (using WADO)
+trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
 
 ## Documentation
