@@ -12,6 +12,7 @@ from sybil.parsers.myst import PythonCodeBlockParser
 from dicomtrolley.auth import VitreaAuth
 from dicomtrolley.core import (
     Downloader,
+    Instance,
     InstanceReference,
     Query,
     QueryLevels,
@@ -28,6 +29,7 @@ from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado_rs import WadoRS
 from dicomtrolley.wado_uri import WadoURI
 from tests.conftest import set_mock_response
+from tests.factories import quick_dataset
 from tests.mock_responses import LOGIN_SUCCESS
 from tests.mock_servers import (
     MINT_SEARCH_INSTANCE_LEVEL_ANY,
@@ -70,8 +72,15 @@ def no_storage(monkeypatch):
     return NoSaveStorageDir
 
 
+def get_an_instance():
+    an_instance = Mock(spec=Instance)
+    an_instance.data = quick_dataset(Rows=100)
+    return an_instance
+
+
 def setup_namespace(namespace: Dict[str, Any]):
     """All imports done before each of the examples in docs"""
+
     to_add = {
         "requests": requests,
         "Trolley": Trolley,
@@ -88,6 +97,7 @@ def setup_namespace(namespace: Dict[str, Any]):
         "a_session": Mock(spec=Session),
         "a_searcher": Mock(spec=Searcher),
         "a_downloader": Mock(spec=Downloader),
+        "an_instance": get_an_instance(),
         "StudyReference": StudyReference,
         "SeriesReference": SeriesReference,
         "InstanceReference": InstanceReference,

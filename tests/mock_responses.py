@@ -263,7 +263,8 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     'val="1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348" /><'
     '/series><attr tag="00100020" vr="LO" val="1392052" /><attr '
     'tag="00100010" vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
-    'vr="UI" val="111" /></study><'
+    'vr="UI" val="111" /><attr tag="00201208" '
+    'vr="IS" val="200" /></study><'
     "/studySearchResults>",
 )
 

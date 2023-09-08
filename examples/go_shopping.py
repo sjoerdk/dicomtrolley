@@ -43,7 +43,7 @@ def go_shopping():
 
     print(f"Found {len(studies)} studies. Taking one with least instances")
     studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
-    study = studies[1]
+    study = studies[0]
 
     print(f"Getting slice info for {study}")
     studies_full = trolley.find_studies(

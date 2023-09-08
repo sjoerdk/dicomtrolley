@@ -47,6 +47,18 @@ studies = trolley.find_studies(      # find studies series and instances
 a_series = studies[0].series[0]         # studies now contain series    
 an_instance = a_series.instances[0]  # and series contain instances
 ```
+Data sent back by the server is parsed in a DICOM object hierarchy. Each object stores its additional data in the 
+`data` field. This field is a [pydicom.Dataset](
+https://pydicom.github.io/pydicom/stable/reference/generated/pydicom.dataset.Dataset.html) 
+object and can be addressed as such:
+```python
+an_instance.data            # {pydicom.Dataset} instance
+an_instance.data.Rows       # {int} 100
+an_instance.data["Rows"]    # {DataElement} instance
+```
+!!! note
+    The information sent back for each DICOM object level depends on the [query_level](concepts.md#query_level) and
+    [include_fields](concepts.md#include_fields) parameters, as well as on the server type and configuration
 ## Downloading images
 Any study, series or instance can be downloaded (see [DICOMObject](concepts.md#dicomobject)):
 ```python
