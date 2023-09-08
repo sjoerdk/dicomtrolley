@@ -264,7 +264,8 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     '/series><attr tag="00100020" vr="LO" val="1392052" /><attr '
     'tag="00100010" vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
     'vr="UI" val="111" /><attr tag="00201208" '
-    'vr="IS" val="200" /></study><'
+    'vr="IS" val="200" /><attr tag="00100030" '
+    'vr="DA" val="1900" /></study><'
     "/studySearchResults>",
 )
 

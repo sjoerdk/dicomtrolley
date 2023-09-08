@@ -15,34 +15,42 @@ from dicomtrolley.auth import create_session
 from dicomtrolley.core import InstanceReference
 from dicomtrolley.wado_uri import WadoURI
 
-# Create auto-login session
-session = create_session(
-    environ["LOGIN_URL"],
-    environ["USER"],
-    environ["PASSWORD"],
-    environ["REALM"],
-)
 
-wado = WadoURI(session, environ["WADO_URL"])
+def use_wado_only():
+    # Create auto-login session
+    session = create_session(
+        environ["LOGIN_URL"],
+        environ["USER"],
+        environ["PASSWORD"],
+        environ["REALM"],
+    )
 
-# Study, Series and Instance UIDs are already known. dicomtrolley uses
-# InstanceReference to represent a WADO-downloadable slice
-instance1 = InstanceReference(
-    series_uid="1.2.840.113619.2.239.1783.1568025913.0.105",
-    study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
-    instance_uid="1.2.840.113619.2.239.1783.1568025913.0.113",
-)
+    wado = WadoURI(session, environ["WADO_URL"])
 
-instance2 = InstanceReference(
-    series_uid="1.2.840.113619.2.239.1783.1568025913.0.76",
-    instance_uid="1.2.840.113619.2.239.1783.1568025913.0.77.64",
-    study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
-)
+    # Study, Series and Instance UIDs are already known. dicomtrolley uses
+    # InstanceReference to represent a WADO-downloadable slice
+    instance1 = InstanceReference(
+        series_uid="1.2.840.113619.2.239.1783.1568025913.0.105",
+        study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
+        instance_uid="1.2.840.113619.2.239.1783.1568025913.0.113",
+    )
 
-# InstanceReference can be fed to wado download methods
-instances = [instance1, instance2]
-print(f'Downloading {len(instances)} instances to {environ["DOWNLOAD_PATH"]}')
-for ds in wado.datasets(instances):
-    ds.save_as(f'{environ["DOWNLOAD_PATH"]}/{ds.SOPInstanceUID}')
+    instance2 = InstanceReference(
+        series_uid="1.2.840.113619.2.239.1783.1568025913.0.76",
+        instance_uid="1.2.840.113619.2.239.1783.1568025913.0.77.64",
+        study_uid="1.2.840.114350.2.357.3.798268.2.126847153.1",
+    )
 
-print("Done")
+    # InstanceReference can be fed to wado download methods
+    instances = [instance1, instance2]
+    print(
+        f'Downloading {len(instances)} instances to {environ["DOWNLOAD_PATH"]}'
+    )
+    for ds in wado.datasets(instances):
+        ds.save_as(f'{environ["DOWNLOAD_PATH"]}/{ds.SOPInstanceUID}')
+
+    print("Done")
+
+
+if __name__ == "__main__":
+    use_wado_only()
