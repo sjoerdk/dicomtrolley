@@ -18,30 +18,36 @@ from dicomtrolley.mint import Mint, MintQuery
 from dicomtrolley.rad69 import Rad69
 from dicomtrolley.trolley import Trolley
 
-print("Creating session")
-session = create_session(
-    environ["LOGIN_URL"],
-    environ["USER"],
-    environ["PASSWORD"],
-    environ["REALM"],
-)
 
-trolley = Trolley(
-    searcher=Mint(session, environ["MINT_URL"]),
-    downloader=Rad69(session, environ["RAD69_URL"]),
-)
-
-print("Quick search for studies")
-studies = trolley.find_studies(
-    MintQuery(
-        PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
+def go_shopping_rad69():
+    print("Creating session")
+    session = create_session(
+        environ["LOGIN_URL"],
+        environ["USER"],
+        environ["PASSWORD"],
+        environ["REALM"],
     )
-)
 
-print(f"Found {len(studies)} studies. Taking one with least instances")
-studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
-study = studies[0]
-print(f"Downloading study with {study.data.NumberOfStudyRelatedInstances}")
-print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
-trolley.download(study, environ["DOWNLOAD_PATH"], use_async=False)
-print("Done")
+    trolley = Trolley(
+        searcher=Mint(session, environ["MINT_URL"]),
+        downloader=Rad69(session, environ["RAD69_URL"]),
+    )
+
+    print("Quick search for studies")
+    studies = trolley.find_studies(
+        MintQuery(
+            PatientName="B*", include_fields=["NumberOfStudyRelatedInstances"]
+        )
+    )
+
+    print(f"Found {len(studies)} studies. Taking one with least instances")
+    studies.sort(key=lambda x: int(x.data.NumberOfStudyRelatedInstances))
+    study = studies[0]
+    print(f"Downloading study with {study.data.NumberOfStudyRelatedInstances}")
+    print(f"Saving datasets to {environ['DOWNLOAD_PATH']}")
+    trolley.download(study, environ["DOWNLOAD_PATH"], use_async=False)
+    print("Done")
+
+
+if __name__ == "__main__":
+    go_shopping_rad69()

@@ -3,8 +3,9 @@ import pytest
 
 from dicomtrolley.storage import StorageDir
 from examples.go_shopping import go_shopping
+from examples.go_shopping_rad69 import go_shopping_rad69
 from tests.conftest import set_mock_response
-from tests.mock_responses import LOGIN_SUCCESS, MockUrls
+from tests.mock_responses import LOGIN_SUCCESS, MockUrls, RAD69_RESPONSE_ANY
 from tests.mock_servers import (
     MINT_SEARCH_INSTANCE_LEVEL_ANY,
     WADO_URI_RESPONSE_DICOM_ANY,
@@ -27,12 +28,14 @@ def no_storage(monkeypatch):
 
 @pytest.fixture()
 def example_env(monkeypatch):
+    """Set up all env values used in examples"""
     monkeypatch.setenv("USER", "Username")
     monkeypatch.setenv("PASSWORD", "Password")
     monkeypatch.setenv("REALM", "a_realm")
     monkeypatch.setenv("LOGIN_URL", MockUrls.LOGIN)
     monkeypatch.setenv("MINT_URL", MockUrls.MINT_URL)
     monkeypatch.setenv("WADO_URL", MockUrls.WADO_URI_URL)
+    monkeypatch.setenv("RAD69_URL", MockUrls.RAD69_URL)
     monkeypatch.setenv("DOWNLOAD_PATH", "/tmp")
 
 
@@ -44,10 +47,13 @@ def mock_requests(requests_mock):
     set_mock_response(requests_mock, MINT_SEARCH_INSTANCE_LEVEL_ANY)
     set_mock_response(requests_mock, WADO_URI_RESPONSE_DICOM_ANY)
     set_mock_response(requests_mock, LOGIN_SUCCESS)
+    set_mock_response(requests_mock, RAD69_RESPONSE_ANY)
     return requests_mock
 
 
 def test_go_shopping(mock_requests, no_storage, example_env):
-
-    # set up env and mock server responses
     go_shopping()
+
+
+def test_go_shopping_rad69(mock_requests, no_storage, example_env):
+    go_shopping_rad69()

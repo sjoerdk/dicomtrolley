@@ -418,6 +418,10 @@ RAD69_RESPONSE_UNKNOWN = MockResponse(
     ),
 )
 
+# Simple valid dataset for call to rad69 url
+RAD69_RESPONSE_ANY = quick_rad69_response(PatientName="Test")
+RAD69_RESPONSE_ANY.url = MockUrls.RAD69_URL
+
 # Three studies at study level
 QIDO_RS_STUDY_LEVEL = MockResponse(
     url=re.compile(MockUrls.QIDO_RS_URL + ".*"),
