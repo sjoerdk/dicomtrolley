@@ -15,6 +15,8 @@ Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR
 
 ![A trolley](resources/trolley.png)
 
+[dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
+
 ## Installation
 ```
 pip install dicomtrolley
@@ -37,4 +39,4 @@ trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
 
 ## Documentation
-see [dicomtrolley github docs](https://github.com/sjoerdk/dicomtrolley/tree/master/docs)
+see [dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
