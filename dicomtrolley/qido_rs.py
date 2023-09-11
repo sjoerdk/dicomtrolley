@@ -39,7 +39,7 @@ class QidoRSQueryBase(Query):
     limit: int = 0  # How many results to return. 0 = all
     offset: int = 0  # Number of skipped results
 
-    @root_validator()
+    @root_validator()  # type: ignore
     def min_max_study_date_xor(cls, values):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
         min_date = values.get("min_study_date")
@@ -161,7 +161,7 @@ class HierarchicalQuery(QidoRSQueryBase):
     Faster than relationalQuery, but requires more information
     """
 
-    @root_validator()
+    @root_validator()  # type: ignore
     def uids_should_be_hierarchical(cls, values):  # noqa: B902, N805
         """Any object uids passed should conform to study->series->instance"""
         order = ["StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID"]
@@ -189,7 +189,7 @@ class HierarchicalQuery(QidoRSQueryBase):
 
         return values
 
-    @root_validator()
+    @root_validator()  # type: ignore
     def uids_should_match_query_level(cls, values):  # noqa: B902, N805
         """If a query is for instance level, there should be study and series UIDs"""
         query_level = values["query_level"]
@@ -259,7 +259,7 @@ class RelationalQuery(QidoRSQueryBase):
     Allows broader searches than HierarchicalQuery, but can be slower
     """
 
-    @root_validator()
+    @root_validator()  # type: ignore
     def query_level_should_be_series_or_instance(
         cls, values  # noqa: B902, N805
     ):

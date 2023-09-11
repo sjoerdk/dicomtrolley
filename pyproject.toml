@@ -43,7 +43,7 @@ pip-tools = "^7.3.0"
 legacy_tox_ini = """
 [tox]
 isolated_build = True
-envlist = py37, py38, py39
+envlist = py38, py39, py310
 [gh-actions]
 python =
     3.8: py38
