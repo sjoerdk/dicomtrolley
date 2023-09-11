@@ -18,7 +18,7 @@ pydicom = "^2.1.2"
 requests-futures = "^1.0.0"
 pynetdicom = "^1.5.6"
 Jinja2 = "^3.0.3"
-requests-toolbelt = "^0.9.1"
+requests-toolbelt = "^1.0.0"
 pydantic = "1.8.2"
 
 [tool.poetry.dev-dependencies]
