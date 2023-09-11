@@ -50,11 +50,12 @@ To bump dicomtrolley's version, do the following:
 Docs are based on [mkdocs](https://www.mkdocs.org/), using the 
 [Materials for mkdocs](https://squidfunk.github.io/mkdocs-material/) skin.
 
-Docs are published on [readthedocs.org](https://about.readthedocs.com/). To edit the docs:
+Docs are published on [readthedocs.org](https://about.readthedocs.com/). Docs requirements are kept separate and updated with 
+[pip-tools](https://pypi.org/project/pip-tools/) for a clean readthedocs build. To edit the docs:
 
-* Install dependencies: 'poetry install'
+* Install docs dependencies: `pip install -r docs/docs_requirements.txt`
 
-* Edit content in `/docs`
+* Edit content in `/docs`, potentialy add requirements in `docs/docs_requirements.in`
 
 * Try out your changes using `mkdocs serve`
 
