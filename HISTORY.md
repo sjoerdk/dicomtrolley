@@ -1,4 +1,19 @@
 # History
+
+## v3.0.1 (12-09-23)
+* Fixes build and documentation errors
+
+## v3.0.0 (11-09-23)
+* Adds WADO-RS and QIDO-RS support
+* Reworks download mechanics. Fascilitates direct download when you know the ids by introducing DICOMObjectReference. This base for Series-, Study- and SOPInstanceReference can be downloaded directly
+* Introduces CachedSearcher to avoid unneeded queries
+* Simplifies and clears up trolley download methods by upgrading DICOMDownloadable to base class 
+* Simplifies automatic querying for missing ids. Downloader instances can now raise Exceptions for insufficient download info (missing instance, series ids)
+* Simplifies Query class structure. Removes BasicQuery class in favour of Query+Exception for unconvertible query parameters
+* Updates docs: Moves from single github readme to separate readthedocs build
+* All code examples in docs and /examples are now tested
+* Main branch is now called main. Removes branch master.
+
 ## v2.2.0 (2023-03-23)
 * DICOM-QR queries now use Study Root (QR class 1.2.840.10008.5.1.4.1.2.2.1) instead of Patient Root to simplify study-level queries. (#38)
 
@@ -58,7 +73,6 @@
 * Adds PatientID to DICOM query parameters
 
 ## v0.8.0 (2021-10-14)
-
 * Makes it possible to download series and studies without instance information. 
   Trolley will fire additional queries in the background to find missing instance info.
   This makes it much easier to select from a study or series level query and download only 
