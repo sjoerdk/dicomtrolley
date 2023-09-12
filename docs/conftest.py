@@ -24,7 +24,6 @@ from dicomtrolley.dicom_qr import DICOMQR
 from dicomtrolley.mint import Mint, MintQuery
 from dicomtrolley.qido_rs import QidoRS
 from dicomtrolley.rad69 import Rad69
-from dicomtrolley.storage import StorageDir
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado_rs import WadoRS
 from dicomtrolley.wado_uri import WadoURI
@@ -63,20 +62,6 @@ def an_instance():
     an_instance = Mock(spec=Instance)
     an_instance.data = quick_dataset(Rows=100)
     return an_instance
-
-
-class NoSaveStorageDir(StorageDir):
-    def save(self, dataset, path=None):
-        """Do not actually write to disk"""
-        pass
-
-
-@pytest.fixture
-def no_storage(monkeypatch):
-    """Replaces default trolley storage class with one that does not touch disk"""
-
-    monkeypatch.setattr("dicomtrolley.trolley.StorageDir", NoSaveStorageDir)
-    return NoSaveStorageDir
 
 
 def setup_namespace(namespace: Dict[str, Any]):
