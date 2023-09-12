@@ -13,7 +13,7 @@ Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR
 * Query and download DICOM Studies, Series and Instances
 * Integrated search and download - automatic queries for missing series and instance info
 
-![A trolley](resources/trolley.png)
+![A trolley](docs/resources/trolley.png)
 
 [dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
 
