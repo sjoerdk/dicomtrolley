@@ -58,6 +58,13 @@ def trolley(a_trolley):
     return a_trolley
 
 
+@pytest.fixture
+def an_instance():
+    an_instance = Mock(spec=Instance)
+    an_instance.data = quick_dataset(Rows=100)
+    return an_instance
+
+
 class NoSaveStorageDir(StorageDir):
     def save(self, dataset, path=None):
         """Do not actually write to disk"""
@@ -70,12 +77,6 @@ def no_storage(monkeypatch):
 
     monkeypatch.setattr("dicomtrolley.trolley.StorageDir", NoSaveStorageDir)
     return NoSaveStorageDir
-
-
-def get_an_instance():
-    an_instance = Mock(spec=Instance)
-    an_instance.data = quick_dataset(Rows=100)
-    return an_instance
 
 
 def setup_namespace(namespace: Dict[str, Any]):
@@ -97,7 +98,6 @@ def setup_namespace(namespace: Dict[str, Any]):
         "a_session": Mock(spec=Session),
         "a_searcher": Mock(spec=Searcher),
         "a_downloader": Mock(spec=Downloader),
-        "an_instance": get_an_instance(),
         "StudyReference": StudyReference,
         "SeriesReference": SeriesReference,
         "InstanceReference": InstanceReference,
@@ -111,6 +111,6 @@ def setup_namespace(namespace: Dict[str, Any]):
 pytest_collect_file = Sybil(
     parsers=[PythonCodeBlockParser()],
     pattern="*.md",
-    fixtures=["mock_requests", "no_storage", "trolley"],
+    fixtures=["mock_requests", "no_storage", "trolley", "an_instance"],
     setup=setup_namespace,
 ).pytest()

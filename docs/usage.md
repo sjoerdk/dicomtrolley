@@ -45,7 +45,7 @@ studies = trolley.find_studies(      # find studies series and instances
           query_level=QueryLevels.INSTANCE))
 
 a_series = studies[0].series[0]         # studies now contain series    
-an_instance = a_series.instances[0]  # and series contain instances
+an_instance = a_series.instances[0]     # and series contain instances
 ```
 Data sent back by the server is parsed in a DICOM object hierarchy. Each object stores its additional data in the 
 `data` field. This field is a [pydicom.Dataset](
