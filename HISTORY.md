@@ -1,5 +1,8 @@
 # History
 
+## v3.0.2 (12-09-23)
+* pydicom dataset.save_as ValueErrors are now changed to StorageErrors. Fixes #45
+
 ## v3.0.1 (12-09-23)
 * Fixes build and documentation errors
 
