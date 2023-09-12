@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.logs import get_module_logger
 
 logger = get_module_logger("storage")
@@ -35,7 +36,13 @@ class StorageDir(DICOMDiskStorage):
         return f"StorageDir at {self.path}"
 
     def save(self, dataset, path: Optional[str] = None):
-        """Write dataset. Creates sub-folders if needed."""
+        """Write dataset. Creates sub-folders if needed.
+
+        Raises
+        ------
+        StorageError
+            If writing to disk does not work for some reason
+        """
         if not path:
             path = self.path
 
@@ -43,7 +50,10 @@ class StorageDir(DICOMDiskStorage):
         slice_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.debug(f'Saving to "{slice_path}"')
-        dataset.save_as(slice_path)
+        try:
+            dataset.save_as(slice_path)
+        except ValueError as e:
+            raise StorageError() from e
 
     def generate_path(self, dataset):
         """A path studyid/seriesid/instanceid to save a slice to."""
@@ -65,3 +75,7 @@ class FlatStorageDir(StorageDir):
 
     def generate_path(self, dataset):
         return Path(self.get_value(dataset, "SOPInstanceUID"))
+
+
+class StorageError(DICOMTrolleyError):
+    pass

@@ -3,6 +3,7 @@ import pytest
 import requests
 
 from dicomtrolley.mint import Mint
+from dicomtrolley.storage import StorageDir
 from dicomtrolley.trolley import Trolley
 from dicomtrolley.wado_uri import WadoURI
 from tests.mock_responses import MockUrls
@@ -29,3 +30,17 @@ def a_wado(a_session):
 def a_trolley(a_mint, a_wado) -> Trolley:
     """Trolley instance that will not hit any server"""
     return Trolley(searcher=a_mint, downloader=a_wado, query_missing=True)
+
+
+class NoSaveStorageDir(StorageDir):
+    def save(self, dataset, path=None):
+        """Do not actually write to disk"""
+        pass
+
+
+@pytest.fixture
+def no_storage(monkeypatch):
+    """Replaces default trolley storage class with one that does not touch disk"""
+
+    monkeypatch.setattr("dicomtrolley.trolley.StorageDir", NoSaveStorageDir)
+    return NoSaveStorageDir

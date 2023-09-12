@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import pytest
 
 from dicomtrolley.core import SeriesReference, StudyReference
+from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.mint import Mint, MintQuery
 from dicomtrolley.parsing import DICOMObjectTree
 from dicomtrolley.storage import FlatStorageDir
@@ -16,6 +17,7 @@ from tests.conftest import create_mint_study, set_mock_response
 from tests.factories import (
     InstanceReferenceFactory,
     SeriesReferenceFactory,
+    StudyReferenceFactory,
     quick_dataset,
 )
 from tests.mock_responses import (
@@ -150,6 +152,26 @@ def test_trolley_alternate_storage_download(
 
     for path in expected:
         assert path.exists()
+
+
+def test_trolley_encapsulation_error(a_trolley):
+    """Recreates issue #45. Uncaught ValueError during download"""
+
+    # download will yield a dataset that recreates issue 45 when calling save_as
+    the_error = ValueError(
+        "(7FE0,0010) Pixel Data has an undefined length "
+        "indicating that it's compressed, but the data isn't "
+        "encapsulated as required. See "
+        "pydicom.encaps.encapsulate() for more information"
+    )
+
+    a_dataset = quick_dataset(PatientID="Corrupt_Dataset")
+    a_dataset.save_as = Mock(side_effect=the_error)
+    a_trolley.fetch_all_datasets = Mock(return_value=iter([a_dataset]))
+
+    # this should be caught an raised as a TrolleyError
+    with pytest.raises(DICOMTrolleyError):
+        a_trolley.download(StudyReferenceFactory(), output_dir="/tmp")
 
 
 def test_cached_searcher_retrieve_instances(a_mint, requests_mock):
