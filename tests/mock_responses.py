@@ -553,3 +553,12 @@ MINT_SEARCH_ANY = MockResponse(
     'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.8.793263.2.126347158.1" />'
     "</study></studySearchResults>",
 )
+
+
+# a valid response when a query has 0 results
+QIDO_RS_204_NO_RESULTS = MockResponse(
+    url=re.compile(MockUrls.QIDO_RS_URL + ".*"),
+    method="GET",
+    status_code=204,
+    content=b"",
+)

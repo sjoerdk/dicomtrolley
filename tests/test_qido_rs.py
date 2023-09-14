@@ -5,7 +5,11 @@ import pytest
 from dicomtrolley.core import QueryLevels
 from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS, RelationalQuery
 from tests.conftest import set_mock_response
-from tests.mock_responses import MockUrls, QIDO_RS_STUDY_LEVEL
+from tests.mock_responses import (
+    MockUrls,
+    QIDO_RS_204_NO_RESULTS,
+    QIDO_RS_STUDY_LEVEL,
+)
 
 
 @pytest.mark.parametrize(
@@ -102,5 +106,14 @@ def a_qido(a_session) -> QidoRS:
 
 def test_qido_searcher(requests_mock, a_qido):
     set_mock_response(requests_mock, QIDO_RS_STUDY_LEVEL)
+    result = a_qido.find_studies(HierarchicalQuery())
+    assert len(result) == 3
+
+
+def test_qido_searcher_204(requests_mock, a_qido):
+    """QIDO-RS servers should return http 204 for queries with 0 results.
+    This should be handled without raising exceptions. Recreates issue 47
+    """
+    set_mock_response(requests_mock, QIDO_RS_204_NO_RESULTS)
     result = a_qido.find_studies(HierarchicalQuery())
     assert len(result) == 3
