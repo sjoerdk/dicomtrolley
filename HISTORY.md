@@ -1,5 +1,8 @@
 # History
 
+## v3.0.3 (14-09-23)
+* Handles QIDO-RS http 204 (No Content) by returning expected empty result. Fixes #47
+
 ## v3.0.2 (12-09-23)
 * pydicom dataset.save_as ValueErrors are now changed to StorageErrors. Fixes #45
 
