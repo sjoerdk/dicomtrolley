@@ -116,4 +116,4 @@ def test_qido_searcher_204(requests_mock, a_qido):
     """
     set_mock_response(requests_mock, QIDO_RS_204_NO_RESULTS)
     result = a_qido.find_studies(HierarchicalQuery())
-    assert len(result) == 3
+    assert len(result) == 0

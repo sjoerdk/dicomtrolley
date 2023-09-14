@@ -326,15 +326,21 @@ class QidoRS(Searcher):
 
         Parameters
         ----------
-        response: response
-            response as returned from a wado-rs call
+        response: Response
+            requests.Response as returned from a wado-rs call
 
         Raises
         ------
+        NoQueryResults
+            If http 204 (No Content) is returned by server
+            see https://dicom.nema.org/medical/dicom/current/output/chtml/
+            part18/sect_8.3.4.4.html
         DICOMTrolleyError
-            If response is not as expected
+            If response is otherwise not as expected
         """
-        if response.status_code != 200:
+        if response.status_code == 204:
+            raise NoQueryResults("Server returned http 204 (No Content)")
+        elif response.status_code != 200:
             raise DICOMTrolleyError(
                 f"Calling {response.url} failed ({response.status_code} - "
                 f"{response.reason})\n"
@@ -376,7 +382,10 @@ class QidoRS(Searcher):
         url = self.url.rstrip("/") + query.uri_base()
         response = self.session.get(url=url, params=query.uri_search_params())
 
-        self.check_for_response_errors(response)
+        try:
+            self.check_for_response_errors(response)
+        except NoQueryResults:
+            return []
         return self.parse_qido_response(json.loads(response.text))
 
     @staticmethod
@@ -390,3 +399,7 @@ class QidoRS(Searcher):
             tree.insert_dataset(Dataset.from_json(item))
 
         return tree.as_studies()
+
+
+class NoQueryResults(DICOMTrolleyError):
+    """Raised when a query returns 0 results"""
