@@ -23,6 +23,20 @@ searcher=Mint(session, "https://server/mint")
 One advantage of using an `requests.auth.AuthBase` class is that login is automatically retried should authentication
 time out or be disrupted for other reasons.
 
+## Basic Auth
+```python
+import requests
+from requests.auth import HTTPBasicAuth
+
+session = requests.Session()
+session.auth = HTTPBasicAuth('user','password')                              
+
+trolley = Trolley(
+    searcher=QidoRS(session=session, url="https://server/qido",),
+    downloader=WadoRS(session=session, url="https://server/wado_rs",))
+
+```
+
 ## Custom Auth
 The only thing dicomtrolley needs is an authenticated `requests.Session` instance:
 ```python
@@ -37,3 +51,4 @@ session.post("https://server/login",
 trolley=Trolley(searcher=Mint(session, "https://server/mint"),
                 downloader=WadoRS(session, "https://server/wadors"))
 ```
+
