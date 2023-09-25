@@ -1,5 +1,7 @@
 # History
-
+## v3.0.4 (25-09-23)
+* Fixes build error in 3.0.3 github actions. No code changes
+  
 ## v3.0.3 (14-09-23)
 * Handles QIDO-RS http 204 (No Content) by returning expected empty result. Fixes #47
 
