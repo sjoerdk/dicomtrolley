@@ -32,8 +32,8 @@ session = requests.Session()
 session.auth = HTTPBasicAuth('user','password')                              
 
 trolley = Trolley(
-    searcher=QidoRS(session=session, url="https://server/qido",),
-    downloader=WadoRS(session=session, url="https://server/wado_rs",))
+    searcher=QidoRS(session=session, url="https://server/qido"),
+    downloader=WadoRS(session=session, url="https://server/wado_rs"))
 
 ```
 
