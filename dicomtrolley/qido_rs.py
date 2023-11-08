@@ -122,17 +122,14 @@ class QidoRSQueryBase(Query):
         if self.include_fields:
             search_params["includefield"] = self.include_fields
 
-        # now collect all other Query() fields that can be search params
+        # now collect all other Query() fields that can be search params.
+        # Exclude fields that should not be sent to server
         exclude_fields = {
             "min_study_date",  # addressed above
             "max_study_date",
-            "include_fields",
-            "StudyInstanceUID",  # potential part of url, not search params
-            "SeriesInstanceUID",
-            "SOPClassInstanceUID",
-            "query_level",
+            "include_fields",  # addressed above
+            "query_level",  # encoded in url structure
         }
-
         other_search_params = {
             key: val
             for key, val in self.dict().items()
@@ -234,6 +231,44 @@ class HierarchicalQuery(QidoRSQueryBase):
                 f'Unknown querylevel "{self.query_level}". '
                 f'Should be one of "{QueryLevels}"'
             )
+
+    def uri_search_params(self) -> Dict[str, Union[str, List[str]]]:
+        """The search parameter part of the URI as defined in
+        DICOM PS3.18 section 10.6 table 10.6.1-2
+
+        Returns
+        -------
+        Dict[str, Union[str, List[str]]]
+            Output that can be fed directly into a requests post request.
+            format is param_name:param_value. If param_value is a list, the param
+            will be included multiple times.
+            See https://docs.python-requests.org/en/latest/user/quickstart/
+            #passing-parameters-in-urls
+
+        Notes
+        -----
+        Will not output any parameters with Null or empty value (bool(value)==False).
+        This does not affect query functionality but makes output cleaner in strings
+        """
+        search_params: Dict[
+            str, Union[str, List[str]]
+        ] = super().uri_search_params()
+
+        # Depending on query level, some UIDs in Hierarchical queries are part
+        # of url and should not be part of parameter
+        exclude_fields = set()
+        if self.query_level == QueryLevels.INSTANCE:
+            exclude_fields = {"StudyInstanceUID", "SeriesInstanceUID"}
+        if self.query_level == QueryLevels.SERIES:
+            exclude_fields = {"StudyInstanceUID"}
+        if self.query_level == QueryLevels.STUDY:
+            pass  # for series level all uids are part of parameters. Don't exclude
+
+        return {
+            key: val
+            for key, val in search_params.items()
+            if key not in exclude_fields
+        }
 
 
 # used in RelationalQuery
