@@ -60,6 +60,24 @@ def test_hierarchical_query_uris():
     assert url == "/studies/123/series"
 
 
+def test_hierarchical_query_uri_suid_only(requests_mock, a_qido):
+    """Exposes issue #49 - Query containing SeriesInstanceUID only is not
+    translated properly
+    """
+    # Return a valid response to avoid errors. We're only interested in the called url
+    set_mock_response(requests_mock, QIDO_RS_STUDY_LEVEL)
+
+    # Simple query for a single StudyInstanceUID
+    a_qido.find_studies(HierarchicalQuery(StudyInstanceUID="123"))
+
+    # This should translate to a qido url call including the StudyInstanceUID
+    assert len(requests_mock.request_history) == 1  # sanity check
+    assert (
+        requests_mock.request_history[0].path
+        == "/qido/studies?StudyInstanceUID=123"
+    )
+
+
 @pytest.mark.parametrize(
     "query_params",
     [
