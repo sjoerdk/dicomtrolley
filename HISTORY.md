@@ -1,4 +1,8 @@
 # History
+## v3.0.5 (13-11-23)
+* Fixes bug where StudyInstanceUID-only QIDO-RS HierarchicalQuery would remove UID from query
+* Fixes bug where Series-level QIDO-RS RelationalQuery returns Study-level result
+
 ## v3.0.4 (25-09-23)
 * Fixes build error in 3.0.3 github actions. No code changes
   
