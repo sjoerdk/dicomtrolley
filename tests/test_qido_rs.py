@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from dicomtrolley.core import QueryLevels
+from dicomtrolley.core import Query, QueryLevels
 from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS, RelationalQuery
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
@@ -158,3 +158,11 @@ def test_qido_searcher_204(requests_mock, a_qido):
     set_mock_response(requests_mock, QIDO_RS_204_NO_RESULTS)
     result = a_qido.find_studies(HierarchicalQuery())
     assert len(result) == 0
+
+
+def test_ensure_query_type(a_qido):
+    """Exposes bug where Series level Relational query calles a study url"""
+    ensured = a_qido.ensure_query_type(
+        Query(AccessionNumber="123", query_level=QueryLevels.SERIES)
+    )
+    assert ensured.uri_base() == "/series"

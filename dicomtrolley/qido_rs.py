@@ -322,7 +322,7 @@ class RelationalQuery(QidoRSQueryBase):
         if self.query_level == QueryLevels.STUDY:
             raise ValueError(STUDY_VALUE_ERROR_TEXT)
         elif self.query_level == QueryLevels.SERIES:
-            return "/studies"
+            return "/series"
         elif self.query_level == QueryLevels.INSTANCE:
             if self.StudyInstanceUID:
                 # all instances for this study
@@ -399,10 +399,11 @@ class QidoRS(Searcher):
                     "to HierarchicalQuery"
                 )
                 return HierarchicalQuery.init_from_query(query)
-            except UnSupportedParameterError:
+            except UnSupportedParameterError as e:
                 logger.debug(
                     "Converting to HierarchicalQuery did not work. "
-                    "Trying slower but less stringent RelationalQuery"
+                    "Trying slower but less stringent RelationalQuery. Error was: "
+                    f"{str(e)}"
                 )
                 return RelationalQuery.init_from_query(query)
         else:
