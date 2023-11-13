@@ -556,7 +556,7 @@ class Query(BaseModel):
                 f"parameters. You are probably converting between incompatible "
                 f"query subtypes. Use a basic Query instance to avoid this error. "
                 f"See ValidationError for details on which parameter is causing "
-                f"the problem"
+                f"the problem. Original error: {str(e)}"
             ) from e
 
     @staticmethod

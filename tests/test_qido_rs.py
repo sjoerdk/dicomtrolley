@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from dicomtrolley.core import QueryLevels
+from dicomtrolley.core import Query, QueryLevels
 from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS, RelationalQuery
 from tests.conftest import set_mock_response
 from tests.mock_responses import (
@@ -58,6 +58,47 @@ def test_hierarchical_query_uris():
 
     assert len(parameters) == 3
     assert url == "/studies/123/series"
+
+
+@pytest.mark.parametrize(
+    "query,expected_url",
+    [
+        # For this basic study-level query suid should be a parameter
+        (
+            HierarchicalQuery(
+                StudyInstanceUID="123", query_level=QueryLevels.STUDY
+            ),
+            "/qido/studies?StudyInstanceUID=123",
+        ),
+        # But for series-level query suid becomes part of the path, not parameter
+        (
+            HierarchicalQuery(
+                StudyInstanceUID="123", query_level=QueryLevels.SERIES
+            ),
+            "/qido/studies/123/series",
+        ),
+    ],
+)
+def test_hierarchical_query_uri_suid_only(
+    requests_mock, a_qido, query, expected_url
+):
+    """Exposes issue #49 - Query containing SeriesInstanceUID only is not
+    translated properly. This test check more broadly how hierarchical queries
+    generate they urls to make sure this is sane.
+    """
+    # Return a valid response to avoid errors. We're only interested in the called url
+    set_mock_response(requests_mock, QIDO_RS_STUDY_LEVEL)
+
+    # Simple query for a single StudyInstanceUID
+    a_qido.find_studies(query)
+
+    # This should translate to a qido url call including the StudyInstanceUID
+    hist = requests_mock.request_history
+    assert len(hist) == 1  # sanity check
+    called = hist[0].path
+    if hist[0].query:
+        called = called + "?" + hist[0].query
+    assert called.lower() == expected_url.lower()
 
 
 @pytest.mark.parametrize(
@@ -117,3 +158,11 @@ def test_qido_searcher_204(requests_mock, a_qido):
     set_mock_response(requests_mock, QIDO_RS_204_NO_RESULTS)
     result = a_qido.find_studies(HierarchicalQuery())
     assert len(result) == 0
+
+
+def test_ensure_query_type(a_qido):
+    """Exposes bug where Series level Relational query calles a study url"""
+    ensured = a_qido.ensure_query_type(
+        Query(AccessionNumber="123", query_level=QueryLevels.SERIES)
+    )
+    assert ensured.uri_base() == "/series"
