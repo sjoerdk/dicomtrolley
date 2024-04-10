@@ -107,6 +107,7 @@ studies = trolley.find_studies(
 
 ### Query parameters
 The following parameters can be set for a [`Query`][dicomtrolley.core.Query]:
+
 $pydantic: dicomtrolley.core.Query
 
 Most of these parameters have string values, possibly containing a `*` wildcard that will be matched as part of the

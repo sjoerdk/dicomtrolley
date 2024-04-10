@@ -8,3 +8,6 @@ mkdocs-material-extensions==1.1.1
 mkdocs-section-index==0.3.6
 mkdocstrings==0.22.0
 mkdocstrings-python==1.6.2
+pydicom==2.1.2
+pydantic==1.8.2
+dicomtrolley==3.0.4
