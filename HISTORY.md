@@ -6,7 +6,6 @@
 * Caching is now optional by wrapping any searcher instance
 * Caching is now time-based and done per DICOM object
 * Adds query caching (previously only get_study_for_id)
-
 * Makes reasoning about DICOM levels (study/series/instance) easier:
 * Adds numeric value and comparison to DICOMObjectLevels
 * Introduces DICOMObject.contained_references()
