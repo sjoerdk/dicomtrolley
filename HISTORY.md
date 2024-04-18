@@ -1,4 +1,17 @@
 # History
+## v3.1.0 (18-04-24)
+* Rewrites caching:
+* Trolley no longer caches results by default, cleans up Trolley.
+* Completely rewrites CachedSearcher to implement Searcher interface
+* Caching is now optional by wrapping any searcher instance
+* Caching is now time-based and done per DICOM object
+* Adds query caching (previously only get_study_for_id)
+
+* Makes reasoning about DICOM levels (study/series/instance) easier:
+* Adds numeric value and comparison to DICOMObjectLevels
+* Introduces DICOMObject.contained_references()
+* Merges to_series_level_refs, to_instance_refs into to_refs(level)
+
 ## v3.0.5 (13-11-23)
 * Fixes bug where StudyInstanceUID-only QIDO-RS HierarchicalQuery would remove UID from query
 * Fixes bug where Series-level QIDO-RS RelationalQuery returns Study-level result
