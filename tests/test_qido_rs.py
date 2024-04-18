@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from pydantic import ValidationError
 
 from dicomtrolley.core import Query, QueryLevels
 from dicomtrolley.qido_rs import HierarchicalQuery, QidoRS, RelationalQuery
@@ -33,12 +34,13 @@ def test_valid_hierarchical_query(query_params):
     [
         {"SeriesInstanceUID": "123"},
         {"SOPClassInstanceUID": "789"},
+        {"SOPClassInstanceUID": "789", "query_level": QueryLevels.INSTANCE},
         {"min_study_date": datetime(year=2023, month=5, day=29)},
     ],
 )
 def test_invalid_hierarchical_query(query_params):
     """These queries are invalid, should not pass init validation"""
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, ValidationError)):
         HierarchicalQuery(**query_params)
 
 
@@ -166,3 +168,28 @@ def test_ensure_query_type(a_qido):
         Query(AccessionNumber="123", query_level=QueryLevels.SERIES)
     )
     assert ensured.uri_base() == "/series"
+
+
+def test_mop_up(a_qido):
+    """Checks previously uncovered parts"""
+    assert RelationalQuery(query_level=QueryLevels.INSTANCE).uri_base()
+
+    with pytest.raises(
+        ValidationError
+    ):  # relational at study level makes no sense
+        assert RelationalQuery(query_level=QueryLevels.STUDY)
+
+    assert RelationalQuery(
+        query_level=QueryLevels.INSTANCE, StudyInstanceUID="123"
+    ).uri_base()
+
+    with pytest.raises(ValidationError):
+        assert RelationalQuery(query_level="unknown")
+
+    query = HierarchicalQuery(
+        StudyInstanceUID="234",
+        SeriesInstanceUID="123",
+        query_level=QueryLevels.INSTANCE,
+    )
+    assert query.uri_base()
+    assert query.uri_search_params() == {}

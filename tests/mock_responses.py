@@ -6,12 +6,12 @@ import json
 import re
 import urllib
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Pattern, Union
+from typing import Any, Callable, Dict, List, Pattern, Union
 
 from requests_mock import ANY
 from requests_toolbelt.multipart.encoder import MultipartEncoder
 
-from dicomtrolley.core import InstanceReference
+from dicomtrolley.core import InstanceReference, QueryLevels
 from dicomtrolley.xml_templates import (
     A_RAD69_RESPONSE_SOAP_HEADER,
     RAD69_SOAP_RESPONSE_NOT_FOUND,
@@ -29,7 +29,7 @@ class MockResponse:
     url: Union[str, Pattern[str]]
     status_code: int = 200
     method: str = "GET"
-    text: str = ""
+    text: Union[str, Callable[[Any, Any], Any]] = ""
     content: bytes = field(default_factory=bytes)
     json: Dict[str, Any] = field(default_factory=dict)
     reason: str = ""
@@ -159,6 +159,8 @@ LOGIN_DENIED_IMPAX = MockResponse(
     method="GET",
 )
 
+MINT_SEARCH_MOCK_STUDY_UID = "1.2.340.114850.2.857.2.793263.2.125336546.1"
+
 MINT_SEARCH_STUDY_LEVEL = MockResponse(
     url=MockUrls.MINT_URL + "/studies?PatientName=B*&QueryLevel=STUDY",
     text="<?xml version='1.0' encoding='UTF-3'?><studySearchResults "
@@ -167,19 +169,31 @@ MINT_SEARCH_STUDY_LEVEL = MockResponse(
     'studyUUID="35997945-c535-4570-3c1f-3514f27695e9" version="1" '
     'lastModified="2021-08-09T06:42:04.325Z"><attr tag="00100020" vr="LO" '
     'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." /><attr '
-    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.2.793263.2.125336546.1" />'
+    'tag="0020000d" vr="UI" val="' + MINT_SEARCH_MOCK_STUDY_UID + '" />'
     '</study><study studyUUID="c19a038a-fe0f-4e4b-b690-a895bd8db1e2" version="1"'
     ' lastModified="2021-08-09T06:42:26.722Z"><attr tag="00100020" vr="LO" '
     'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." />'
     '<attr tag="0020000d" vr="UI" '
-    'val="1.2.340.114850.2.857.8.793263.2.126347154.1" /></study><study '
+    'val="' + MINT_SEARCH_MOCK_STUDY_UID + '" /></study><study '
     'studyUUID="26582e0f-473e-422d-9c24-12ebdbc6dac3" version="1" '
     'lastModified="2021-08-09T06:42:10.598Z"><attr tag="00100020" vr="LO" '
     'val="1892052" /><attr tag="00100010" vr="PN" val="BEELDEN^W^I L" /><attr '
-    'tag="0020000d" vr="UI" val="1.2.340.114850.2.857.8.793263.2.126347158.1" />'
+    'tag="0020000d" vr="UI" val="' + MINT_SEARCH_MOCK_STUDY_UID + '" />'
     "</study></studySearchResults>",
 )
 
+# exactly one study
+MINT_SEARCH_STUDY_LEVEL_SINGLE = MockResponse(
+    url=MockUrls.MINT_URL + "/studies?PatientName=B*&QueryLevel=STUDY",
+    text="<?xml version='1.0' encoding='UTF-3'?><studySearchResults "
+    'xmlns="http://medical.nema.org/mint" queryfields="PatientName=B*" '
+    'includefields="StudyInstanceUID,PatientName,PatientID"><study '
+    'studyUUID="35997945-c535-4570-3c1f-3514f27695e9" version="1" '
+    'lastModified="2021-08-09T06:42:04.325Z"><attr tag="00100020" vr="LO" '
+    'val="1892052" /><attr tag="00100010" vr="PN" val="TEST^K.J.M." /><attr '
+    'tag="0020000d" vr="UI" val="' + MINT_SEARCH_MOCK_STUDY_UID + '" />'
+    "</study></studySearchResults>",
+)
 
 MINT_SEARCH_SERIES_LEVEL = MockResponse(
     url=MockUrls.MINT_URL + "/studies?PatientName=B*&QueryLevel=SERIES",
@@ -195,7 +209,7 @@ MINT_SEARCH_SERIES_LEVEL = MockResponse(
     ' tag="0020000e" vr="UI" val="1.2.840.113619.2.239.1783.1568025913.0.76" />'
     '</series><attr tag="00100020" vr="LO" val="1392052" /><attr tag="00100010"'
     ' vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" vr="UI" '
-    'val="1.2.840.114350.2.357.3.798268.2.126847153.1" /></study><study'
+    'val="' + MINT_SEARCH_MOCK_STUDY_UID + '" /></study><study'
     ' studyUUID="85997945-c585-4570-8c1f-8514f27695e9" version="1" '
     'lastModified="2021-03-09T06:42:04.825Z"><series><attr tag="0020000e"'
     ' vr="UI" val="1.2.40.0.13.1.202066129828111990737107018349786560571"'
@@ -203,8 +217,25 @@ MINT_SEARCH_SERIES_LEVEL = MockResponse(
     'val="1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348" />'
     '</series><attr tag="00100020" vr="LO" val="1392052" /><attr tag="00100010"'
     ' vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
-    'vr="UI" val="111" />'
+    'vr="UI" val="' + MINT_SEARCH_MOCK_STUDY_UID + '" />'
     "</study></studySearchResults>",
+)
+
+MINT_SEARCH_SERIES_LEVEL_SINGLE = MockResponse(
+    url=MockUrls.MINT_URL + "/studies?PatientName=B*&QueryLevel=SERIES",
+    text="<?xml version='1.0' encoding='UTF-8'?><studySearchResults "
+    'xmlns="http://medical.nema.org/mint" query_level="SERIES" '
+    'queryfields="PatientName=B*" includefields="StudyInstanceUID,PatientName,'
+    'PatientID"><study studyUUID="26532e0f-478e-422d-9c24-12ebdbc6dac8" '
+    'version="1" lastModified="2021-03-09T06:42:10.593Z"><series><attr '
+    'tag="0020000e" vr="UI" '
+    'val="1.2.40.0.13.1.31997853020103855051756062351916846110" /></series>'
+    '<series><attr tag="0020000e" vr="UI" '
+    'val="1.2.840.113619.2.239.1783.1568025913.0.105" /></series><series><attr '
+    ' tag="0020000e" vr="UI" val="1.2.840.113619.2.239.1783.1568025913.0.76" />'
+    '</series><attr tag="00100020" vr="LO" val="1392052" /><attr tag="00100010"'
+    ' vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" vr="UI" '
+    'val="' + MINT_SEARCH_MOCK_STUDY_UID + '" /></study></studySearchResults>',
 )
 
 MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
@@ -263,7 +294,7 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
     'val="1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348" /><'
     '/series><attr tag="00100020" vr="LO" val="1392052" /><attr '
     'tag="00100010" vr="PN" val="BEELDENZORG^W^I L" /><attr tag="0020000d" '
-    'vr="UI" val="111" /><attr tag="00201208" '
+    'vr="UI" val="' + MINT_SEARCH_MOCK_STUDY_UID + '" /><attr tag="00201208" '
     'vr="IS" val="200" /><attr tag="00100030" '
     'vr="DA" val="1900" /></study><'
     "/studySearchResults>",
@@ -272,7 +303,7 @@ MINT_SEARCH_INSTANCE_LEVEL = MockResponse(
 
 # The IDS in the MINT response. To not have to copy-paste these in tests
 MINT_SEARCH_INSTANCE_LEVEL_IDS = {
-    "study_uid": "111",
+    "study_uid": MINT_SEARCH_MOCK_STUDY_UID,
     "series_uids": (
         "1.2.40.0.13.1.202066129828111990737107018349786560571",
         "1.2.840.113663.1500.1.460388269.2.1.20201105.84519.348",
@@ -532,6 +563,9 @@ QIDO_RS_STUDY_LEVEL = MockResponse(
         ]
     ),
 )
+
+# respond with a valid mint search response containing three studies, whatever the
+# called url was. Blunt.
 MINT_SEARCH_ANY = MockResponse(
     url=ANY,
     method=ANY,
@@ -554,6 +588,31 @@ MINT_SEARCH_ANY = MockResponse(
     "</study></studySearchResults>",
 )
 
+
+def mint_response(request, context):
+    """Generate a MINT query response that matches the requested StudyInstanceUID
+    and also honours query_level.
+    """
+    query_level = request.qs["querylevel"][0].upper()
+    requested_suid = request.qs["studyinstanceuid"][0]
+
+    if query_level == QueryLevels.STUDY:
+        base_response = MINT_SEARCH_STUDY_LEVEL_SINGLE.text
+    elif query_level == QueryLevels.SERIES:
+        base_response = MINT_SEARCH_SERIES_LEVEL_SINGLE.text
+    elif query_level == QueryLevels.INSTANCE:
+        base_response = MINT_SEARCH_INSTANCE_LEVEL.text
+    else:
+        raise ValueError(f"Unknown query level {query_level}")
+
+    return base_response.replace(MINT_SEARCH_MOCK_STUDY_UID, requested_suid)
+
+
+# Respond to MockUrls.QIDO_RS_URL queries with a mint response matching the
+# requested StudyInstanceUID.
+MINT_SEARCH_MATCH_SUID = MockResponse(
+    url=re.compile(MockUrls.MINT_URL + ".*"), method=ANY, text=mint_response
+)
 
 # a valid response when a query has 0 results
 QIDO_RS_204_NO_RESULTS = MockResponse(

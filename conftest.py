@@ -29,7 +29,7 @@ def a_wado(a_session):
 @pytest.fixture
 def a_trolley(a_mint, a_wado) -> Trolley:
     """Trolley instance that will not hit any server"""
-    return Trolley(searcher=a_mint, downloader=a_wado, query_missing=True)
+    return Trolley(searcher=a_mint, downloader=a_wado)
 
 
 class NoSaveStorageDir(StorageDir):

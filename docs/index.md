@@ -37,7 +37,7 @@ studies = trolley.find_studies(Query(PatientName='B*'))
 trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
 ## Documentation
-see [dicomtrolley github docs](https://github.com/sjoerdk/dicomtrolley/tree/master/docs)
+see [dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
 
 ## Examples
 Example code can be found [on github](https://github.com/sjoerdk/dicomtrolley/tree/master/examples)

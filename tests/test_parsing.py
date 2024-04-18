@@ -5,34 +5,13 @@ from dicomtrolley.core import (
     StudyReference,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.parsing import DICOMObjectTree, DICOMParseTree, TreeNode
+from dicomtrolley.parsing import DICOMObjectTree, DICOMParseTree
 from tests.factories import (
     create_c_find_image_response,
     create_c_find_study_response,
     create_image_level_study,
     quick_dataset,
 )
-
-
-def test_parsing_node():
-    node = TreeNode()
-    node["a"]["b"]["c"].data = "some data"
-    assert node["a"]["b"]["c"].data == "some data"
-
-    node["a"]["b2"].data = "some other data"
-    assert list(node["a"].keys()) == ["b", "b2"]
-
-
-def test_parsing_node_exceptions():
-    node = TreeNode(allow_overwrite=False)
-    node["a"]["b"].data = "some data"
-    with pytest.raises(ValueError):
-        node["a"]["b"].data = "some other data"
-
-    # this should not raise anything
-    node2 = TreeNode(allow_overwrite=True)
-    node2["a"]["b"].data = "some data"
-    node2["a"]["b"].data = "some other data"
 
 
 def test_parse_tree():

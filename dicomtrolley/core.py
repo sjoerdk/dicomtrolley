@@ -1,9 +1,17 @@
 """Provides common base classes that allow modules to talk to each other."""
 from dataclasses import dataclass
 from datetime import date, datetime
-from enum import Enum
+from enum import Enum, IntEnum
 from itertools import chain
-from typing import List, Optional, Sequence, Type, TypeVar, Union
+from typing import (
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
 from pydantic import Field, ValidationError
 from pydantic.class_validators import validator
@@ -13,28 +21,78 @@ from pydicom.dataset import Dataset
 
 from dicomtrolley.exceptions import (
     DICOMTrolleyError,
+    NoReferencesFoundError,
     UnSupportedParameterError,
 )
 
 
-class DICOMObjectLevels:
-    """DICOM uses a study->series->instance structure"""
+class DICOMObjectLevels(IntEnum):
+    """Represents DICOM study->series->instance structure
 
-    STUDY = "Study"
-    SERIES = "Series"
-    INSTANCE = "Instance"
+    Level is ordered. Study is highest, instance the lowest level.
 
-    all = [STUDY, SERIES, INSTANCE]
+    Notes
+    -----
+    Similar to core.QueryLevels, but different enough to warrant separate classes.
+    DICOMObjectLevel is a property of a DICOM object. QueryLevel is a property of
+    a Query.
+    """
+
+    STUDY = 2
+    SERIES = 1
+    INSTANCE = 0
+
+    @classmethod
+    def from_query_level(cls, level: "QueryLevels"):
+        if level == QueryLevels.STUDY:
+            return cls.STUDY
+        elif level == QueryLevels.SERIES:
+            return cls.SERIES
+        elif level == QueryLevels.INSTANCE:
+            return cls.INSTANCE
+        else:
+            raise ValueError(f"Unknown DICOMObjectLevels {level}")
 
 
 class DICOMDownloadable:
     """An object that can be downloaded by a Downloader"""
 
     def reference(self) -> "DICOMObjectReference":
-        raise NotImplementedError
+        raise NotImplementedError()
+
+    def contained_references(
+        self, max_level: DICOMObjectLevels
+    ) -> Tuple["DICOMObjectReference", ...]:
+        """DICOM object references contained in this object at the given level.
+
+        For example, a Study might contain information for all its Instances. In
+        this case sub_references(max_level=Instance) will return InstanceReferences
+
+        Parameters
+        ----------
+        max_level:
+            The returned references will be this level or lower. For example, an
+            instance will return a reference to itself when max_level is Series:
+                >>> Instance.contained_references(max_level=Series)
+                (InstanceReference,)
+            A study will be broken up:
+                >>> Study.contained_references(max_level=Series)
+                (SeriesReference, SeriesReference, ...)
+
+        Returns
+        -------
+        Tuple of references. Of max_level or lower
+
+        Raises
+        ------
+        NoReferencesFoundError
+            If sub-references cannot be obtained from this downloadable.
+
+        """
+        raise NotImplementedError()
 
 
-@dataclass
+@dataclass(frozen=True)  # make this hashable and non-modifyable
 class DICOMObjectReference(DICOMDownloadable):
     """Points to a study, series, or instance by uid
 
@@ -47,20 +105,31 @@ class DICOMObjectReference(DICOMDownloadable):
     study_uid: str
 
     @property
-    def level(self) -> str:
+    def level(self):
         """Does this reference point to Study, Series or Instance?
         Returns
         -------
         str
             One of the values in DICOMObjectLevels.all
         """
-        return ""
+        return NotImplementedError()
 
     def reference(self):
         return self
 
+    def contained_references(
+        self, max_level: DICOMObjectLevels
+    ) -> Tuple["DICOMObjectReference", ...]:
+        """DICOM object references either return themselves or an error"""
+        if max_level < self.level:
+            raise NoReferencesFoundError(
+                f"{self} does not contain references of {str(max_level)} or lower"
+            )
+        else:
+            return (self.reference(),)
 
-@dataclass
+
+@dataclass(frozen=True)
 class InstanceReference(DICOMObjectReference):
     """All information needed to download a single slice (SOPInstance)"""
 
@@ -79,7 +148,7 @@ class InstanceReference(DICOMObjectReference):
         return DICOMObjectLevels.INSTANCE
 
 
-@dataclass
+@dataclass(frozen=True)
 class SeriesReference(DICOMObjectReference):
     """Reference to a single Series, part of a study"""
 
@@ -94,7 +163,7 @@ class SeriesReference(DICOMObjectReference):
         return DICOMObjectLevels.SERIES
 
 
-@dataclass
+@dataclass(frozen=True)
 class StudyReference(DICOMObjectReference):
     """Reference to a single study"""
 
@@ -167,6 +236,28 @@ class DICOMObject(BaseModel, DICOMDownloadable):
         """
         raise NotImplementedError()
 
+    def max_object_depth(self) -> DICOMObjectLevels:
+        """What is the deepest object level? Does contain only Study or also Series,
+        Instances?
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def extract_refs(
+        objects: Iterable["DICOMObject"],
+    ) -> Tuple[DICOMObjectReference, ...]:
+        """Extract reference from each object and put in a tuple, raise error for
+        empty objects. For cleaner code in DICOMObject.contained_references()
+
+        Raises
+        ------
+        NoReferencesFoundError
+            if objects is empty
+        """
+        if not objects:
+            raise NoReferencesFoundError()
+        return tuple(x.reference() for x in objects)
+
 
 class Instance(DICOMObject):
     parent: "Series"
@@ -191,6 +282,17 @@ class Instance(DICOMObject):
             series_uid=self.parent.uid,
             instance_uid=self.uid,
         )
+
+    def contained_references(
+        self, max_level: DICOMObjectLevels
+    ) -> Tuple["DICOMObjectReference", ...]:
+        return (self.reference(),)  # instance is deepest level so always OK
+
+    def max_object_depth(self) -> DICOMObjectLevels:
+        """What is the deepest object level? Does contain only Study or also Series,
+        Instances?
+        """
+        return DICOMObjectLevels.INSTANCE
 
 
 class Series(DICOMObject):
@@ -226,6 +328,28 @@ class Series(DICOMObject):
         """Return a Reference to this object using uids"""
         return SeriesReference(study_uid=self.parent.uid, series_uid=self.uid)
 
+    def contained_references(
+        self, max_level: DICOMObjectLevels
+    ) -> Tuple["DICOMObjectReference", ...]:
+
+        if max_level == DICOMObjectLevels.STUDY:
+            return self.extract_refs([self])
+        elif max_level == DICOMObjectLevels.SERIES:
+            return self.extract_refs([self])
+        elif max_level == DICOMObjectLevels.INSTANCE:
+            return self.extract_refs(self.all_instances())
+        else:
+            raise ValueError(f'unknown DICOMObjectLevel "{str(max_level)}"')
+
+    def max_object_depth(self) -> DICOMObjectLevels:
+        """What is the deepest object level? Does contain only Study or also Series,
+        Instances?
+        """
+        if self.instances:
+            return DICOMObjectLevels.INSTANCE
+        else:
+            return DICOMObjectLevels.SERIES
+
 
 class Study(DICOMObject):
     series: Sequence[Series]
@@ -259,6 +383,28 @@ class Study(DICOMObject):
         """Return a Reference to this object using uids"""
         return StudyReference(study_uid=self.uid)
 
+    def contained_references(
+        self, max_level: DICOMObjectLevels
+    ) -> Tuple["DICOMObjectReference", ...]:
+
+        if max_level == DICOMObjectLevels.STUDY:
+            return self.extract_refs([self])
+        elif max_level == DICOMObjectLevels.SERIES:
+            return self.extract_refs(self.all_series())
+        elif max_level == DICOMObjectLevels.INSTANCE:
+            return self.extract_refs(self.all_instances())
+        else:
+            raise ValueError(f'unknown DICOMObjectLevel "{str(max_level)}"')
+
+    def max_object_depth(self) -> DICOMObjectLevels:
+        """What is the deepest object level? Does contain only Study or also Series,
+        Instances?
+        """
+        if self.series:
+            return self.series[0].max_object_depth()
+        else:
+            return DICOMObjectLevels.STUDY
+
 
 class NonInstanceParameterError(DICOMTrolleyError):
     """A DICOMDownloadable could not be converted into its constituent instances.
@@ -282,106 +428,65 @@ class NonSeriesParameterError(DICOMTrolleyError):
     """
 
 
-def to_instance_refs(
-    objects: Sequence[DICOMDownloadable],
-) -> List[InstanceReference]:
-    """Convert all input to instance references. Raise informative errors.
-
-    This is a common pre-processing step used by Downloader classes. Many cannot
-    download higher-level objects like 'study 123' directly, but instead require
-    you to query all instances contained in 'study 123' first and pass those to
-    the downloader.
-
-    Parameters
-    ----------
-    objects:
-        Convert these objects
-
-    Returns
-    -------
-    List[InstanceReference]
-        References to all instances contained in objects
-
-    Raises
-    ------
-    NonInstanceParameterError
-        If any input object could not be converted into instances. This is the
-        case for higher-level references like StudyReference, or for DICOMObjects
-        that do not contain any deeper-level information, such as a Study that
-        contains no Series (which is the correct result of Study-level queries).
-
-    """
-    output: List[InstanceReference] = []
-    for obj in objects:
-        if isinstance(obj, InstanceReference):
-            output.append(obj)  # Already an instance reference. Just add
-        elif isinstance(obj, DICOMObjectReference):
-            raise NonInstanceParameterError(
-                f"Cannot extract instances from '{obj}' "
-            )
-        elif isinstance(obj, DICOMObject):
-            instances = obj.all_instances()  # Extract instances
-            if instances:
-                output = output + [x.reference() for x in instances]
-            else:
-                raise NonInstanceParameterError(
-                    f"{obj} contains no instances. "
-                    f"Was this information queried for?"
-                )
-
-    return output
+def to_instance_refs(objects: Sequence[DICOMDownloadable]):
+    """Convert all to instance references. See to_refs()"""
+    try:
+        return to_references(objects, max_level=DICOMObjectLevels.INSTANCE)
+    except NoReferencesFoundError as e:
+        raise NonInstanceParameterError(
+            f"Cannot obtain instance references: {e}"
+        ) from e
 
 
-def to_series_level_refs(
-    objects: Sequence[DICOMDownloadable],
-) -> List[Union[SeriesReference, InstanceReference]]:
-    """Make sure all input objects are Series or Instance references.
-    Convert if possible, raise exceptions if not.
+def to_series_level_refs(objects: Sequence[DICOMDownloadable]):
+    """Convert all to at least series references."""
+    try:
+        return to_references(objects, max_level=DICOMObjectLevels.SERIES)
+    except NoReferencesFoundError as e:
+        raise NonSeriesParameterError(
+            f"Cannot obtain series references: {e}"
+        ) from e
 
-    Weaker version of to_instance_refs(). Weaker because series references without
-    instance info are also allowed here. See that function for more info
+
+def to_references(
+    objects: Sequence[DICOMDownloadable], max_level: DICOMObjectLevels
+) -> List[DICOMObjectReference]:
+    """Make sure all input objects are of max_level or lower. Extract lower level
+    references if possible. For example, if max_level is series, try to extract
+    series references from a study. Raise exceptions if not possible.
 
     Parameters
     ----------
     objects:
         Convert these objects
+    max_level:
+        Return references of this level or lower, otherwise raise exception.
 
     Returns
     -------
     List[Union[SeriesReference, InstanceReference]]
         References to series and instances contained in input objects
 
+    Notes
+    -----
+    This is a common pre-processing step used by Downloader classes. Many cannot
+    download higher-level objects like 'study 123' directly, but instead require
+    you to query all instances contained in 'study 123' first and pass those to
+    the downloader.
+
     Raises
     ------
-    NonSeriesParameterError
+    NoReferencesFoundError
         If any input object could not be converted into instances. This is the
         case for higher-level references like StudyReference, or for DICOMObjects
         that do not contain any deeper-level information, such as a Study that
-        contains no Series (which is the correct result of Study-level queries).
+        contains no Series (which is a correct result for Study-level queries).
 
     """
-    output: List[Union[InstanceReference, SeriesReference]] = []
+    refs: List[DICOMObjectReference] = []
     for obj in objects:
-        if isinstance(
-            obj, (InstanceReference, SeriesReference, Instance, Series)
-        ):
-            # already OK, just add
-            output.append(obj.reference())
-        elif isinstance(obj, StudyReference):
-            # no series in here, I don't have enough info
-            raise NonSeriesParameterError(
-                f"Cannot extract series from '{obj}' "
-            )
-        elif isinstance(obj, Study):
-            if obj.series:
-                for series in obj.series:
-                    output.append(series.reference())
-            else:
-                raise NonSeriesParameterError(
-                    f"Cannot extract series from '{obj}'"
-                    f". It contains no series "
-                )
-    return output
+        refs.extend(obj.contained_references(max_level=max_level))
+    return refs
 
 
 class Downloader:
@@ -416,7 +521,7 @@ class Downloader:
             download can only process Instance targets. See Exception docstring
             for rationale
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def datasets_async(
         self, instances: Sequence[InstanceReference], max_workers=None
@@ -440,7 +545,7 @@ class Downloader:
         -------
         Iterator[Dataset, None, None]
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class QueryLevels(str, Enum):
@@ -449,6 +554,18 @@ class QueryLevels(str, Enum):
     STUDY = "STUDY"
     SERIES = "SERIES"
     INSTANCE = "INSTANCE"
+
+    @classmethod
+    def from_object_level(cls, level: DICOMObjectLevels):
+        """Convert from DICOMObjectLevel enum. See docstring there for reason"""
+        if level == DICOMObjectLevels.STUDY:
+            return cls.STUDY
+        elif level == DICOMObjectLevels.SERIES:
+            return cls.SERIES
+        elif level == DICOMObjectLevels.INSTANCE:
+            return cls.INSTANCE
+        else:
+            raise ValueError(f"Unknown DICOMObjectLevels {level}")
 
 
 # Used in Query.init_from_query() type annotation
@@ -619,8 +736,10 @@ class Searcher:
             )
         return results[0]
 
-    def find_full_study_by_id(self, study_uid: str) -> Study:
-        """Find a single study at image level
+    def find_study_by_id(
+        self, study_uid: str, query_level: QueryLevels = QueryLevels.STUDY
+    ) -> Study:
+        """Find a single study at the given depth
 
         Useful for automatically finding all instances for a study. Meant to be
         implemented in child classes
@@ -629,32 +748,16 @@ class Searcher:
         ----------
         study_uid: str
             Study to search for
+        query_level: QueryLevels
+            Depth of search. Whether to find only study level info or go deeper into
+            series or instances. Deeper levels will result in slower, more extensive
+            searches
 
         Returns
         -------
         Study
+            Potentially containing series or instances, dependent on query_level
 
-        Raises
-        ------
-        DICOMTrolleyError
-            If no results or more than one result is returned by query
-        """
-        raise NotImplementedError()
-
-    def find_study_at_instance_level(self, study_uid: str) -> Study:
-        """Find a single study at image level
-
-        Useful for automatically finding all instances for a study.
-
-        Parameters
-        ----------
-        study_uid: str
-            Study to search for
-
-        Returns
-        -------
-        Study
-            Containing full DICOM object information, series and instances
 
         Raises
         ------
@@ -662,32 +765,7 @@ class Searcher:
             If no results or more than one result is returned by query
         """
         return self.find_study(
-            Query(StudyInstanceUID=study_uid, query_level=QueryLevels.INSTANCE)
-        )
-
-    def find_study_at_series_level(self, study_uid: str) -> Study:
-        """Find a single study at series level
-
-        Meant to be
-        implemented in child classes
-
-        Parameters
-        ----------
-        study_uid: str
-            Study to search for
-
-        Returns
-        -------
-        Study
-            Containing series, but not instances
-
-        Raises
-        ------
-        DICOMTrolleyError
-            If no results or more than one result is returned by query
-        """
-        return self.find_study(
-            Query(StudyInstanceUID=study_uid, query_level=QueryLevels.SERIES)
+            Query(StudyInstanceUID=study_uid, query_level=query_level)
         )
 
 

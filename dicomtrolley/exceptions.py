@@ -10,3 +10,11 @@ class UnSupportedParameterError(DICOMTrolleyError):
     """
 
     pass
+
+
+class NoReferencesFoundError(DICOMTrolleyError):
+    """Cannot find any references for this object at the given level. Used in
+    DICOMDownloadable
+    """
+
+    pass

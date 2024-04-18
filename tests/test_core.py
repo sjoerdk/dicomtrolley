@@ -4,17 +4,21 @@ import pytest
 from pydicom.dataset import Dataset
 
 from dicomtrolley.core import (
+    DICOMObjectLevels,
     ExtendedQuery,
     Instance,
+    InstanceReference,
     NonInstanceParameterError,
     NonSeriesParameterError,
     Query,
     Series,
+    SeriesReference,
     Study,
     StudyReference,
     to_instance_refs,
     to_series_level_refs,
 )
+from dicomtrolley.exceptions import NoReferencesFoundError
 from dicomtrolley.mint import MintQuery
 from tests.factories import (
     InstanceReferenceFactory,
@@ -179,3 +183,91 @@ def test_to_series_level_refs(a_study_level_study):
     to_series_level_refs(
         [SeriesReferenceFactory(), InstanceReferenceFactory()]
     )
+
+
+def test_contained_references_for_references():
+    """DICOM object references can only return themselves, or error"""
+
+    instance_ref: InstanceReference = InstanceReferenceFactory()
+    # an instance reference is the deepest level, so this can always return itself
+    for level in DICOMObjectLevels:
+        assert (
+            instance_ref.contained_references(max_level=level)[0]
+            == instance_ref
+        )
+
+    series_ref: SeriesReference = SeriesReferenceFactory()
+    # a series reference can return itself at series or study level
+    for level in (DICOMObjectLevels.STUDY, DICOMObjectLevels.SERIES):
+        assert (
+            series_ref.contained_references(max_level=level)[0] == series_ref
+        )
+
+    # but can't return instance level. There is not info for that
+    with pytest.raises(NoReferencesFoundError):
+        series_ref.contained_references(max_level=DICOMObjectLevels.INSTANCE)
+
+    # study ref can only return at study level
+    study_ref: StudyReference = StudyReferenceFactory()
+    assert (
+        study_ref.contained_references(max_level=DICOMObjectLevels.STUDY)[0]
+        == study_ref
+    )
+
+    for level in (DICOMObjectLevels.INSTANCE, DICOMObjectLevels.SERIES):
+        with pytest.raises(NoReferencesFoundError):
+            study_ref.contained_references(max_level=level)
+
+
+def test_contained_references_for_dicom_objects(some_studies):
+    """DICOM objects can contain additional dicom levels"""
+    image_level_study, study_level_study = some_studies
+
+    # If images (instances) are in there, this should be OK:
+    assert (
+        len(
+            image_level_study.contained_references(
+                max_level=DICOMObjectLevels.INSTANCE
+            )
+        )
+        == 18
+    )
+    assert (
+        len(
+            image_level_study.contained_references(
+                max_level=DICOMObjectLevels.SERIES
+            )
+        )
+        == 2
+    )
+    assert (
+        len(
+            image_level_study.contained_references(
+                max_level=DICOMObjectLevels.STUDY
+            )
+        )
+        == 1
+    )
+
+    # But if there is no image info, trying to go deeper will fail
+    for level in (DICOMObjectLevels.INSTANCE, DICOMObjectLevels.SERIES):
+        with pytest.raises(NoReferencesFoundError):
+            study_level_study.contained_references(max_level=level)
+
+    # staying at the same level is OK though
+    assert study_level_study.contained_references(
+        max_level=DICOMObjectLevels.STUDY
+    )
+
+    # Anything is OK for an instance, as it is the deepest level
+    an_instance = image_level_study.series[0].instances[0]
+    for level in DICOMObjectLevels:
+        assert an_instance.contained_references(max_level=level)
+
+    # Just topping off with series. as we're on such a nice testing spree here
+    a_series = image_level_study.series[0]
+    a_series.instances = []  # without instances
+    for level in (DICOMObjectLevels.SERIES, DICOMObjectLevels.STUDY):
+        assert a_series.contained_references(max_level=level)
+    with pytest.raises(NoReferencesFoundError):
+        a_series.contained_references(max_level=DICOMObjectLevels.INSTANCE)

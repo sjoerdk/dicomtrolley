@@ -1,5 +1,5 @@
 """Models parsing things into study/series/instance structure"""
-from typing import Any, DefaultDict, Dict, List, Sequence
+from typing import Dict, List, Sequence
 
 from pydicom.dataset import Dataset
 
@@ -13,6 +13,7 @@ from dicomtrolley.core import (
     Study,
     StudyReference,
 )
+from dicomtrolley.datastructures import TreeNode
 from dicomtrolley.exceptions import DICOMTrolleyError
 
 
@@ -22,46 +23,6 @@ def flatten(dicom_object) -> List[DICOMObject]:
     for child in dicom_object.children():
         nodes = nodes + flatten(child)
     return nodes
-
-
-class TreeNode(DefaultDict[Any, "TreeNode"]):
-    """Recursive defaultdict with a 'data' property. Helps parse to tree structures.
-
-    Examples
-    --------
-    >>> root = TreeNode()
-    >>> root['study1']['series1']['instance1'].data = 'some instance info'
-    >>> 'study1' in root
-    True
-    >>> root['study1']['series2'].data = 'some series data'
-    >>> list(root['study1'].keys)
-    ['series1', 'series2']
-    """
-
-    def __init__(self, data=None, allow_overwrite=True):
-        """
-
-        Parameters
-        ----------
-        data:
-            Optional data to associate with this node
-        allow_overwrite: bool, optional
-            If False, will raise exception when overwriting data attribute
-        """
-        super().__init__(lambda: TreeNode(allow_overwrite=allow_overwrite))
-        self._data = data
-        self.allow_overwrite = allow_overwrite
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        if self.allow_overwrite or not self.data:
-            self._data = value
-        else:
-            raise ValueError("Overwriting data is not allowed")
 
 
 class DICOMParseTree:
@@ -87,7 +48,7 @@ class DICOMParseTree:
 
         Notes
         -----
-        Parent objects for instances and series will be created to maintain to
+        Parent objects for instances and series will be created to
         ensure all nodes are connected to the tree root. For example, running this
         method with only a single instance as input will result in a regular
         root->study->series->instance tree. This is possible because all DICOMObjects
@@ -189,7 +150,7 @@ class DICOMParseTree:
         study_instance_uid, study_node = study_node_in
 
         study = Study(
-            uid=study_instance_uid,
+            uid=str(study_instance_uid),
             data=value_or_dataset(study_node.data),
             series=tuple(),
         )
@@ -263,7 +224,6 @@ class DICOMObjectTree:
         DICOMObjectNotFound
             If data for the given parameters does not exist in tree
         """
-
         try:
             if isinstance(reference, StudyReference):
                 return self[reference.study_uid]

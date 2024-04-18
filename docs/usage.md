@@ -125,6 +125,22 @@ class MyStorage(DICOMDiskStorage):
 trolley = Trolley(searcher=a_searcher, downloader=a_downloader, storage=MyStorage())
 
 ```
+## Caching
+You can add caching to any [`Searcher`](concepts.md#searcher) by wrapping it with
+a [CachedSearcher][dicomtrolley.caching.CachedSearcher] instance:
+
+```python
+from dicomtrolley.caching import CachedSearcher, DICOMObjectCache
+
+searcher = CachedSearcher(searcher=a_searcher, 
+                          cache=DICOMObjectCache(expiry_seconds=300))
+
+trolley = Trolley(searcher=searcher, downloader=a_downloader)
+```
+
+[CachedSearcher][dicomtrolley.caching.CachedSearcher] is a [Searcher][dicomtrolley.core.Searcher]
+and can be used like any other. It will return cached results to any of its function
+calls for up to `expiry_seconds` seconds.
 
 ## Logging
 Dicomtrolley uses the standard [logging](https://docs.python.org/3/library/logging.html) module. The root logger is 
@@ -149,9 +165,7 @@ trolley = Trolley(searcher=a_searcher,
                   downloader=Rad69(session=requests.session(),
                                    url="https://server/rad69",
                                    errors_to_ignore = [XDSMissingDocumentError]))
-
-study = trolley.find_study(Query(PatientName="AB*"))
-trolley.download(study, '/tmp') # will skip series raising XDSMissingDocumentError
+# trolley.download() # will now skip series raising XDSMissingDocumentError
 ```
 
 ## Authentication

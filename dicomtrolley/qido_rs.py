@@ -91,7 +91,7 @@ class QidoRSQueryBase(Query):
         The non-query part of the URI as defined in
         DICOM PS3.18 section 10.6 table 10.6.1-2
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def uri_search_params(self) -> Dict[str, Union[str, List[str]]]:
         """The search parameter part of the URI as defined in
@@ -301,7 +301,7 @@ class RelationalQuery(QidoRSQueryBase):
         """A relational query only makes sense for the instance and series levels.
         If you want to look for studies, us a hierarchical query
         """
-        if values["query_level"] == QueryLevels.STUDY:
+        if values.get("query_level") == QueryLevels.STUDY:
             raise ValueError(STUDY_VALUE_ERROR_TEXT)
 
         return values
@@ -312,30 +312,22 @@ class RelationalQuery(QidoRSQueryBase):
 
         The non-query part of the URI as defined in
         DICOM PS3.18 section 10.6 table 10.6.1-2
-
-        Raises
-        ------
-        ValueError
-            if query_level is STUDY. This makes no sense for a relational query
         """
 
-        if self.query_level == QueryLevels.STUDY:
-            raise ValueError(STUDY_VALUE_ERROR_TEXT)
-        elif self.query_level == QueryLevels.SERIES:
+        # QueryLevels.Study is checked in query_level_should_be_series_or_instance()
+        if self.query_level == QueryLevels.SERIES:
             return "/series"
         elif self.query_level == QueryLevels.INSTANCE:
             if self.StudyInstanceUID:
                 # all instances for this study
                 return f"/studies/{self.StudyInstanceUID}/instances"
             else:
-                # all instances on the intire server (might be slow)
+                # all instances on the entire server (might be slow)
                 return "/instances"
-
         else:
-            raise ValueError(
-                f'Unknown querylevel "{self.query_level}". '
-                f'Should be one of "{QueryLevels}"'
-            )
+            # Unreachable due to pydantic validation and root validator. But I
+            # get uncomfortable from open elifs.
+            raise ValueError(f"Unknown query level {self.query_level}")
 
 
 class QidoRS(Searcher):

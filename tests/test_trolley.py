@@ -3,27 +3,18 @@ from unittest.mock import Mock
 
 import pytest
 
-from dicomtrolley.core import SeriesReference, StudyReference
 from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.mint import Mint, MintQuery
-from dicomtrolley.parsing import DICOMObjectTree
+from dicomtrolley.mint import MintQuery
 from dicomtrolley.storage import FlatStorageDir
 from dicomtrolley.trolley import (
-    CachedSearcher,
-    MissingObjectInformationError,
     Trolley,
 )
-from tests.conftest import create_mint_study, set_mock_response
+
+from tests.conftest import create_mint_study
 from tests.factories import (
-    InstanceReferenceFactory,
-    SeriesReferenceFactory,
     StudyReferenceFactory,
     quick_dataset,
 )
-from tests.mock_responses import (
-    MINT_SEARCH_INSTANCE_LEVEL_IDS,
-)
-from tests.mock_servers import MINT_SEARCH_INSTANCE_LEVEL_ANY
 
 
 def test_trolley_find(a_trolley, some_mint_studies):
@@ -55,7 +46,7 @@ def test_trolley_get_dataset(a_trolley, some_mint_studies):
     download
     """
     # Search will yield full info for the missing study
-    a_trolley.searcher.find_study_at_instance_level = Mock(
+    a_trolley.searcher.find_study_by_id = Mock(
         return_value=create_mint_study(
             uid="1.2.340.114850.2.857.2.793263.2.125336546.1"
         )
@@ -172,90 +163,3 @@ def test_trolley_encapsulation_error(a_trolley):
     # this should be caught an raised as a TrolleyError
     with pytest.raises(DICOMTrolleyError):
         a_trolley.download(StudyReferenceFactory(), output_dir="/tmp")
-
-
-def test_cached_searcher_retrieve_instances(a_mint, requests_mock):
-    # set a single-study response for any mint call
-    set_mock_response(requests_mock, MINT_SEARCH_INSTANCE_LEVEL_ANY)
-
-    # a reference to the two series contained in response
-    series_reference_1 = SeriesReference(
-        study_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["study_uid"],
-        series_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["series_uids"][0],
-    )
-
-    # a reference to a series contained in response
-    series_reference_2 = SeriesReference(
-        study_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["study_uid"],
-        series_uid=MINT_SEARCH_INSTANCE_LEVEL_IDS["series_uids"][1],
-    )
-
-    searcher = CachedSearcher(searcher=a_mint)
-
-    assert requests_mock.request_history == []  # no requests have been made
-
-    # now ask for a series that is not in cached searcher
-    instances = searcher.retrieve_instance_references(series_reference_1)
-    assert len(instances) == 1  # this series has only one instance
-    assert len(requests_mock.request_history) == 1  # a request has been made
-
-    # ask for the other series
-    instances = searcher.retrieve_instance_references(series_reference_2)
-    assert len(instances) == 13
-    # No extra requests as the whole study was retrieved
-    assert len(requests_mock.request_history) == 1
-
-
-def test_cached_searcher_no_download(a_mint):
-    """You can disable auto-querying for missing info to limit requests"""
-    study1 = create_mint_study(uid="1")
-    study2 = create_mint_study(uid="2")
-    for series in study2.series:  # study2 will have no instance info
-        series.instances = []
-
-    # search starts out with some info
-    searcher = CachedSearcher(
-        searcher=a_mint,
-        cache=DICOMObjectTree([study1, study2]),
-        query_missing=False,
-    )
-
-    # requesting study which has instance info should work
-    assert len(searcher.retrieve_instance_references(study1)) == 14
-
-    # however, this will raise errors
-    with pytest.raises(MissingObjectInformationError):
-        searcher.retrieve_instance_references(study2)
-
-
-def test_cached_searcher_ensure_series(a_mint_study_with_instances):
-    # a study reference cannot be found, will issue a call
-    # an instance that is already cached will not yield a call
-    # a series will not yield a call if it is known
-    searcher = Mock(spec=Mint)
-
-    a_study = a_mint_study_with_instances
-    for series in a_study.series:  # study will have no instance
-        series.instances = []
-
-    cache = CachedSearcher(
-        searcher=searcher,
-        cache=DICOMObjectTree([a_study]),
-        query_missing=False,
-    )
-
-    # any instance references should be find regardless of cached or not
-    cache.ensure_series_level_references(
-        downloadable=InstanceReferenceFactory()
-    )
-    cache.ensure_series_level_references(downloadable=SeriesReferenceFactory())
-
-    # there are series for this study in cache so should be fine
-    references = cache.ensure_series_level_references(
-        downloadable=a_study.reference()
-    )
-    assert len(references) == 2
-
-    # a new series is not in cache so will not work
-    with pytest.raises(MissingObjectInformationError):
-        cache.ensure_series_level_references(StudyReference("unknown_study"))
