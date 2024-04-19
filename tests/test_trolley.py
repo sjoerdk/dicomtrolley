@@ -66,7 +66,10 @@ def test_trolley_get_dataset(a_trolley, some_mint_studies):
     assert datasets[0].SOPInstanceUID == "bimini"
 
 
-def test_trolley_get_dataset_async(a_trolley, some_mint_studies):
+def test_trolley_get_dataset_async(a_mint, a_wado, some_mint_studies):
+    a_wado.use_async = True
+    a_trolley = Trolley(searcher=a_mint, downloader=a_wado)
+
     a_trolley.downloader.datasets_async = Mock(
         return_value=iter(
             [
@@ -80,7 +83,7 @@ def test_trolley_get_dataset_async(a_trolley, some_mint_studies):
         )
     )
 
-    datasets = list(a_trolley.fetch_all_datasets_async(some_mint_studies))
+    datasets = list(a_trolley.fetch_all_datasets(some_mint_studies))
     assert len(datasets) == 3
     assert datasets[0].SOPInstanceUID == "bimini"
 

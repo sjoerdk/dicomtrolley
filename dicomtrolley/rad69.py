@@ -45,9 +45,10 @@ class Rad69(Downloader):
         self,
         session,
         url,
-        http_chunk_size=5242880,
         request_per_series=True,
         errors_to_ignore=None,
+        use_async=False,
+        max_workers=4,
     ):
         """
         Parameters
@@ -56,9 +57,6 @@ class Rad69(Downloader):
             A logged in session over which rad69 calls can be made
         url: str
             rad69 endpoint, including protocol and port. Like https://server:2525/rids
-        http_chunk_size: int, optional
-            Number of bytes to read each time when streaming chunked rad69 responses.
-            Defaults to 5MB (5242880 bytes)
         request_per_series: bool, optional
             If true, split rad69 requests per series when downloading. If false,
             request all instances at once. Splitting reduces load on server.
@@ -66,20 +64,54 @@ class Rad69(Downloader):
         errors_to_ignore: List[Type], optional
             Errors of this type encountered during download are caught and skipped.
             Defaults to empty list, meaning any error is propagated
+        use_async: bool, optional
+            If True, download will split instances into chunks and download each
+            chunk in a separate thread. If False, use single thread Defaults to False
+        max_workers: int, optional
+            Only used of use_async=True. Number of workers to use for multi-threading
         """
 
         self.session = session
         self.url = url
-        self.http_chunk_size = http_chunk_size
+
+        # Number of bytes to read each time when streaming chunked rad69 responses.
+        # Defaults to 5MB (5242880 bytes)
+        self.http_chunk_size = 5242880
+
         if errors_to_ignore is None:
             errors_to_ignore = []
         self.errors_to_ignore = errors_to_ignore
         self.template = RAD69_SOAP_REQUEST_TEMPLATE
         self.post_headers = {"Content-Type": "application/soap+xml"}
         self.request_per_series = request_per_series
+        self.use_async = use_async
+        self.max_workers = max_workers
 
     def datasets(self, objects: Sequence[DICOMDownloadable]):
         """Retrieve all instances via rad69
+
+        A Rad69 request typically contains multiple instances. The data for all
+        instances is then streamed back as one multipart http response
+
+        Raises
+        ------
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID.
+            Rad69 can only download instances
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+        """
+        if self.use_async:
+            yield from self.datasets_async(
+                objects, max_workers=self.max_workers
+            )
+        else:
+            yield from self.datasets_single_thread(objects)
+
+    def datasets_single_thread(self, objects: Sequence[DICOMDownloadable]):
+        """Retrieve all instances via rad69, without async
 
         A Rad69 request typically contains multiple instances. The data for all
         instances is then streamed back as one multipart http response
@@ -110,6 +142,62 @@ class Rad69(Downloader):
 
         else:
             return self.download_iterator(instances)
+
+    def datasets_async(
+        self, objects: Sequence[DICOMDownloadable], max_workers
+    ):
+        """Split instances into chunks and retrieve each chunk in separate thread
+
+        Parameters
+        ----------
+        objects: Sequence[DICOMDownloadable]
+            Retrieve dataset for each instance in these objects
+        max_workers: int
+            Use this number of workers in ThreadPoolExecutor. Defaults to
+            default for ThreadPoolExecutor
+
+        Notes
+        -----
+        rad69 allows any number of slices to be combined in one request. The response
+        is a chunked multi-part http response with all image data. Requesting each
+        slice individually is inefficient. Requesting all slices in one thread might
+        limit speed. Somewhere in the middle seems the best bet for optimal speed.
+        This function splits all instances between the available workers and lets
+        workers process the response streams.
+
+        Raises
+        ------
+        DICOMTrolleyError
+            When a server response cannot be parsed as DICOM
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+        """
+        instances = to_instance_refs(objects)  # raise exception if needed
+
+        # max_workers=None means let the executor figure it out. But for rad69 we
+        # still need to determine how many instances to retrieve at once with each
+        # worker. Unlimited workers make no sense here. Just use a single thread.
+        if max_workers is None:
+            max_workers = 1
+
+        with FuturesSession(
+            session=self.session,
+            executor=ThreadPoolExecutor(max_workers=max_workers),
+        ) as futures_session:
+            futures = []
+            for instance_bin in self.split_instances(instances, max_workers):
+                futures.append(
+                    futures_session.post(
+                        url=self.url,
+                        headers=self.post_headers,
+                        data=self.create_instances_request(instance_bin),
+                    )
+                )
+
+            for future in as_completed(futures):
+                yield from self.parse_rad69_response(future.result())
 
     def series_download_iterator(
         self, instances: Sequence[InstanceReference], index=0
@@ -319,60 +407,6 @@ class Rad69(Downloader):
         bin_size = math.ceil(len(instances) / num_bins)
         for i in range(0, len(instances), bin_size):
             yield instances[i : i + bin_size]
-
-    def datasets_async(
-        self, instances: Sequence[InstanceReference], max_workers=4
-    ):
-        """Split instances into chunks and retrieve each chunk in separate thread
-
-        Parameters
-        ----------
-        instances: Sequence[InstanceReference]
-            Retrieve dataset for each of these instances
-        max_workers: int, optional
-            Use this number of workers in ThreadPoolExecutor. Defaults to
-            default for ThreadPoolExecutor
-
-        Notes
-        -----
-        rad69 allows any number of slices to be combined in one request. The response
-        is a chunked multi-part http response with all image data. Requesting each
-        slice individually is inefficient. Requesting all slices in one thread might
-        limit speed. Somewhere in the middle seems the best bet for optimal speed.
-        This function splits all instances between the available workers and lets
-        workers process the response streams.
-
-        Raises
-        ------
-        DICOMTrolleyError
-            When a server response cannot be parsed as DICOM
-
-        Returns
-        -------
-        Iterator[Dataset, None, None]
-        """
-        # max_workers=None means let the executor figure it out. But for rad69 we
-        # still need to determine how many instances to retrieve at once with each
-        # worker. Unlimited workers make no sense here. Just use a single thread.
-        if max_workers is None:
-            max_workers = 1
-
-        with FuturesSession(
-            session=self.session,
-            executor=ThreadPoolExecutor(max_workers=max_workers),
-        ) as futures_session:
-            futures = []
-            for instance_bin in self.split_instances(instances, max_workers):
-                futures.append(
-                    futures_session.post(
-                        url=self.url,
-                        headers=self.post_headers,
-                        data=self.create_instances_request(instance_bin),
-                    )
-                )
-
-            for future in as_completed(futures):
-                yield from self.parse_rad69_response(future.result())
 
 
 class Rad69ServerError(DICOMTrolleyError):

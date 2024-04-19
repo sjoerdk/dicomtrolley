@@ -26,7 +26,7 @@ from dicomtrolley.exceptions import DICOMTrolleyError
 class WadoURI(Downloader):
     """A connection to a WADO-URI server"""
 
-    def __init__(self, session, url):
+    def __init__(self, session, url, use_async=False, max_workers=None):
         """
         Parameters
         ----------
@@ -35,10 +35,18 @@ class WadoURI(Downloader):
         url: str
             WADO-URI endpoint, including protocol and port. Like
             https://server:8080/wado
+        use_async: bool, optional
+            If True, download will split instances into chunks and download each
+            chunk in a separate thread. If False, use single thread Defaults to False
+        max_workers, Optional[int]
+            Only used of use_async=True. Number of workers to use for multi-threading.
+            Defaults to None, meaning ThreadPoolExecutor default number is used.
         """
 
         self.session = session
         self.url = url
+        self.use_async = use_async
+        self.max_workers = max_workers
 
     @staticmethod
     def to_wado_parameters(instance):
@@ -107,6 +115,27 @@ class WadoURI(Downloader):
         )
 
     def datasets(self, objects: Sequence[DICOMDownloadable]):
+        """Retrieve each instance in objects
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+
+        Raises
+        ------
+        NonInstanceParameterError
+            If objects contain non-instance targets like a StudyInstanceUID.
+            wado_uri can only download instances
+
+        """
+        if self.use_async:
+            yield from self.datasets_async(
+                objects, max_workers=self.max_workers
+            )
+        else:
+            yield from self.datasets_single_thread(objects)
+
+    def datasets_single_thread(self, objects: Sequence[DICOMDownloadable]):
         """Retrieve each instance in objects
 
         Returns

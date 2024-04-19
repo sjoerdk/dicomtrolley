@@ -110,14 +110,8 @@ class Trolley:
         if not isinstance(objects, Sequence):
             objects = [objects]  # if just a single item to download is passed
         logger.info(f"Downloading {len(objects)} object(s) to '{output_dir}'")
-        if use_async:
-            datasets = self.fetch_all_datasets_async(
-                objects=objects, max_workers=max_workers
-            )
-        else:
-            datasets = self.fetch_all_datasets(objects=objects)
 
-        for dataset in datasets:
+        for dataset in self.fetch_all_datasets(objects=objects):
             self.storage.save(dataset=dataset, path=output_dir)
 
     def fetch_all_datasets(self, objects: Sequence[DICOMDownloadable]):
@@ -181,37 +175,3 @@ class Trolley:
                 )
                 references += study.contained_references(max_level=max_level)
         return references
-
-    def fetch_all_datasets_async(self, objects, max_workers=None):
-        """Get DICOM dataset for each instance given objects using multiple threads.
-
-        Parameters
-        ----------
-        objects: Sequence[DICOMDownloadable]
-            get dataset for each instance contained in these objects
-        max_workers: int, optional
-            Max number of ThreadPoolExecutor workers to use. Defaults to
-            ThreadPoolExecutor default
-
-        Raises
-        ------
-        DICOMTrolleyError
-            If getting or parsing of any instance fails
-
-        Returns
-        -------
-        Iterator[Dataset, None, None]
-            The downloaded dataset and the context that was used to download it
-        """
-        try:
-            yield from self.downloader.datasets_async(
-                instances=objects,
-                max_workers=max_workers,
-            )
-        except NonInstanceParameterError:
-            yield from self.downloader.datasets_async(
-                instances=self.obtain_references(
-                    objects=objects, max_level=DICOMObjectLevels.INSTANCE
-                ),
-                max_workers=max_workers,
-            )

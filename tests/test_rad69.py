@@ -247,8 +247,8 @@ def test_wado_datasets_async(a_rad69, requests_mock):
         InstanceReference(study_uid=1, series_uid=2, instance_uid=3),
         InstanceReference(study_uid=4, series_uid=5, instance_uid=6),
     ]
-
-    datasets = [x for x in a_rad69.datasets_async(instances)]
+    a_rad69.use_async = True
+    datasets = [x for x in a_rad69.datasets(instances)]
     assert len(datasets) == 2
     assert datasets[0].PatientName == "patient1"
     assert (

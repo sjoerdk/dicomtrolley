@@ -523,30 +523,6 @@ class Downloader:
         """
         raise NotImplementedError()
 
-    def datasets_async(
-        self, instances: Sequence[InstanceReference], max_workers=None
-    ):
-        """Retrieve each instance in multiple threads
-
-        Parameters
-        ----------
-        instances: Sequence[InstanceReference]
-            Retrieve dataset for each of these instances
-        max_workers: int, optional
-            Use this number of workers in ThreadPoolExecutor. Defaults to
-            default for ThreadPoolExecutor
-
-        Raises
-        ------
-        DICOMTrolleyError
-            When a server response cannot be parsed as DICOM
-
-        Returns
-        -------
-        Iterator[Dataset, None, None]
-        """
-        raise NotImplementedError()
-
 
 class QueryLevels(str, Enum):
     """Used in dicom queries to indicate how rich the search should be"""
