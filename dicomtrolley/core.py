@@ -13,8 +13,7 @@ from typing import (
     TypeVar,
 )
 
-from pydantic import Field, ValidationError
-from pydantic.class_validators import validator
+from pydantic import Field, ValidationError, field_validator
 from pydantic.main import BaseModel
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
@@ -608,8 +607,8 @@ class Query(BaseModel):
     query_level: QueryLevels = (
         QueryLevels.STUDY
     )  # to which depth to return results
-    max_study_date: Optional[datetime]
-    min_study_date: Optional[datetime]
+    max_study_date: Optional[datetime] = None
+    min_study_date: Optional[datetime] = None
     include_fields: List[str] = Field([])  #
 
     class Config:
@@ -657,7 +656,8 @@ class Query(BaseModel):
         if not tag_for_keyword(keyword):
             raise ValueError(f"{keyword} is not a valid DICOM keyword")
 
-    @validator("include_fields")
+    @field_validator("include_fields")
+    @classmethod
     def include_fields_check(cls, include_fields, values):  # noqa: B902, N805
         """Include fields should be valid dicom tag names"""
         for field in include_fields:
@@ -684,7 +684,7 @@ class ExtendedQuery(Query):
     StudyDescription: str = ""
     SeriesDescription: str = ""
     InstitutionalDepartmentName: str = ""
-    PatientBirthDate: Optional[date]
+    PatientBirthDate: Optional[date] = None
 
 
 class Searcher:

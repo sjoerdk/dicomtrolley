@@ -39,7 +39,7 @@ def test_dicom_query_mint_cast(requests_mock, a_mint):
     set_mock_response(requests_mock, MINT_SEARCH_INSTANCE_LEVEL_ANY)
     with pytest.raises(DICOMTrolleyError):
         # should fail, casting to mint would lose unsupported StudyID parameter
-        a_mint.find_studies(DICOMQuery(StudyID=123))
+        a_mint.find_studies(DICOMQuery(StudyID="123"))
 
 
 def test_from_query():

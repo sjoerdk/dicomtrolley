@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 from typing import Dict, List, Optional, Sequence, Union
 
-from pydantic import root_validator
+from pydantic import model_validator
 from pydicom import Dataset
 from requests import Response
 
@@ -39,11 +39,11 @@ class QidoRSQueryBase(Query):
     limit: int = 0  # How many results to return. 0 = all
     offset: int = 0  # Number of skipped results
 
-    @root_validator()  # type: ignore
-    def min_max_study_date_xor(cls, values):  # noqa: B902, N805
+    @model_validator(mode="after")
+    def min_max_study_date_xor(self):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
-        min_date = values.get("min_study_date")
-        max_date = values.get("max_study_date")
+        min_date = self.min_study_date
+        max_date = self.max_study_date
         if min_date and not max_date:
             raise ValueError(
                 f"min_study_date parameter was passed"
@@ -55,7 +55,7 @@ class QidoRSQueryBase(Query):
                 f"max_study_date parameter was passed ({max_date}), "
                 f"but min_study_date was not. Both need to be given"
             )
-        return values
+        return self
 
     @staticmethod
     def date_to_str(date_in: Optional[datetime]) -> str:
@@ -158,8 +158,8 @@ class HierarchicalQuery(QidoRSQueryBase):
     Faster than relationalQuery, but requires more information
     """
 
-    @root_validator()  # type: ignore
-    def uids_should_be_hierarchical(cls, values):  # noqa: B902, N805
+    @model_validator(mode="after")
+    def uids_should_be_hierarchical(self):
         """Any object uids passed should conform to study->series->instance"""
         order = ["StudyInstanceUID", "SeriesInstanceUID", "SOPInstanceUID"]
 
@@ -182,14 +182,13 @@ class HierarchicalQuery(QidoRSQueryBase):
             else:
                 return assert_parents_filled(a_hierarchy, value_dict)
 
-        assert_parents_filled(order, values)
+        assert_parents_filled(order, self.dict())
+        return self
 
-        return values
-
-    @root_validator()  # type: ignore
-    def uids_should_match_query_level(cls, values):  # noqa: B902, N805
+    @model_validator(mode="after")
+    def uids_should_match_query_level(self):
         """If a query is for instance level, there should be study and series UIDs"""
-        query_level = values["query_level"]
+        query_level = self.query_level
 
         def assert_key_exists(values_in, query_level_in, missing_key_in):
             if not values_in.get(missing_key_in):
@@ -199,6 +198,7 @@ class HierarchicalQuery(QidoRSQueryBase):
                     f"a QIDO-RS relational query"
                 )
 
+        values = self.dict()
         if query_level == QueryLevels.STUDY:
             pass  # Fine. you can always look for some studies
         elif query_level == QueryLevels.SERIES:
@@ -207,7 +207,7 @@ class HierarchicalQuery(QidoRSQueryBase):
             assert_key_exists(values, query_level, "SeriesInstanceUID")
             assert_key_exists(values, query_level, "StudyInstanceUID")
 
-        return values
+        return self
 
     def uri_base(self) -> str:
         """WADO-RS url to call when performing this query. Full URI also needs
@@ -294,17 +294,15 @@ class RelationalQuery(QidoRSQueryBase):
     Allows broader searches than HierarchicalQuery, but can be slower
     """
 
-    @root_validator()  # type: ignore
-    def query_level_should_be_series_or_instance(
-        cls, values  # noqa: B902, N805
-    ):
+    @model_validator(mode="after")
+    def query_level_should_be_series_or_instance(self):
         """A relational query only makes sense for the instance and series levels.
         If you want to look for studies, us a hierarchical query
         """
-        if values.get("query_level") == QueryLevels.STUDY:
+        if self.query_level == QueryLevels.STUDY:
             raise ValueError(STUDY_VALUE_ERROR_TEXT)
 
-        return values
+        return self
 
     def uri_base(self) -> str:
         """WADO-RS url to call when performing this query. Full URI also needs

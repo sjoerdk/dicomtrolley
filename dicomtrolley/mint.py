@@ -6,7 +6,7 @@ from typing import ClassVar, List, Sequence, Set
 from xml.etree import ElementTree
 from xml.etree.ElementTree import ParseError
 
-from pydantic.class_validators import root_validator
+from pydantic import model_validator
 from pydicom.dataelem import DataElement
 from pydicom.dataset import Dataset
 
@@ -159,11 +159,11 @@ class MintQuery(ExtendedQuery):
 
     limit: int = 0  # how many results to return. 0 = all
 
-    @root_validator()
+    @model_validator(mode="after")
     def min_max_study_date_xor(cls, values):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
-        min_date = values.get("min_study_date")
-        max_date = values.get("max_study_date")
+        min_date = values.min_study_date
+        max_date = values.max_study_date
         if min_date and not max_date:
             raise ValueError(
                 f"min_study_date parameter was passed"
@@ -177,14 +177,18 @@ class MintQuery(ExtendedQuery):
             )
         return values
 
-    @root_validator()
-    def include_fields_check(cls, values):  # noqa: B902, N805
+    @model_validator(mode="after")
+    def include_fields_check(self):
         """Include fields should match query level"""
-        include_fields = values.get("include_fields")
+        if isinstance(self, list):
+            # Interplay with base Query field_validator for include fields
+            return self  # don't check
+        else:
+            include_fields = self.include_fields
         if not include_fields:
-            return values  # May not exist if include_fields is invalid type
+            return self  # May not exist if include_fields is invalid type
 
-        query_level = values.get("query_level")
+        query_level = self.query_level
         if query_level:  # May be None for child classes
             valid_fields = get_valid_fields(query_level=query_level)
             for field in include_fields:
@@ -193,7 +197,7 @@ class MintQuery(ExtendedQuery):
                         f'"{field}" is not a valid include field for query '
                         f"level {query_level}. Valid fields: {valid_fields}"
                     )
-        return values
+        return self
 
     def __str__(self):
         return str(self.as_parameters())
