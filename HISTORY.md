@@ -1,4 +1,7 @@
 # History
+## v3.2.0 (17-09-24)
+* Moves to pydantic v2, releases pydantic 1.8.2 pin. See #54
+
 ## v3.1.0 (18-04-24)
 * Rewrites caching:
 * Trolley no longer caches results by default, cleans up Trolley.
