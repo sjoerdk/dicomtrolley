@@ -120,7 +120,7 @@ class WadoRS(Downloader):
         )
 
     def download_iterator(self, downloadable: DICOMDownloadable):
-        """Perform a wado RS request and iterate over the returned datasets
+        """Perform a wado RS request and iterate over the returned datasets.
 
         Returns
         -------
@@ -147,7 +147,7 @@ class WadoRS(Downloader):
         Raises
         ------
         DICOMTrolleyError
-            If response is not as expected or if parsing fails
+            If response is not as expected or if parsing fails.
 
         Returns
         -------
@@ -171,6 +171,10 @@ class WadoRS(Downloader):
                     f"Error parsing response as dicom: {e}."
                     f" Response content (first 300 elements) was"
                     f" {str(response.content[:300])}"
+                ) from e
+            except OSError as e:  # pydicom might validly raise this on bad DICOM
+                raise DICOMTrolleyError(
+                    "Error parsing response as DICOM"
                 ) from e
 
     @staticmethod
