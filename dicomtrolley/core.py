@@ -489,7 +489,7 @@ def to_references(
 
 
 class Downloader:
-    """Something that can download DICOM images. Base class"""
+    """Something that can download DICOM images. Base class."""
 
     def get_dataset(self, instance: InstanceReference):
         """Get DICOM dataset for the given instance (slice)
@@ -519,6 +519,10 @@ class Downloader:
             If objects contain non-instance targets like a StudyInstanceUID and
             download can only process Instance targets. See Exception docstring
             for rationale
+                Raises
+
+        DICOMTrolleyError
+            If getting does not work for some reason
         """
         raise NotImplementedError()
 

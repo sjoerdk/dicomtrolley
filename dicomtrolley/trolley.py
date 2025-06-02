@@ -124,7 +124,12 @@ class Trolley:
         Returns
         -------
         Iterator[Dataset, None, None]
-            All datasets belonging to input objects
+            All datasets belonging to input objects.
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If download fails for any reason
         """
         try:
             yield from self.downloader.datasets(objects)

@@ -96,6 +96,9 @@ class WadoRS(Downloader):
         NonSeriesParameterError
             If request_per_series is True and objects contains study references
             without series information.
+
+        DICOMTrolleyError
+            If getting does not work for some reason
         """
         logger.debug("Getting datasets")
         if isinstance(objects, DICOMDownloadable):
@@ -214,4 +217,9 @@ class WadoRS(Downloader):
             return (
                 f"{uri}/studies/{reference.study_uid}/series"
                 f"/{reference.series_uid}/instances/{reference.instance_uid}"
+            )
+        else:
+            raise ValueError(
+                f"StudyReference or InstanceReference expected. "
+                f"Found {type(reference)}"
             )
