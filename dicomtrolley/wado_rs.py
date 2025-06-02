@@ -174,7 +174,7 @@ class WadoRS(Downloader):
                 ) from e
             except OSError as e:  # pydicom might validly raise this on bad DICOM
                 raise DICOMTrolleyError(
-                    "Error parsing response as DICOM"
+                    f"Error parsing response as DICOM: {e}"
                 ) from e
 
     @staticmethod
