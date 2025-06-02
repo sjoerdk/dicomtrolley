@@ -1,4 +1,7 @@
 # History
+## v3.2.1 (02-06-24)
+* WADO-RS Downloader now raises DICOMTrolleyError instead of OSErron parsing faulty dicom responses. Fixes #58
+
 ## v3.2.0 (17-09-24)
 * Moves to pydantic v2, releases pydantic 1.8.2 pin. See #54
 
