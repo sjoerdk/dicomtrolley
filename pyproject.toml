@@ -9,10 +9,10 @@ repository = "https://github.com/sjoerdk/dicomtrolley"
 
 [tool.black]
 line-length = 79
-target-version = ['py38']
+target-version = ['py310']
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 requests = "^2.25.1"
 pydicom = "^2.1.2"
 requests-futures = "^1.0.0"
@@ -43,12 +43,12 @@ pip-tools = "^7.3.0"
 legacy_tox_ini = """
 [tox]
 isolated_build = True
-envlist = py38, py39, py310
+envlist = py310, py311, py312
 [gh-actions]
 python =
-    3.8: py38
-    3.9: py39
     3.10: py310
+    3.11: py311
+    3.12: py312
 [testenv]
 allowlist_externals = poetry
 commands =
