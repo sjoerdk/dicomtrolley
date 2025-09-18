@@ -1,6 +1,11 @@
 # History
-## v3.2.1 (02-06-24)
-* WADO-RS Downloader now raises DICOMTrolleyError instead of OSErron parsing faulty dicom responses. Fixes #58
+## v3.3.0 (09-18-25)
+* Drops python 3.8 and 3.9. Moves to 3.10 as minimum
+* Drops poetry package management. Replaces with uv
+* Updates Flake8 and Mypy versions for code checking
+
+## v3.2.1 (02-06-25)
+* WADO-RS Downloader now raises DICOMTrolleyError instead of OSError, parsing faulty dicom responses. Fixes #58
 
 ## v3.2.0 (17-09-24)
 * Moves to pydantic v2, releases pydantic 1.8.2 pin. See #54
