@@ -2,10 +2,10 @@
 name = "dicomtrolley"
 version = "3.3.0"
 description = "Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR"
-authors = [{name="Sjoerd Kerkstra", email="sjoerd.kerkstra@radboudumc.nl>"}]
+authors = [{name="Sjoerd Kerkstra", email ="sjoerd.kerkstra@radboudumc.nl"}]
 readme = "README.md"
 license = "Apache-2.0"
-repository = "https://github.com/sjoerdk/dicomtrolley"
+keywords = ["DICOM","DICOM-web","QIDO", "WADO", "MINT", "RAD69", "Download"]
 requires-python = ">=3.10"
 dependencies = [
     "requests",
@@ -16,6 +16,9 @@ dependencies = [
     "requests-toolbelt>=1.0.0",
     "pydantic>=2"
 ]
+[project.urls]
+Repository = "https://github.com/sjoerdk/dicomtrolley"
+Changelog = "https://github.com/sjoerdk/dicomtrolley/blob/main/HISTORY.md"
 
 [tool.black]
 line-length = 79
