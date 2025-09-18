@@ -8,6 +8,7 @@ from pydicom.tag import Tag
 from dicomtrolley.core import (
     InstanceReference,
     SeriesReference,
+    Study,
     StudyReference,
 )
 from dicomtrolley.dicom_qr import DICOMQR
@@ -127,7 +128,7 @@ def create_image_level_study(
     study_instance_uid,
     series_instance_uids: List[str],
     sop_class_uids: List[str],
-) -> Dataset:
+) -> Study:
     return DICOMQR.parse_c_find_response(
         create_c_find_image_response(
             study_instance_uid, series_instance_uids, sop_class_uids
@@ -135,7 +136,7 @@ def create_image_level_study(
     )[0]
 
 
-def quick_image_level_study(uid) -> Dataset:
+def quick_image_level_study(uid) -> Study:
     """Study with 2 series and some Instances in each series"""
     return create_image_level_study(
         uid,

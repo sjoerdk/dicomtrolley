@@ -30,3 +30,5 @@ repos:
           - pydantic
           - types-requests
           - types-Jinja2
+          - types-pydicom
+
