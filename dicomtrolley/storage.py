@@ -36,12 +36,12 @@ class StorageDir(DICOMDiskStorage):
         return f"StorageDir at {self.path}"
 
     def save(self, dataset, path: Optional[str] = None):
-        """Write dataset. Creates sub-folders if needed.
+        """Write dataset. Creates subfolders if needed.
 
         Raises
         ------
         StorageError
-            If writing to disk does not work for some reason
+            If writing to disk does not work for some reason.
         """
         if not path:
             path = self.path
