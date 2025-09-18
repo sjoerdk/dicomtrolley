@@ -133,3 +133,4 @@ dmypy.json
 
 # This is a library, should just use newest always. Don't retrict
 poetry.lock
+uv.lock

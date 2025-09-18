@@ -1,13 +1,11 @@
-default_language_version:
-  python: python3
 repos:
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.32.0
+    rev: v2.37.3
     hooks:
       - id: pyupgrade
         language: python
         args: [--py36-plus]
-  - repo: https://github.com/ambv/black
+  - repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:
       - id: black
@@ -16,19 +14,19 @@ repos:
     rev: 5.0.4
     hooks:
       - id: flake8
-        exclude: dicomtrolley/xml_templates.py
         language: python
         additional_dependencies:
           - flake8-bugbear
+          - flake8-import-order
           - pep8-naming
           - flake8-docstrings
           - mccabe
           - yesqa
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v0.942'
+    rev: 'v1.16.1'
     hooks:
       - id: mypy
         additional_dependencies:
-          - "pydantic>=1.10.4"
+          - pydantic
           - types-requests
           - types-Jinja2

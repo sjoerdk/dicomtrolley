@@ -1,4 +1,4 @@
-[tool.poetry]
+[project]
 name = "dicomtrolley"
 version = "3.2.1"
 description = "Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR"
@@ -6,58 +6,37 @@ authors = ["sjoerdk <sjoerd.kerkstra@radboudumc.nl>"]
 readme = "README.md"
 license = "Apache-2.0"
 repository = "https://github.com/sjoerdk/dicomtrolley"
+requires-python = ">=3.10"
+dependencies = [
+    "requests",
+    "pydicom>=3.0.1",
+    "requests-futures>=1.0.0",
+    "pynetdicom",
+    "Jinja2",
+    "requests-toolbelt>=1.0.0",
+    "pydantic>=2"
+]
 
 [tool.black]
 line-length = 79
 target-version = ['py310']
 
-[tool.poetry.dependencies]
-python = ">=3.10"
-requests = "^2.32.5"
-pydicom = "3.0.1"
-requests-futures = ">=1.0.0"
-pynetdicom = "^3.0.4"
-Jinja2 = ">=3.0.3"
-requests-toolbelt = ">=1.0.0"
-pydantic = "^2.11.9"
-
-[tool.poetry.dev-dependencies]
-pytest = ">=7.4.0"
-pytest-randomly = ">=3.5.0"
-pytest-cov = ">=2.11.1"
-tox = ">=3.23.0"
-requests-mock = ">=1.11.0"
-factory-boy = ">=3.2.1"
-sybil = ">=5.0.3"
-mkdocs = ">=1.5.2"
-mkdocstrings = {extras = ["python"], version = ">=0.22.0"}
-mkdocs-gen-files = ">=0.5.0"
-mkdocs-section-index = ">=0.3.5"
-mkdocs-literate-nav = ">=0.6.0"
-markdown-mdantic = ">=1.3.5"
-mkdocs-material = ">=9.2.8"
-mkdocs-autorefs = ">=0.5.0"
-pip-tools = ">=7.3.0"
-
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-isolated_build = True
-envlist = py310, py311, py312
-[gh-actions]
-python =
-    3.10: py310
-    3.11: py311
-    3.12: py312
-[testenv]
-allowlist_externals = poetry
-commands =
-    poetry install -v
-    poetry run pytest --cov=tests/ --cov=dicomtrolley/
-"""
-
-[build-system]
-requires = ["poetry-core>=1.0.8"]
-build-backend = "poetry.core.masonry.api"
-
+[dependency-groups]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-randomly>=3.5.0",
+    "pytest-cov>=2.11.1",
+    "tox>=3.23.0",
+    "requests-mock>=1.11.0",
+    "factory-boy>=3.2.1",
+    "sybil>=5.0.3",
+    "mkdocs>=1.5.2",
+    "mkdocstrings>=0.22.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-section-index>=0.3.5",
+    "mkdocs-literate-nav>=0.6.0",
+    "markdown-mdantic>=1.3.5",
+    "mkdocs-material>=9.2.8",
+    "mkdocs-autorefs>=0.5.0",
+    "pip-tools>=7.3.0",
+]
