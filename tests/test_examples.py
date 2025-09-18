@@ -2,13 +2,13 @@
 from unittest.mock import Mock
 
 import pytest
-
-from dicomtrolley.storage import StorageDir
 from examples.go_shopping import go_shopping
 from examples.go_shopping_rad69 import go_shopping_rad69
 from examples.search_for_studies_dicom_qr import search_for_studies_dicom_qr
 from examples.search_for_studies_mint import search_for_studies_mint
 from examples.use_wado_only import use_wado_only
+
+from dicomtrolley.storage import StorageDir
 from tests.conftest import set_mock_response
 from tests.factories import create_c_find_image_response
 from tests.mock_responses import LOGIN_SUCCESS, MockUrls, RAD69_RESPONSE_ANY

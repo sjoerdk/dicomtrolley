@@ -613,7 +613,7 @@ class Query(BaseModel):
     )  # to which depth to return results
     max_study_date: Optional[datetime] = None
     min_study_date: Optional[datetime] = None
-    include_fields: List[str] = Field([])  #
+    include_fields: Optional[List[str]] = Field(default_factory=list)
 
     class Config:
         extra = "forbid"  # raise ValueError when passing an unknown keyword to init
@@ -749,5 +749,5 @@ class Searcher:
         )
 
 
-Instance.update_forward_refs()  # enables pydantic validation
-Series.update_forward_refs()
+Instance.model_rebuild()  # enables pydantic validation
+Series.model_rebuild()

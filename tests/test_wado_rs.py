@@ -60,7 +60,7 @@ def create_wado_rs_response(datasets):
 
     multi_part_soap_response = MultipartEncoder(
         fields=[
-            (f"part{idx+1}", ("filename", bytes_part, "application/dicom"))
+            (f"part{idx + 1}", ("filename", bytes_part, "application/dicom"))
             for idx, bytes_part in enumerate(bytes_parts)
         ]
     )

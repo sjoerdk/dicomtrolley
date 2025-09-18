@@ -160,7 +160,7 @@ def test_find_study_with_basic_query():
     qr.parse_c_find_response = Mock()
 
     qr.find_studies(query=Query(PatientID="test"))
-    assert type(called[0]) == DICOMQuery
+    assert isinstance(called[0], DICOMQuery)
     assert called[0].PatientID == "test"
 
 

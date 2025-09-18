@@ -9,13 +9,13 @@ Report bugs at [https://github.com/sjoerdk/dicomtrolley/issues]()
 Fork this repo, create a feature branch
 
 ### Set up environment
-dicomtrolley uses [poetry](https://python-poetry.org/docs/) for dependency and package management 
+dicomtrolley uses [uv](https://docs.astral.sh/uv) for dependency and package management 
 
-* Install poetry (see [poetry docs](https://python-poetry.org/docs/#installation))
+* Install uv (see [uv docs](https://docs.astral.sh/uv/getting-started/installation/))
 
-* Create a virtual env. Go to the folder where cloned dicomtrolley and use 
+* Create a virtual env. Go to the folder where you cloned dicomtrolley and use 
   ```  
-  poetry install 
+  uv sync 
   ``` 
 
 * Install [pre-commit](https://pre-commit.com) hooks.

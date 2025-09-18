@@ -393,7 +393,7 @@ def create_rad69_response(bytes_parts, soap_header=None):
     multi_part_soap_response = MultipartEncoder(
         fields=[("part1", soap_header)]
         + [
-            (f"part{idx+2}", ("filename", bytes_part, "application/dicom"))
+            (f"part{idx + 2}", ("filename", bytes_part, "application/dicom"))
             for idx, bytes_part in enumerate(bytes_parts)
         ],
     )

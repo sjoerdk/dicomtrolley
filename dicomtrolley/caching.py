@@ -189,13 +189,13 @@ class QueryCache:
 
     def __init__(self, cache: DICOMObjectCache):
         self.cache = cache
-        self.queries: Dict[Query, Tuple[DICOMObjectReference, ...]] = {}
+        self.queries: Dict[str, Tuple[DICOMObjectReference, ...]] = {}
 
     def add_response(self, query: Query, response: Sequence[DICOMObject]):
         """Cache response for this query"""
         self.cache.add_all(response)
         references = tuple(x.reference() for x in response)
-        self.queries[query.json()] = references
+        self.queries[query.model_dump_json()] = references
 
     def get_response(self, query: Query) -> List[Study]:
         """Obtain cached response for this query
@@ -206,7 +206,7 @@ class QueryCache:
             If any of the results of query are not in cache or have expired
         """
         try:
-            references = self.queries[query.json()]
+            references = self.queries[query.model_dump_json()]
         except KeyError as e:
             raise NodeNotFound(
                 f"Query {query.to_short_string()} not found in cache"
@@ -221,7 +221,7 @@ class QueryCache:
             return retrieved
         except NodeNotFound as e:
             # This query response is not (fully) cached anymore. Remove
-            self.queries.pop(query.json())
+            self.queries.pop(query.model_dump_json())
             raise NodeNotFound(
                 f"One or more response to {query.to_short_string()} "
                 f"was not in cache"

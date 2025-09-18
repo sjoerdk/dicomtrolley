@@ -9,7 +9,6 @@ from dicomtrolley.storage import FlatStorageDir
 from dicomtrolley.trolley import (
     Trolley,
 )
-
 from tests.conftest import create_mint_study
 from tests.factories import (
     StudyReferenceFactory,
