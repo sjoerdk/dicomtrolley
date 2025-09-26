@@ -52,4 +52,5 @@ docs = [
     "mkdocstrings-python>=1.18.2",
     "pydantic>=2.11.9",
     "pydicom>=3.0.1",
+    "pymdown-extensions>=10.16.1",
 ]
