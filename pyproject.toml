@@ -16,16 +16,6 @@ dependencies = [
     "requests-toolbelt>=1.0.0",
     "pydantic>=2"
 ]
-[project.urls]
-Repository = "https://github.com/sjoerdk/dicomtrolley"
-Changelog = "https://github.com/sjoerdk/dicomtrolley/blob/main/HISTORY.md"
-
-[tool.black]
-line-length = 79
-target-version = ['py310']
-
-[tool.uv.sources]
-dicomtrolley = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -54,3 +44,14 @@ docs = [
     "pydicom>=3.0.1",
     "pymdown-extensions>=10.16.1",
 ]
+
+[project.urls]
+Repository = "https://github.com/sjoerdk/dicomtrolley"
+Changelog = "https://github.com/sjoerdk/dicomtrolley/blob/main/HISTORY.md"
+
+[tool.black]
+line-length = 79
+target-version = ['py310']
+
+[tool.uv.sources]
+dicomtrolley = { workspace = true }
