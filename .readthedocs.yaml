@@ -10,10 +10,8 @@ build:
   tools:
     python: "3.11"
   jobs:
-    post_create_environment:
-      - pip install uv
     post_install:
-      - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH uv sync --group docs
-
+      - pip install uv
+      - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --group docs --link-mode=copy
 mkdocs:
   configuration: mkdocs.yml
