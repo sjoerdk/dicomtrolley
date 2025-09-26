@@ -38,4 +38,4 @@ trolley.download(studies[0], output_dir='/tmp/trolley')
 ```
 
 ## Documentation
-see [dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
+See [dicomtrolley docs on readthedocs.io](https://dicomtrolley.readthedocs.io)
