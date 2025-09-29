@@ -1,5 +1,5 @@
 # History
-## v3.3.0 (09-18-25)
+## v3.3.0 (18-09-25)
 * Drops python 3.8 and 3.9. Moves to 3.10 as minimum
 * Drops poetry package management. Replaces with uv
 * Updates Flake8 and Mypy versions for code checking
@@ -40,7 +40,7 @@
 
 ## v3.0.0 (11-09-23)
 * Adds WADO-RS and QIDO-RS support
-* Reworks download mechanics. Fascilitates direct download when you know the ids by introducing DICOMObjectReference. This base for Series-, Study- and SOPInstanceReference can be downloaded directly
+* Reworks download mechanics. Facilitates direct download when you know the ids by introducing DICOMObjectReference. This base for Series-, Study- and SOPInstanceReference can be downloaded directly
 * Introduces CachedSearcher to avoid unneeded queries
 * Simplifies and clears up trolley download methods by upgrading DICOMDownloadable to base class 
 * Simplifies automatic querying for missing ids. Downloader instances can now raise Exceptions for insufficient download info (missing instance, series ids)
@@ -114,19 +114,15 @@
   selected without having to manually re-query at the image level
 
 ## v0.7.0 (2021-10-12)
-
 * Adds additional search fields to DICOMQuery widening DICOM-QR search scope
 
 ## v0.6.0 (2021-09-27)
-
 * Renames base exception DICOMTrolleyException to pep8 complient DICOMTrolleyError
 
 ## v0.5.4 (2021-06-23)
-
 * Fix typo
 
 ## v0.5.3 (2021-06-23)
-
 * Correct usage of dataclass
 * DICOM-QR fix
 
