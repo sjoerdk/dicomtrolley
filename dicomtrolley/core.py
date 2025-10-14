@@ -23,6 +23,9 @@ from dicomtrolley.exceptions import (
     NoReferencesFoundError,
     UnSupportedParameterError,
 )
+from dicomtrolley.logs import get_module_logger
+
+logger = get_module_logger("core")
 
 
 class DICOMObjectLevels(IntEnum):
@@ -709,10 +712,18 @@ class Searcher:
             If no results or more than one result is returned by query
         """
         results = self.find_studies(query)
-        if len(results) == 0 or len(results) > 1:
+        if len(results) > 1:
+            logger.debug(
+                f"Found too many results!({len(results)}, expected 1)\n {results}"
+            )
             raise DICOMTrolleyError(
                 f"Expected exactly one study for query '{query.to_short_string()}',"
                 f" but found {len(results)}"
+            )
+        if len(results) == 0 or len(results) > 1:
+            raise DICOMTrolleyError(
+                f"Expected exactly one study for query '{query.to_short_string()}',"
+                f" but found none"
             )
         return results[0]
 
