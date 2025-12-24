@@ -160,10 +160,10 @@ class MintQuery(ExtendedQuery):
     limit: int = 0  # how many results to return. 0 = all
 
     @model_validator(mode="after")
-    def min_max_study_date_xor(cls, values):  # noqa: B902, N805
+    def min_max_study_date_xor(self):  # noqa: B902, N805
         """Min and max should both be given or both be empty"""
-        min_date = values.min_study_date
-        max_date = values.max_study_date
+        min_date = self.min_study_date
+        max_date = self.max_study_date
         if min_date and not max_date:
             raise ValueError(
                 f"min_study_date parameter was passed"
@@ -175,7 +175,7 @@ class MintQuery(ExtendedQuery):
                 f"max_study_date parameter was passed ({max_date}), "
                 f"but min_study_date was not. Both need to be given"
             )
-        return values
+        return self
 
     @model_validator(mode="after")
     def include_fields_check(self):
