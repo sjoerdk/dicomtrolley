@@ -204,7 +204,7 @@ class MintQuery(ExtendedQuery):
 
     def as_parameters(self):
         """All non-empty query parameters. For use as url parameters"""
-        parameters = {x: y for x, y in self.dict().items() if y}
+        parameters = {x: y for x, y in self.model_dump().items() if y}
 
         if "min_study_date" in parameters:
             parameters["min_study_date"] = parameters[
@@ -332,6 +332,6 @@ def parse_attribs(element):
     return dataset
 
 
-MintInstance.update_forward_refs()  # enables pydantic validation
-MintSeries.update_forward_refs()
-MintStudy.update_forward_refs()
+MintInstance.model_rebuild()  # enables pydantic validation
+MintSeries.model_rebuild()
+MintStudy.model_rebuild()

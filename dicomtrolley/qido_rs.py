@@ -132,7 +132,7 @@ class QidoRSQueryBase(Query):
         }
         other_search_params = {
             key: val
-            for key, val in self.dict().items()
+            for key, val in self.model_dump().items()
             if key not in exclude_fields
         }
 
@@ -182,7 +182,7 @@ class HierarchicalQuery(QidoRSQueryBase):
             else:
                 return assert_parents_filled(a_hierarchy, value_dict)
 
-        assert_parents_filled(order, self.dict())
+        assert_parents_filled(order, self.model_dump())
         return self
 
     @model_validator(mode="after")
@@ -198,7 +198,7 @@ class HierarchicalQuery(QidoRSQueryBase):
                     f"a QIDO-RS relational query"
                 )
 
-        values = self.dict()
+        values = self.model_dump()
         if query_level == QueryLevels.STUDY:
             pass  # Fine. you can always look for some studies
         elif query_level == QueryLevels.SERIES:

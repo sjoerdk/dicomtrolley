@@ -19,6 +19,7 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
+from pydantic import ConfigDict
 
 
 class QueryRetrieveLevels:
@@ -59,9 +60,8 @@ class DICOMQuery(ExtendedQuery):
     Modality: str = ""
     ProtocolName: str = ""
     StudyID: str = ""
-
-    class Config:
-        extra = "forbid"  # raise ValueError when passing an unknown keyword to init
+    # raise ValueError when passing an unknown keyword to init
+    model_config = ConfigDict(extra="forbid")
 
     @staticmethod
     def get_default_include_fields(query_level):
@@ -95,7 +95,7 @@ class DICOMQuery(ExtendedQuery):
 
         # remove non-DICOM parameters and replace with DICOM tags based on them
         parameters = {
-            x: y for x, y in self.dict().items()
+            x: y for x, y in self.model_dump().items()
         }  # all params for query
         parameters["StudyDate"] = self.get_study_date(
             parameters.pop("min_study_date"), parameters.pop("max_study_date")
