@@ -671,7 +671,9 @@ class Query(BaseModel):
 
     def to_short_string(self):
         """A more information-dense str repr. For human reading"""
-        filled_fields = {key: val for key, val in self.model_dump().items() if val}
+        filled_fields = {
+            key: val for key, val in self.model_dump().items() if val
+        }
         filled_fields["query_level"] = filled_fields["query_level"].value
         return f"{type(self).__name__}: {filled_fields}"
 

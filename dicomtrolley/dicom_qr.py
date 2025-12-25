@@ -5,6 +5,7 @@ See http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.3.html
 
 from typing import Dict, List
 
+from pydantic import ConfigDict
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
@@ -19,7 +20,6 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
 from dicomtrolley.parsing import DICOMParseTree
-from pydantic import ConfigDict
 
 
 class QueryRetrieveLevels:
