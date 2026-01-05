@@ -1,4 +1,7 @@
 # History
+## v4.0.0 (26-12-25)
+* Upgrades Pydantic API from V1 to V2
+
 ## v3.3.0 (18-09-25)
 * Drops python 3.8 and 3.9. Moves to 3.10 as minimum
 * Drops poetry package management. Replaces with uv

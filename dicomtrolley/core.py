@@ -13,7 +13,7 @@ from typing import (
     TypeVar,
 )
 
-from pydantic import Field, ValidationError, field_validator
+from pydantic import ConfigDict, Field, ValidationError, field_validator
 from pydantic.main import BaseModel
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
@@ -187,8 +187,8 @@ class DICOMObject(BaseModel, DICOMDownloadable):
     a DICOM dataset
     """
 
-    class Config:
-        arbitrary_types_allowed = True  # allows the use of Dataset type below
+    # allows the use of Dataset type below
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     uid: str
     data: Dataset
@@ -614,9 +614,8 @@ class Query(BaseModel):
     max_study_date: Optional[datetime] = None
     min_study_date: Optional[datetime] = None
     include_fields: Optional[List[str]] = Field(default_factory=list)
-
-    class Config:
-        extra = "forbid"  # raise ValueError when passing an unknown keyword to init
+    # raise ValueError when passing an unknown keyword to init
+    model_config = ConfigDict(extra="forbid")
 
     @classmethod
     def init_from_query(
@@ -643,7 +642,7 @@ class Query(BaseModel):
             this class
         """
         # remove empty, None and 0 values
-        params = {key: val for key, val in query.dict().items() if val}
+        params = {key: val for key, val in query.model_dump().items() if val}
         try:
             return cls(**params)
         except ValidationError as e:
@@ -672,7 +671,9 @@ class Query(BaseModel):
 
     def to_short_string(self):
         """A more information-dense str repr. For human reading"""
-        filled_fields = {key: val for key, val in self.dict().items() if val}
+        filled_fields = {
+            key: val for key, val in self.model_dump().items() if val
+        }
         filled_fields["query_level"] = filled_fields["query_level"].value
         return f"{type(self).__name__}: {filled_fields}"
 

@@ -5,6 +5,7 @@ See http://dicom.nema.org/dicom/2013/output/chtml/part04/sect_C.3.html
 
 from typing import Dict, List
 
+from pydantic import ConfigDict
 from pydicom.datadict import tag_for_keyword
 from pydicom.dataset import Dataset
 from pynetdicom import AE, debug_logger
@@ -59,9 +60,8 @@ class DICOMQuery(ExtendedQuery):
     Modality: str = ""
     ProtocolName: str = ""
     StudyID: str = ""
-
-    class Config:
-        extra = "forbid"  # raise ValueError when passing an unknown keyword to init
+    # raise ValueError when passing an unknown keyword to init
+    model_config = ConfigDict(extra="forbid")
 
     @staticmethod
     def get_default_include_fields(query_level):
@@ -95,7 +95,7 @@ class DICOMQuery(ExtendedQuery):
 
         # remove non-DICOM parameters and replace with DICOM tags based on them
         parameters = {
-            x: y for x, y in self.dict().items()
+            x: y for x, y in self.model_dump().items()
         }  # all params for query
         parameters["StudyDate"] = self.get_study_date(
             parameters.pop("min_study_date"), parameters.pop("max_study_date")
