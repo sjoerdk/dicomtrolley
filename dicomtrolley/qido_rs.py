@@ -374,7 +374,7 @@ class QidoRS(Searcher):
 
     @classmethod
     def ensure_query_type(cls, query: Query) -> QidoRSQueryBase:
-        """Make sure query is of a type usable in this searcher. Cast if needed
+        """Make sure query is of a type usable in this searcher. Cast if needed.
 
         Separate casting method needed in addition to Query.init_from_query()
         To properly handle the two QIDO-RS query types
