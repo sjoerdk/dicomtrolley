@@ -18,3 +18,7 @@ class NoReferencesFoundError(DICOMTrolleyError):
     """
 
     pass
+
+
+class NoQueryResultsError(DICOMTrolleyError):
+    """Raised when a query returns 0 results"""

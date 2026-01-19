@@ -22,6 +22,7 @@ from dicomtrolley.core import (
 )
 from dicomtrolley.exceptions import (
     DICOMTrolleyError,
+    NoQueryResultsError,
     UnSupportedParameterError,
 )
 from dicomtrolley.logs import get_module_logger
@@ -363,7 +364,7 @@ class QidoRS(Searcher):
             If response is otherwise not as expected
         """
         if response.status_code == 204:
-            raise NoQueryResults("Server returned http 204 (No Content)")
+            raise NoQueryResultsError("Server returned http 204 (No Content)")
         elif response.status_code != 200:
             raise DICOMTrolleyError(
                 f"Calling {response.url} failed ({response.status_code} - "
@@ -409,7 +410,7 @@ class QidoRS(Searcher):
 
         try:
             self.check_for_response_errors(response)
-        except NoQueryResults:
+        except NoQueryResultsError:
             return []
         return self.parse_qido_response(json.loads(response.text))
 
@@ -424,7 +425,3 @@ class QidoRS(Searcher):
             tree.insert_dataset(Dataset.from_json(item))
 
         return tree.as_studies()
-
-
-class NoQueryResults(DICOMTrolleyError):
-    """Raised when a query returns 0 results"""

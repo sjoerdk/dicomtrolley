@@ -33,6 +33,7 @@ Download Not Supported by dicomtrolley:
 * Pixel Data resources
 
 """
+import json
 from itertools import chain
 from typing import Iterator, Sequence
 
@@ -49,7 +50,7 @@ from dicomtrolley.core import (
     StudyReference,
     to_series_level_refs,
 )
-from dicomtrolley.exceptions import DICOMTrolleyError
+from dicomtrolley.exceptions import DICOMTrolleyError, NoQueryResultsError
 from dicomtrolley.http import HTTPMultiPartStream
 from dicomtrolley.logs import get_module_logger
 
@@ -106,6 +107,7 @@ class WadoRS(Downloader):
 
         if self.request_per_series:
             references: Sequence[DICOMDownloadable] = to_series_level_refs(
+                # references: Sequence[DICOMDownloadable] = to_instance_refs(
                 objects
             )
             logger.debug(
@@ -137,7 +139,7 @@ class WadoRS(Downloader):
         return self.parse(response)
 
     def parse(self, response) -> Iterator[Dataset]:
-        """Extract datasets out of http response from a rad69 server
+        """Extract datasets out of http response from a WADO-RS server
 
         Parameters
         ----------
@@ -227,3 +229,90 @@ class WadoRS(Downloader):
                 f"StudyReference or InstanceReference expected. "
                 f"Found {type(reference)}"
             )
+
+
+class WadoRSMetaData(WadoRS):
+    """A WADO-RS /metadata Downloader that downloads only metadata, no PixelData"""
+
+    def wado_rs_instance_uri(self, reference: DICOMObjectReference):
+        """WADO-RS URI to request all instances contained in referenced object"""
+        uri = self.url.rstrip(
+            "/"
+        )  # self.url might or might not have trailing /
+        if isinstance(reference, StudyReference):
+            # Note: study-level /metadata is not in the DICOM standard, but some
+            # VNA systems still implement it
+            return f"{uri}/studies/{reference.study_uid}/metadata"
+        elif isinstance(reference, SeriesReference):
+            return (
+                f"{uri}/studies/{reference.study_uid}/series"
+                f"/{reference.series_uid}/metadata"
+            )
+        elif isinstance(reference, InstanceReference):
+            return (
+                f"{uri}/studies/{reference.study_uid}/series"
+                f"/{reference.series_uid}/instances/{reference.instance_uid}/metadata"
+            )
+        else:
+            raise ValueError(
+                f"StudyReference or InstanceReference expected. "
+                f"Found {type(reference)}"
+            )
+
+    @staticmethod
+    def check_for_response_errors(response):
+        """Raise exceptions if this response is not a valid WADO-RS response.
+
+        Parameters
+        ----------
+        response: Response
+            requests.Response as returned from a wado-rs call
+
+        Raises
+        ------
+        NoQueryResults
+            If http 204 (No Content) is returned by server
+            see https://dicom.nema.org/medical/dicom/current/output/chtml/
+            part18/sect_8.3.4.4.html
+        DICOMTrolleyError
+            If response is otherwise not as expected
+        """
+        if response.status_code == 204:
+            raise NoQueryResultsError("Server returned http 204 (No Content)")
+        elif response.status_code != 200:
+            raise DICOMTrolleyError(
+                f"Calling {response.url} failed ({response.status_code} - "
+                f"{response.reason})\n"
+                f"response content was {str(response.content[:300])}"
+            )
+
+    def download_iterator(self, downloadable: DICOMDownloadable):
+        """Perform a wado RS request and iterate over the returned datasets.
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+            All datasets included in the response
+        """
+        uri = self.wado_rs_instance_uri(downloadable.reference())
+        logger.debug(f"Calling {uri}")
+        response = self.session.get(
+            url=uri,
+            stream=True,
+        )
+        response_parsed = json.loads(response.text)
+        logger.debug(
+            f"Received {len(response_parsed)} metadata results. Parsing."
+        )
+
+        return iter(
+            Dataset.from_json(x, bulk_data_uri_handler=self.bulk_data_reader)
+            for x in response_parsed
+        )
+
+    @classmethod
+    def bulk_data_reader(cls, tag, vr, bulk_data_uri):
+        logger.debug(
+            f"Metadata-only download. Not downloading bulk data "
+            f"at {bulk_data_uri}"
+        )

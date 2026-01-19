@@ -10,10 +10,18 @@ from dicomtrolley.core import (
     StudyReference,
 )
 from dicomtrolley.exceptions import DICOMTrolleyError
-from dicomtrolley.wado_rs import WadoRS
+from dicomtrolley.wado_rs import WadoRS, WadoRSMetaData
 from tests.conftest import set_mock_response
-from tests.factories import create_dicom_bytestream, quick_dataset
-from tests.mock_responses import MockResponse, MockUrls
+from tests.factories import (
+    InstanceReferenceFactory,
+    create_dicom_bytestream,
+    quick_dataset,
+)
+from tests.mock_responses import (
+    MockResponse,
+    MockUrls,
+    WADO_RESPONSE_METADATA_INSTANCE,
+)
 
 
 @pytest.fixture
@@ -113,3 +121,12 @@ def test_wado_rs_ioeror(a_wado_rs, requests_mock, monkeypatch):
                 SeriesReference(study_uid="123", series_uid="1234")
             )
         )
+
+
+def test_wado_rs_metadata_handling(requests_mock, a_session):
+    """Try a call to a WADO-RS /metadata url. Nothing should crash"""
+    set_mock_response(requests_mock, WADO_RESPONSE_METADATA_INSTANCE)
+    downloader = WadoRSMetaData(session=a_session, url=MockUrls.WADO_RS_URL)
+
+    datasets = [x for x in downloader.datasets(InstanceReferenceFactory())]
+    assert datasets[0].IssuerOfPatientID == "HOSPITAL"

@@ -1,6 +1,6 @@
 """Mock responses
 
-Based on live responses from a server running Vitrea Connection 8.2.0.1
+Based on live responses from a server running Vitrea Connection 8.2.0.1 and 9.2
 """
 import json
 import re
@@ -313,7 +313,7 @@ MINT_SEARCH_INSTANCE_LEVEL_IDS = {
 
 # Will return mint study response to any mint server query
 
-# a Response that contains a valid DICOM bytes
+# a Response that contains a valid DICOM response
 WADO_RESPONSE_DICOM = MockResponse(
     url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
     content=create_dicom_bytestream(
@@ -336,6 +336,463 @@ WADO_RESPONSE_INVALID_NON_DICOM = MockResponse(
     url=MockUrls.WADO_URI_URL + MockWadoParameters.as_wado_query_string(),
     status_code=502,
     text="Error, server really does not know anymore",
+)
+
+# Scrambled dataset from Vitra 9.2 /metadata instance level response
+WADO_RESPONSE_METADATA_INSTANCE = MockResponse(
+    url=re.compile(MockUrls.WADO_RS_URL + ".*" + "/metadata"),
+    status_code=200,
+    text=r"""[
+  {
+    "00080020": {
+      "vr": "DA",
+      "Value": [
+        "20230301"
+      ]
+    },
+    "00080030": {
+      "vr": "TM",
+      "Value": [
+        "210746"
+      ]
+    },
+    "00080050": {
+      "vr": "SH",
+      "Value": [
+        "1234567.1234567"
+      ]
+    },
+    "00080051": {
+      "vr": "SQ",
+      "Value": [
+        {
+          "00400031": {
+            "vr": "UT",
+            "Value": [
+              "HOSPITAL"
+            ]
+          },
+          "00400032": {
+            "vr": "UT",
+            "Value": [
+              "HOSPITAL"
+            ]
+          },
+          "00400033": {
+            "vr": "CS",
+            "Value": [
+              "ISO"
+            ]
+          }
+        }
+      ]
+    },
+    "00080061": {
+      "vr": "CS",
+      "Value": [
+        "MR",
+        "SR"
+      ]
+    },
+    "00080080": {
+      "vr": "LO",
+      "Value": [
+        "Hospital"
+      ]
+    },
+    "00080090": {
+      "vr": "PN",
+      "Value": [
+        {
+          "Alphabetic": "TESTDOCTOR^T.^^^"
+        }
+      ]
+    },
+    "00081030": {
+      "vr": "LO",
+      "Value": [
+        "INVESTIGATION 123"
+      ]
+    },
+    "00081040": {
+      "vr": "LO",
+      "Value": [
+        "Radiology"
+      ]
+    },
+    "00081048": {
+      "vr": "PN",
+      "Value": [
+        {
+          "Alphabetic": "123^Lastname^^^"
+        }
+      ]
+    },
+    "00100010": {
+      "vr": "PN",
+      "Value": [
+        {
+          "Alphabetic": "OTHERNAME^A^B^^"
+        }
+      ]
+    },
+    "00100020": {
+      "vr": "LO",
+      "Value": [
+        "1970101"
+      ]
+    },
+    "00100021": {
+      "vr": "LO",
+      "Value": [
+        "HOSPITAL"
+      ]
+    },
+    "00100024": {
+      "vr": "SQ",
+      "Value": [
+        {
+          "00400032": {
+            "vr": "UT",
+            "Value": [
+              "1.12.123.1.123456"
+            ]
+          },
+          "00400033": {
+            "vr": "CS",
+            "Value": [
+              "ISO"
+            ]
+          }
+        }
+      ]
+    },
+    "00100030": {
+      "vr": "DA",
+      "Value": [
+        "19700101"
+      ]
+    },
+    "00100032": {
+      "vr": "TM",
+      "Value": [
+        "000000"
+      ]
+    },
+    "00100040": {
+      "vr": "CS",
+      "Value": [
+        "M"
+      ]
+    },
+    "00101001": {
+      "vr": "PN"
+    },
+    "00101010": {
+      "vr": "AS",
+      "Value": [
+        "099Y"
+      ]
+    },
+    "00101020": {
+      "vr": "DS",
+      "Value": [
+        "1.23"
+      ]
+    },
+    "00101030": {
+      "vr": "DS",
+      "Value": [
+        "12"
+      ]
+    },
+    "00102000": {
+      "vr": "LO"
+    },
+    "00102299": {
+      "vr": "LO",
+      "Value": [
+        "HOSPITAL2"
+      ]
+    },
+    "00080016": {
+      "vr": "UI",
+      "Value": [
+        "1.2.840.10008.5.1.4.1.1.2"
+      ]
+    },
+    "0020000D": {
+      "vr": "UI",
+      "Value": [
+        "1.2.345.6.78.9.123456789"
+      ]
+    },
+    "00200010": {
+      "vr": "SH",
+      "Value": [
+        "ACC.1234"
+      ]
+    },
+    "00201206": {
+      "vr": "IS",
+      "Value": [
+        "9"
+      ]
+    },
+    "00201208": {
+      "vr": "IS",
+      "Value": [
+        "12"
+      ]
+    },
+    "0032000A": {
+      "vr": "CS",
+      "Value": [
+        "ABC"
+      ]
+    },
+    "00321032": {
+      "vr": "PN",
+      "Value": [
+        {
+          "Alphabetic": "TESTDOCTOR^T.^^^"
+        }
+      ]
+    },
+    "00321060": {
+      "vr": "LO",
+      "Value": [
+        "INVESTIGATION 123"
+      ]
+    },
+    "00321064": {
+      "vr": "SQ",
+      "Value": [
+        {
+          "00080100": {
+            "vr": "SH",
+            "Value": [
+              "ANAME"
+            ]
+          },
+          "00080102": {
+            "vr": "SH",
+            "Value": [
+              "ANAME2"
+            ]
+          },
+          "00080104": {
+            "vr": "LO",
+            "Value": [
+              "INVESTIGATION 123"
+            ]
+          }
+        }
+      ]
+    },
+    "55330010": {
+      "vr": "LO",
+      "Value": [
+        "Trademark Change"
+      ]
+    },
+    "55330011": {
+      "vr": "LO",
+      "Value": [
+        "A description and Country - Header"
+      ]
+    },
+    "55331033": {
+      "vr": "UN",
+      "Value": [
+        {
+          "00102299": {
+            "vr": "LO"
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        },
+        {
+          "00100020": {
+            "vr": "LO",
+            "Value": [
+              "1234567"
+            ]
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        },
+        {
+          "00100021": {
+            "vr": "LO"
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        },
+        {
+          "00101000": {
+            "vr": "LO",
+            "Value": [
+              "34567890"
+            ]
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        },
+        {
+          "00101001": {
+            "vr": "PN"
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        },
+        {
+          "00101005": {
+            "vr": "PN"
+          },
+          "55330010": {
+            "vr": "LO",
+            "Value": [
+              "Trademark Change"
+            ]
+          },
+          "55331035": {
+            "vr": "UN",
+            "InlineBinary": "MjAwMDAxMDQ=\u003d"
+          },
+          "55331037": {
+            "vr": "UN",
+            "InlineBinary": "U0NQSGFuZGxlcg\u003d\u003d"
+          },
+          "55331039": {
+            "vr": "UN",
+            "InlineBinary": "AAAAAAAAAAA\u003d"
+          },
+          "5533103B": {
+            "vr": "UN",
+            "InlineBinary": "MTIzNDU="
+          }
+        }
+      ]
+    },
+    "55331111": {
+      "vr": "UN",
+      "InlineBinary": "UkVTVUxU"
+    },
+    "55331112": {
+      "vr": "UN",
+      "InlineBinary": "UExBSU4g"
+    },
+    "55331114": {
+      "vr": "UN",
+      "InlineBinary": "RiA\u003d"
+    },
+    "55331116": {
+      "vr": "UN",
+      "BulkDataURI": "https://the_server:1234/dicomweb/studies/1.2.3/bulkdata/45"
+    }
+  }
+]""",
 )
 
 
