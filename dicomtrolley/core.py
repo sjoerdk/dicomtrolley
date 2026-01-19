@@ -510,7 +510,7 @@ class Downloader:
         raise NotImplementedError
 
     def datasets(self, objects: Sequence[DICOMDownloadable]):
-        """Retrieve each instance
+        """Retrieve each instance contained in the given downloadable objects
 
         Returns
         -------
@@ -522,7 +522,6 @@ class Downloader:
             If objects contain non-instance targets like a StudyInstanceUID and
             download can only process Instance targets. See Exception docstring
             for rationale
-                Raises
 
         DICOMTrolleyError
             If getting does not work for some reason
@@ -574,7 +573,7 @@ class Query(BaseModel):
     A Searcher class often has its own associated Query subclass. For instance,
     the Mint searcher function Mint.find_study(query) can take a MintQuery instance
     which uniquely allows the setting of the MINT-specific parameter `limit`.
-    Any Searcher can however also take a generic Query instance as input. This
+    Any Searcher can, however, also take a generic Query instance as input. This
     makes it possible to use a simple Query in your code and be independent
     of searcher backend.
     An issue with the scheme is that it is in principle allowed to use the Query

@@ -3,8 +3,7 @@
 
 See: [QIDO-RS reference](https://www.dicomstandard.org/using/dicomweb/query-qido-rs/)
 and [QIDO-RS at NEMA]
-(https://dicom.nema.org/medical/dicom/current/output/chtml/part18/
-sect_10.6.html#sect_10.6.1.2)
+(https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.6.html#sect_10.6.1.2)
 
 """
 import json
