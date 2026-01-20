@@ -1,4 +1,7 @@
 # History
+## v4.1.0 (20-01-26)
+* Adds WadoRSMetadata Downloader to download metadata-only datasets via WADO-RS. Fixes #65
+  
 ## v4.0.0 (26-12-25)
 * Upgrades Pydantic API from V1 to V2
 
