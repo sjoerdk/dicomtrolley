@@ -59,6 +59,6 @@ To edit the docs:
 
 * Edit content in `/docs`
 
-* Try out your changes using `mkdocs serve`
+* Try out your changes using `uv run mkdocs serve`
 
 * To add docs requirements: `uv add --group dev <package to add>`. To remove `uv remove --group dev <package to add>` 

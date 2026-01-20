@@ -12,7 +12,7 @@ trolley = Trolley(searcher=Mint(a_session, "https://server/mint"),
 
 ### Trolley search
 You query for DICOM objects by calling [`Trolley.find_studies()`][dicomtrolley.trolley.Trolley.find_studies] with a 
-[Query](#Query) instance. This will send back one or more [DICOMObjects](#dicomobject).
+[Query](#query) instance. This will send back one or more [DICOMObjects](#dicomobject).
 ```python
 studies = trolley.find_studies(Query(PatientName='B*'))
 ```
@@ -129,8 +129,8 @@ makes no sense for a study-level query.
 
 
 ### Query subtypes
-The base [`Query`][dicomtrolley.core.Query] object is acceptable to all [`Searchers`](concepts.md#Query). Some Searchers
-accept specialized query subtypes. For example [MINT](#MINT) searcher can take a specialized 
+The base [`Query`][dicomtrolley.core.Query] object is acceptable to all [`Searchers`](concepts.md#query). Some Searchers
+accept specialized query subtypes. For example [MINT](usage.md#mint) searcher can take a specialized 
 [`MintQuery`][dicomtrolley.mint.MintQuery], which  allows an additional `limit`
 parameter:
 ```python
@@ -198,61 +198,16 @@ trolley.download(InstanceReference(study_uid="1.1",
                                    instance_uid='3.3'), "/tmp")
 ```
   
-
 ## Searcher
-Something that can search for DICOM studies. Dicomtrolley includes the following 
-[Searcher][dicomtrolley.core.Searcher] classes:
+Something that can search for DICOM studies. Accepts [a query](#query) and returns a
+list of [DICOM objects](#dicomobject). The usage page lists several
+[search system implementations](usage.md/#choosing-a-searcher).
 
-### DICOM-QR
-```python 
-searcher = DICOMQR(host="hostname", port="123",aet="DICOMTROLLEY", aec="ANY-SCP")
-```
-DICOM query retrieve ([dicomtrolley.dicom_qr.DICOMQR][]). This method does not use a http connection but 
-uses the DICOM protocol directly. 
-
-In addition to the standard [`Query`][dicomtrolley.core.Query], DICOMQR instances accept [dicomtrolley.dicom_qr.DICOMQuery][] queries
-
-### MINT
-```python 
-searcher = Mint(requests.session(), "http://server/mint")
-```
-See [dicomtrolley.mint.Mint][] 
-
-In addition to the standard [`Query`][dicomtrolley.core.Query], Mint instances accept [dicomtrolley.mint.MintQuery][] queries
-
-### QIDO-RS
-```python 
-searcher = QidoRS(session=session, url="http://server/qido")
-```
-See [dicomtrolley.qido_rs.QidoRS][]
-
-In addition to the standard [`Query`][dicomtrolley.core.Query], QidoRS instances accept both
-[dicomtrolley.qido_rs.RelationalQuery][] and [dicomtrolley.qido_rs.HierarchicalQuery][] instances
 
 
 ## Downloader
-Something that can download DICOM images. Dicomtrolley includes the following [Downloader][dicomtrolley.core.Downloader] 
-classes:
+Something that can download DICOM images. Takes a [DICOMDownloadable](#dicomdownloadable)
+and returns [pydicom Datasets](https://pydicom.github.io/pydicom/stable/guides/user/base_element.html#dataset).
+The usage page lists several
+[download system implementations](usage.md/#choosing-a-downloader).
 
-### WADO-URI
-```python
-downloader = WadoURI(requests.session(), "https://server/wado")
-```
-See [DICOM part18 chapter 9](https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_9.html). 
-API reference: [dicomtrolleywado_uri][]
-
-### RAD69
-```python
-searcher = Rad69(session=requests.session(), url="https://server/rad69")
-```
-
-Based on [this document](https://gazelle.ihe.net/content/rad-69-retrieve-imaging-document-set). 
-API reference: [dicomtrolleyrad69][]
-
-### WADO-RS
-```python
-searcher = WadoRS(session=requests.session(), url="https://server/wadors")
-```
-
-[WADO-RS description](https://www.dicomstandard.org/using/dicomweb/retrieve-wado-rs-and-wado-uri/). 
-API reference: [dicomtrolleywado_rs][]

@@ -34,7 +34,7 @@ studies = trolley.find_studies(
           include_fields=['PatientBirthDate', 'ReferringPhysicianName']))
 ```
 
-For details on Query parameters see [`Query`](concepts.md#Query)
+For details on Query parameters see [`Query`](concepts.md#query)
 
 ## Finding series and instance details
 To include series and instance level information as well, use the [`queryLevel`](concepts.md#query_level) parameter
@@ -93,8 +93,73 @@ for ds in trolley.fetch_all_datasets(studies):  # obtain Dataset for each instan
     ds.save_as(f'/tmp/{ds.SOPInstanceUID}.dcm')
 ```
 
-## Protocols
-Have a look at the [downloader](concepts.md#downloader) and [searcher](concepts.md#searcher) implementations.  
+## Choosing a searcher
+Something that can search for DICOM studies. Dicomtrolley includes the following 
+[Searcher][dicomtrolley.core.Searcher] classes:
+
+### DICOM-QR
+```python 
+searcher = DICOMQR(host="hostname", port="123",aet="DICOMTROLLEY", aec="ANY-SCP")
+```
+DICOM query retrieve ([dicomtrolley.dicom_qr.DICOMQR][]). This method does not use a http connection but 
+uses the DICOM protocol directly. 
+
+In addition to the standard [`Query`][dicomtrolley.core.Query], DICOMQR instances accept [dicomtrolley.dicom_qr.DICOMQuery][] queries
+
+### MINT
+```python 
+searcher = Mint(requests.session(), "http://server/mint")
+```
+See [dicomtrolley.mint.Mint][] 
+
+In addition to the standard [`Query`][dicomtrolley.core.Query], Mint instances accept [dicomtrolley.mint.MintQuery][] queries
+
+### QIDO-RS
+```python 
+searcher = QidoRS(session=session, url="http://server/qido")
+```
+See [dicomtrolley.qido_rs.QidoRS][]
+
+In addition to the standard [`Query`][dicomtrolley.core.Query], QidoRS instances accept both
+[dicomtrolley.qido_rs.RelationalQuery][] and [dicomtrolley.qido_rs.HierarchicalQuery][] instances
+
+
+## Choosing a downloader
+Something that can download DICOM images. Dicomtrolley includes the following [Downloader][dicomtrolley.core.Downloader] 
+classes:
+
+### WADO-URI
+```python
+downloader = WadoURI(requests.session(), "https://server/wado")
+```
+See [DICOM part18 chapter 9](https://dicom.nema.org/medical/dicom/current/output/chtml/part18/chapter_9.html). 
+API reference: [dicomtrolley.wado_uri][]
+
+### RAD69
+```python
+searcher = Rad69(session=requests.session(), url="https://server/rad69")
+```
+
+Based on [this document](https://gazelle.ihe.net/content/rad-69-retrieve-imaging-document-set). 
+API reference: [dicomtrolley.rad69][]
+
+### WADO-RS
+```python
+searcher = WadoRS(session=requests.session(), url="https://server/wadors")
+```
+[WADO-RS](https://www.dicomstandard.org/using/dicomweb/retrieve-wado-rs-and-wado-uri/)
+to download full DICOM datasets
+ 
+API reference: [dicomtrolley.wado_rs.WadoRS][]
+
+### WADO-RS Metadata
+```python
+searcher = WadoRSMetadata(session=requests.session(), url="https://server/wadors")
+```
+[WADO-RS](https://www.dicomstandard.org/using/dicomweb/retrieve-wado-rs-and-wado-uri/)
+ to download metadata-only. This means all DICOM elements except for PixelData.
+
+API reference: [dicomtrolley.wado_rs.WadoRSMetaData][]
 
 
 ## Download format
