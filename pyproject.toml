@@ -1,6 +1,6 @@
 [project]
 name = "dicomtrolley"
-version = "4.0.0"
+version = "4.1.0"
 description = "Retrieve medical images via WADO-URI, WADO-RS, QIDO-RS, MINT, RAD69 and DICOM-QR"
 authors = [{name="Sjoerd Kerkstra", email ="sjoerd.kerkstra@radboudumc.nl"}]
 readme = "README.md"
