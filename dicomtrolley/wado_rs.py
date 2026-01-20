@@ -8,30 +8,6 @@ See Also
 [DICOM part18 section 10.4]
 (https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_10.4.html)
 
-Notes
------
-Models only the parts of WADO-RS directly related to downloading DICOM image data.
-WADO-RS also supports downloading metadata and rendered images, but these are
-outside the scope of the dicomtrolley project.
-
-Specifically, from DICOM PS3.18 section 10.4
-
-Download supported by dicomtrolley:
-
-* Instance resources (download all instances)
-
-Download Not Supported by dicomtrolley:
-
-* Metadata resources
-
-* Rendered resources
-
-* Thumbnail resources
-
-* Bulkdata resources
-
-* Pixel Data resources
-
 """
 import json
 from itertools import chain
@@ -58,7 +34,7 @@ logger = get_module_logger("wado_rs")
 
 
 class WadoRS(Downloader):
-    """A connection to a WADO-RS server"""
+    """A connection to a WADO-RS endpoints for downloading full datasets"""
 
     def __init__(
         self, session, url, http_chunk_size=5242880, request_per_series=True
@@ -231,8 +207,42 @@ class WadoRS(Downloader):
             )
 
 
-class WadoRSMetaData(WadoRS):
-    """A WADO-RS /metadata Downloader that downloads only metadata, no PixelData"""
+class WadoRSMetaData(Downloader):
+    """A connection to WADO-RS to download only metadata, no PixelData"""
+
+    def __init__(self, session, url):
+        """
+        Parameters
+        ----------
+        session: requests.session
+            A logged-in session over which WADO calls can be made
+        url: str
+            WADO-RS endpoint, including protocol and port. Like
+            https://server:8080/wado
+        """
+
+        self.session = session
+        self.url = url
+
+    def datasets(self, objects: Sequence[DICOMDownloadable]):
+        """Retrieve each instance
+
+        Returns
+        -------
+        Iterator[Dataset, None, None]
+
+        Raises
+        ------
+        DICOMTrolleyError
+            If getting does not work for some reason
+        """
+        logger.debug("Getting datasets")
+        if isinstance(objects, DICOMDownloadable):
+            objects = [objects]  # handle passing single object instead of list
+
+        return chain.from_iterable(
+            self.download_iterator(obj) for obj in objects
+        )
 
     def wado_rs_instance_uri(self, reference: DICOMObjectReference):
         """WADO-RS URI to request all instances contained in referenced object"""
