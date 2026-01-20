@@ -62,3 +62,13 @@ To edit the docs:
 * Try out your changes using `uv run mkdocs serve`
 
 * To add docs requirements: `uv add --group dev <package to add>`. To remove `uv remove --group dev <package to add>` 
+
+### testing doc examples
+* run pytest in the /docs folder: `cd /docs` -> `uv run pytest`
+
+If your docstests have import errors, look at /docs/conftest.py -> `setup_namespaces()`.
+This function describes import statements done before any doc example script. Imports
+are done in script because it is distracting to have multiple import statements above
+a single line of example code
+
+ 

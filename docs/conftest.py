@@ -25,7 +25,7 @@ from dicomtrolley.mint import Mint, MintQuery
 from dicomtrolley.qido_rs import QidoRS
 from dicomtrolley.rad69 import Rad69
 from dicomtrolley.trolley import Trolley
-from dicomtrolley.wado_rs import WadoRS
+from dicomtrolley.wado_rs import WadoRS, WadoRSMetaData
 from dicomtrolley.wado_uri import WadoURI
 from tests.conftest import set_mock_response
 from tests.factories import quick_dataset
@@ -73,6 +73,7 @@ def setup_namespace(namespace: Dict[str, Any]):
         "Mint": Mint,
         "WadoURI": WadoURI,
         "WadoRS": WadoRS,
+        "WadoRSMetadata": WadoRSMetaData,
         "Rad69": Rad69,
         "QidoRS": QidoRS,
         "Query": Query,
