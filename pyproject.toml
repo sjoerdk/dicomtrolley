@@ -16,6 +16,11 @@ dependencies = [
     "requests-toolbelt>=1.0.0",
     "pydantic>=2"
 ]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
+]
 
 [dependency-groups]
 dev = [
